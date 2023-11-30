@@ -50,7 +50,7 @@ class GistPowerExtension(omni.ext.IExt):
                 label = ui.Label("")
 
                 def on_click():
-                    response = requests.get("http://10.32.74.70:5000/nodes")
+                    response = requests.get("http://10.32.74.71:5000/nodes")
 
                     if response.status_code == 200:
                         data = response.json()
