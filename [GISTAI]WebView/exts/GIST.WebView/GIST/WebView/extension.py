@@ -11,7 +11,7 @@ except:
 class GistWebviewExtension(omni.ext.IExt):
     nuc_power_map = {}  # A dictionary that maps NUC name to its power status
     def update_nuc_status(self):
-        response = requests.get("http://10.32.74.70:5000/nodes")
+        response = requests.get("http://10.32.74.71:5000/nodes")
         if response.status_code == 200:
             data = response.json()
 
