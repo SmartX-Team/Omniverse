@@ -15,8 +15,6 @@ class GistWebviewExtension(omni.ext.IExt):
         if response.status_code == 200:
             data = response.json()
 
-            
-
             for item in data:
                 name = self.get_nuc_name(item.get("Name", ""))
                 status = item.get("Status", "")

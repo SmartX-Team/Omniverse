@@ -4,19 +4,7 @@ from omni.usd import get_context
 from pxr import Usd, UsdGeom, UsdPhysics, UsdShade, Sdf, Gf, Tf, PhysxSchema
 import asyncio
 import json
-
-try:
-    import redis
-except:
-    omni.kit.pipapi.install("redis")
-try:
-    import httpx
-except:
-    omni.kit.pipapi.install("httpx")
-
-
-
-#print(dir(UsdPhysics.CollisionAPI))
+from aiokafka import AIOKafkaConsumer
 
 prim_map = {}
 stage = get_context().get_stage()
@@ -24,73 +12,109 @@ stage = get_context().get_stage()
 for prim in stage.Traverse():
     prim_map[prim.GetName()] = prim
 
-r = redis.StrictRedis(host='10.32.187.108', port=6379, db=0)
-# Functions and vars are available to other extension as usual in python: `example.python_ext.some_public_function(x)`
-def some_public_function(x: int):
-    print("[GIST.UWB.traking] some_public_function was called with x: ", x)
-    return x ** x
+# 하드코딩한 ID 와 NUC_PC 이름 매핑
+MAP_DATA = {
+    "24":"NUC11_01",
+    "40":"NUC11_02",
+    "39":"NUC11_03",
+    "37":"NUC11_04",
+    "36":"NUC11_05",
+    "31":"NUC11_06",
+    "49":"NUC11_07",
+    "25":"NUC11_08",
+    "44":"NUC11_09",
+    "23":"NUC11_10",
+    "20":"NUC12_01",
+    "22":"NUC12_02",
+    "46":"NUC12_03",
+    "19":"NUC12_04",
+    "45":"NUC12_05",
+    "29":"NUC12_06",
+    "18":"NUC12_07",
+    "33":"NUC12_08",
+    "43":"NUC12_09",
+    "26":"NUC12_10",
+    "48":"NUC12_11",
+    "41":"NUC12_12",
+    "21":"NUC12_13",
+    "35":"NUC12_14",
+    "47":"NUC12_15",
+    "38":"NUC12_16",
+    "9":"NUC12_17",
+    "34":"NUC12_18",
+    "32":"NUC12_19",
+    "42":"NUC12_20"
+}
 
 class CompanyHelloWorldExtension(omni.ext.IExt):
     # ext_id is current extension id. It can be used with extension manager to query additional information, like where
     # this extension is located on filesystem.
     def __init__(self):
-        # _count 변수 초기화
-        self._count = 0
-        self._test = 0
+
+        self.bootstrap_servers = "10.32.187.108:9092"
+        self.topic_name = "test"
+        self._group_id = "my--group"
+        self._consumer = None
+        self._consuming = False
+
     def on_startup(self, ext_id):
         print("[GIST.UWB.traking] startup")
-
+        #asyncio.ensure_future(self.consume_messages())
 
         self._window = ui.Window("UWB traking", width=500, height=300)
         with self._window.frame:
             with ui.VStack():
-                label = ui.Label("")
 
-                async def on_click_coroutine(label, _test, _count):  
-                    self._count = 100
 
-                    while self._count > 0 :
-                        await move_objectoredis()
-                        self._test += 1
-                        label.text = f"count: {self._test}"
-                        await asyncio.sleep(1)   
+                async def on_click_coroutine():  
+                     asyncio.create_task(self.consume_messages())
 
                 def on_reset():
-                    
-                    self._test = 0
-                    label.text = f"count: {self._test}"
-                    self._count = 0
-                    #try :
-                    #except Exception as e:
-                        #label.text = f"Error: {e}"
-
+                    print("UWB off")
+                    asyncio.run(self._consumer.stop()) if self._consumer else None
+   
                 with ui.HStack():
-                    ui.Button("UWB on", clicked_fn=lambda: asyncio.ensure_future(on_click_coroutine(label, self._test, self._count)))
+                    ui.Button("UWB on", clicked_fn=lambda: asyncio.ensure_future(on_click_coroutine()))
                     ui.Button("UWB off", clicked_fn=on_reset)
-                    ui.Button("WebView", clicked_fn=lambda: asyncio.ensure_future(sage2()))
 
     def on_shutdown(self):
         print("[company.hello.world] company hello world shutdown")
+        asyncio.run(self._consumer.stop()) if self._consumer else None
 
-     
-async def move_objectoredis():
+    async def consume_messages(self):
+        self._consumer = AIOKafkaConsumer(
+            self.topic_name,
+            bootstrap_servers=self.bootstrap_servers,
+            group_id=self._group_id,
+            auto_offset_reset="earliest"
+        )
+            # Start the consumer
+        await self._consumer.start()
+        try:
+            # Consume messages
+            async for msg in self._consumer:
 
-    data = r.rpop('uwb_queue')
-    while data:  # data가 None이 아닐 때까지 반복
-    # 여기서 data를 처리합니다. 예를 들면:
-        deserialized_data = json.loads(data.decode('utf-8'))
-        x, z = await transform_coordinates(deserialized_data['posX'], deserialized_data['posY'])
-        obj_name = deserialized_data['alias'].replace('/', '_')
-        translation = [z, 90.0, x]  # Move 10 units in X and 5 units in Z
-        print(translation)
-        await move_object_by_name(obj_name, translation)
+                decoded_message = msg.value.decode('utf-8')
+                await move_object_byKafka(decoded_message)
+        finally:
+            # Will leave consumer group; perform autocommit if enabled.
+            await self._consumer.stop()
 
-        data = r.rpop('uwb_queue')
+async def move_object_byKafka(data):
+    deserialized_data = json.loads(data)
+
+    id_str = str(deserialized_data['id'])
+    name = MAP_DATA.get(id_str)
+    print(deserialized_data)
+    x, z = await transform_coordinates(deserialized_data['latitude'], deserialized_data['longitude'])
+    #obj_name = deserialized_data['alias'].replace('/', '_')
+    translation = [z, 90.0, x]  # Move 10 units in X and 5 units in Z
+    await move_object_by_name(name, translation)
 
 async def transform_coordinates(x, y):
   
     m_x = (x) *100
-    m_y = -(y) *100
+    m_y = (y) *100
     x_prime = round(m_x, 2)
     z_prime = round(m_y, 2)
 
@@ -112,27 +136,3 @@ async def move_object_by_name(obj_name, translation):
         prim = prim_map[obj_name]
         xformAPI = UsdGeom.XformCommonAPI(prim)
         xformAPI.SetTranslate(Gf.Vec3d(translation[0], translation[1], translation[2]))
-    """
-    for prim in stage.Traverse():
-        if prim.GetName() == obj_name:
-            #xformable = UsdGeom.Xformable(prim)
-            xformAPI = UsdGeom.XformCommonAPI(prim)
-            api = UsdPhysics.CollisionAPI(prim)
-            print(api)
-            print(api.CreateCollisionEnabledAttr(True))
-            print(api.GetCollisionEnabledAttr())
-
-            # Apply translation
-            xformAPI.SetTranslate(Gf.Vec3d(translation[0], translation[1], translation[2]))
-
-            print(f"Moved object {obj_name} to new position.")
-            return
-
-    print(f"Object {obj_name} not found.")
-    """
-async def sage2():
-    data = "open http://10.32.205.64:6080/vnc_lite.html?scale=true"
-
-    # httpx를 사용하여 POST 요청 실행
-    response = await httpx.post("http://10.32.187.108:9292/command", data=data)
-

@@ -41,7 +41,7 @@ icon = "data/icon.png"
 name = "company"
 
 [python.pipapi]
-requirements = ['requests', 'httpx']
+requirements = ['requests', 'httpx', 'aiokafka']
 use_online_index = true
 
 [[test]]
