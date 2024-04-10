@@ -43,7 +43,8 @@ MAP_DATA = {
     "9":"NUC12_17",
     "34":"NUC12_18",
     "32":"NUC12_19",
-    "42":"NUC12_20"
+    "42":"NUC12_20",
+    "15":"HUSKY_01"
 }
 
 class CompanyHelloWorldExtension(omni.ext.IExt):
@@ -79,7 +80,9 @@ class CompanyHelloWorldExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         print("[company.hello.world] company hello world shutdown")
-        asyncio.run(self._consumer.stop()) if self._consumer else None
+        #asyncio.run(self._consumer.stop()) if self._consumer else None
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._consumer.stop()) if self._consumer else None
 
     async def consume_messages(self):
         self._consumer = AIOKafkaConsumer(
@@ -105,10 +108,13 @@ async def move_object_byKafka(data):
 
     id_str = str(deserialized_data['id'])
     name = MAP_DATA.get(id_str)
-    print(deserialized_data)
+    #print(deserialized_data)
     x, z = await transform_coordinates(deserialized_data['latitude'], deserialized_data['longitude'])
     #obj_name = deserialized_data['alias'].replace('/', '_')
-    translation = [z, 90.0, x]  # Move 10 units in X and 5 units in Z
+    if id_str == "15":
+        translation = [z, 105.0, x]
+    else:
+        translation = [z, 90.0, x] 
     await move_object_by_name(name, translation)
 
 async def transform_coordinates(x, y):
