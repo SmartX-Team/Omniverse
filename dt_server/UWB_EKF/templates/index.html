@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Main Page</title>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-ui-timepicker-addon/1.6.3/jquery-ui-timepicker-addon.min.js"></script>
+    <script>
+        $(function() {
+            $('#start').datetimepicker({
+                dateFormat: 'yy-mm-dd',
+                timeFormat: 'HH:mm:ss'
+            });
+            $('#end').datetimepicker({
+                dateFormat: 'yy-mm-dd',
+                timeFormat: 'HH:mm:ss'
+            });
+
+            $(document).on('click', '.select-tag', function() {
+                var tagId = $(this).data('tag-id');
+                $('#tag_id').val(tagId);
+            });
+        });
+        // 다음 페이지 넘어갈때 데이터 전송하려고 만든 함수
+        function goToDistanceError() {
+            var tagId = document.getElementById('tag_id').value;
+            var startTime = document.getElementById('start').value;
+            var endTime = document.getElementById('end').value;
+            var url = '/distance_error?tag_id=' + encodeURIComponent(tagId) + '&start=' + encodeURIComponent(startTime) + '&end=' + encodeURIComponent(endTime);
+            window.location.href = url; // 페이지 이동
+        }
+    </script>
+</head>
+<body>
+    <h1>Welcome to the Tag Movement Analysis Tool</h1>
+    <form action="/analyze" method="post">
+        <label for="tag_id">Tag ID:</label>
+        <input type="text" id="tag_id" name="tag_id"><br><br>
+        
+        <label for="start">Start Time (YYYY-MM-DD HH:MM:SS):</label>
+        <input type="text" id="start" name="start" value="{{ start_default }}"><br><br>
+        
+        <label for="end">End Time (YYYY-MM-DD HH:MM:SS):</label>
+        <input type="text" id="end" name="end" value="{{ end_default }}"><br><br>
+        
+        <input type="submit" value="Analyze Movement">
+        
+    </form>
+    <button onclick="goToDistanceError()">Distance Error Calculation</button>
+
+    
+    <h2>Search Results:</h2>
+    <table border="1">
+        <tr>
+            <th>Tag ID</th>
+            <th>Kube ID</th>
+            <th>NUC ID</th>
+            <th>Action</th>
+        </tr>
+        {% for tag_id, kube_id, nuc_id in tags %}
+        <tr>
+            <td>{{ tag_id }}</td>
+            <td>{{ kube_id }}</td>
+            <td>{{ nuc_id }}</td>
+            <td><button type="button" class="select-tag" data-tag-id="{{ tag_id }}">Select</button></td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

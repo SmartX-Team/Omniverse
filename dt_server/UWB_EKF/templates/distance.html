@@ -1,0 +1,74 @@
+<!-- distance_error.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Distance Error Calculation</title>
+</head>
+<body>
+    <h1>Calculate Movement Metrics</h1>
+    <form id="calculationForm">
+        <select id="calculationType">
+            <option value="speed">Calculate Speed</option>
+            <option value="position">Calculate Position</option>
+            <option value="error">Calculate Distance Error</option>
+        </select><br><br>
+
+        <label for="start_x">Start X Coordinate (meters):</label>
+        <input type="text" id="start_x" name="start_x"><br><br>
+
+        <label for="start_y">Start Y Coordinate (meters):</label>
+        <input type="text" id="start_y" name="start_y"><br><br>
+
+        <label for="end_x">End X Coordinate (meters):</label>
+        <input type="text" id="end_x" name="end_x"><br><br>
+
+        <label for="end_y">End Y Coordinate (meters):</label>
+        <input type="text" id="end_y" name="end_y"><br><br>
+
+        <label for="second">Time (seconds):</label>
+        <input type="text" id="second" name="second" ><br><br>
+        <label for="speed">Speed (m/seconds):</label>
+        <input type="text" id="speed" name="speed" value=0><br><br>
+
+        <input type="button" onclick="submitCalculation()" value="Calculate">
+
+    </form>
+
+    <div id="result"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        
+        function submitCalculation() {
+            //var movementsData = JSON.parse($('#movementsData').val());
+            var formData = {
+                calculationType: $('#calculationType').val(),
+                start_x: $('#start_x').val(),
+                start_y: $('#start_y').val(),
+                end_x: $('#end_x').val(),
+                end_y: $('#end_y').val(),
+                second: $('#second').val(),
+                speed: $('#speed').val()
+            };
+
+            $.ajax({
+                type: 'POST',
+                url: '/calculate_error',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    $('#result').html(response.message);
+                    if (response.status === 'success' && formData.calculationType === 'speed') {
+                        $('#calculated_speed').val(response.speed);
+                    }
+                },
+                error: function() {
+                    $('#result').html('Error processing request.');
+                }
+            });
+        }
+    </script>
+
+{% include 'footer.html' %}
+</body>
+</html>

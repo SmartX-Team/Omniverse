@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tag Movement Visualization</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        svg {
+            width: 800px;
+            height: 600px;
+            border: 1px solid black;
+        }
+    </style>
+</head>
+<body>
+    <svg></svg>
+    <script>
+        const svg = d3.select("svg");
+        const width = +svg.attr("width");
+        const height = +svg.attr("height");
+
+        // 화면 범위에 맞춰 스케일 조정
+        const xScale = d3.scaleLinear().domain([0, 28]).range([0, width]);
+        const yScale = d3.scaleLinear().domain([0, -28]).range([0, height]);
+
+        const g = svg.append("g");
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 40])  // 최소 줌 아웃을 허용
+            .translateExtent([[-100, -100], [width + 100, height + 100]])
+            .on("zoom", zoomed);
+
+        svg.call(zoom);
+
+        function zoomed(event) {
+            g.attr("transform", event.transform);
+        }
+
+        d3.json("/data/11").then(function(data) {
+            console.log(data);
+            const line = d3.line()
+                .x(d => xScale(d[0]))  // x 좌표 접근 방식
+                .y(d => yScale(d[1])); // y 좌표 접근 방식
+
+            g.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", "blue")
+                .attr("stroke-width", 2)
+                .attr("d", line);
+
+            if (data.length > 0) {
+                const lastPoint = data[data.length - 1];
+                g.append("circle")
+                    .attr("cx", xScale(lastPoint[0]))
+                    .attr("cy", yScale(lastPoint[1]))
+                    .attr("r", 5)
+                    .attr("fill", "red");
+            }
+        });
+    </script>
+
+    {% include 'footer.html' %}
+</body>
+</html>
