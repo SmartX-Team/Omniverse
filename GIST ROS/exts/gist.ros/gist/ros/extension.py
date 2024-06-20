@@ -91,7 +91,7 @@ async def rotate_object_byKafka(data):
     rotation_attr = prim.GetAttribute('xformOp:rotateXYZ')
     rotation_value = rotation_attr.Get()
 
-    omniverse_data = data['azimuth_angle_degrees']-55
+    omniverse_data = data['azimuth_angle_degrees']-30
     if omniverse_data < 0:
         omniverse_data = omniverse_data + 360
     omniverse_data = omniverse_data + 180

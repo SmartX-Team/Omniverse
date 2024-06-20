@@ -53,10 +53,10 @@ class CompanyHelloWorldExtension(omni.ext.IExt):
     def __init__(self):
 
         self.bootstrap_servers = "10.32.187.108:9092"
-        self.topic_name = "test"
-        self._group_id = "my--group"
+        self.topic_name = "omniverse_uwb"
         self._consumer = None
-        self._consuming = False
+        self._group_id = "my--group"
+        self._consuming_task = None
 
     def on_startup(self, ext_id):
         print("[GIST.UWB.traking] startup")
@@ -65,14 +65,15 @@ class CompanyHelloWorldExtension(omni.ext.IExt):
         self._window = ui.Window("UWB traking", width=500, height=300)
         with self._window.frame:
             with ui.VStack():
-
-
                 async def on_click_coroutine():  
-                     asyncio.create_task(self.consume_messages())
+                     await self.start_consuming()
 
                 def on_reset():
                     print("UWB off")
-                    asyncio.run(self._consumer.stop()) if self._consumer else None
+                    if self._consuming_task:
+                        self._consumer_task.cancel()
+                        asyncio.run(self._consumer.stop())
+                        self._consumer = None
    
                 with ui.HStack():
                     ui.Button("UWB on", clicked_fn=lambda: asyncio.ensure_future(on_click_coroutine()))
@@ -81,36 +82,43 @@ class CompanyHelloWorldExtension(omni.ext.IExt):
     def on_shutdown(self):
         print("[company.hello.world] company hello world shutdown")
         #asyncio.run(self._consumer.stop()) if self._consumer else None
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._consumer.stop()) if self._consumer else None
+        if self._consumer:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self._consumer.stop())
+            self._consumer = None
+
+    async def start_consuming(self):
+        if self._consuming_task is None or self._consuming_task.done():
+            self._consuming_task = asyncio.ensure_future(self.consume_messages())
 
     async def consume_messages(self):
+        print("UWB on")
         self._consumer = AIOKafkaConsumer(
             self.topic_name,
             bootstrap_servers=self.bootstrap_servers,
-            group_id=self._group_id,
-            auto_offset_reset="earliest"
+            auto_offset_reset="earliest",
+            group_id=self._group_id
         )
             # Start the consumer
         await self._consumer.start()
         try:
             # Consume messages
             async for msg in self._consumer:
-
                 decoded_message = msg.value.decode('utf-8')
                 await move_object_byKafka(decoded_message)
         finally:
             # Will leave consumer group; perform autocommit if enabled.
             await self._consumer.stop()
+            self._consumer = None
 
 async def move_object_byKafka(data):
     deserialized_data = json.loads(data)
-
     id_str = str(deserialized_data['id'])
     name = MAP_DATA.get(id_str)
-    #print(deserialized_data)
+
     x, z = await transform_coordinates(deserialized_data['latitude'], deserialized_data['longitude'])
     #obj_name = deserialized_data['alias'].replace('/', '_')
+    print(f"Object {name} is moving to {x}, {z}")
     if id_str == "15":
         translation = [z, 105.0, x]
     else:
@@ -118,9 +126,8 @@ async def move_object_byKafka(data):
     await move_object_by_name(name, translation)
 
 async def transform_coordinates(x, y):
-  
     m_x = (x) *100
-    m_y = (y) *100
+    m_y = (y) *-100
     x_prime = round(m_x, 2)
     z_prime = round(m_y, 2)
 
@@ -138,7 +145,7 @@ async def move_object_by_name(obj_name, translation):
     if obj_name not in prim_map:
         print(f"Object {obj_name} not found.")
         return
-    else :
-        prim = prim_map[obj_name]
-        xformAPI = UsdGeom.XformCommonAPI(prim)
-        xformAPI.SetTranslate(Gf.Vec3d(translation[0], translation[1], translation[2]))
+    
+    prim = prim_map[obj_name]
+    xformAPI = UsdGeom.XformCommonAPI(prim)
+    xformAPI.SetTranslate(Gf.Vec3d(translation[0], translation[1], translation[2]))
