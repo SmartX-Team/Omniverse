@@ -1,9 +1,10 @@
 """
 
---- 작성일 :2024.04.30 송인용 ---
-프로젝트 특성상 시간 측정할 일이 많아서 시간 관련 작업들은 모와서 하나의 클래스로 만들어서 사용하고 있다.
-지금은 작업하면서 시간 측정과 관련된 기능들이 필요하면 하나씩 구현하면서 사용하고 있는데, 나중에 Omniverse 안정화되면 
-전문적으로 만들어진 time 유틸리티 코드 가져와서 사용하면 될 듯하다.
+--- 작성일 :2024.05.11 송인용 -- 
+
+기존 유틸 파일들은 별도 .py 로 관리하는 의미가 없는거 같아 해당 파일로 뭉쳐서 관리하게 되었다.
+util.py 같은 파일은 Mobilex-digital twin용  pvc 에서 별도로 업데이트하면서 관리하고 프로젝트별로 주입하는 식으로 통일할까도 생각했는데
+당장은 그렇게 할 필요가 없어보여서 새로운 프로젝트 만들면 util 파일 복붙하면서 쓰고 있다.
 
 """
 
@@ -107,3 +108,14 @@ class TimeUtil:
         print(f"Type of start_timestamp_utc: {start_timestamp_utc}")
         print(f"Type of end_timestamp_utc: {end_timestamp_utc}")
         return start_timestamp_utc, end_timestamp_utc
+    
+
+"""
+Filter 같은거 만들때 계산할때 사용하는 함수들 모음이다.
+
+"""
+class CalcUtil:
+
+    def __init__(self, timezone_offset='9'):
+        """ Initialize the TimeUtil with a specific timezone offset (default is UTC-9). """
+        self.timezone_offset = int(timezone_offset)

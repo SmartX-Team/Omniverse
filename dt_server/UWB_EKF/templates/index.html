@@ -30,10 +30,18 @@
             var url = '/distance_error?tag_id=' + encodeURIComponent(tagId) + '&start=' + encodeURIComponent(startTime) + '&end=' + encodeURIComponent(endTime);
             window.location.href = url; // 페이지 이동
         }
+
+        function goToRobotControl() {
+
+            var url = '/robot/control';
+            window.location.href = url; // 페이지 이동
+        }
     </script>
 </head>
 <body>
     <h1>Welcome to the Tag Movement Analysis Tool</h1>
+    <button type="button" class="robot" onclick="goToRobotControl()">GO To Robot Control KIA</button>
+
     <form action="/analyze" method="post">
         <label for="tag_id">Tag ID:</label>
         <input type="text" id="tag_id" name="tag_id"><br><br>
@@ -67,5 +75,6 @@
         </tr>
         {% endfor %}
     </table>
+    
 </body>
 </html>

@@ -1,40 +1,19 @@
-"""
-
-
---- 작성일 :2024.05.12 송인용 ---
-
-기존 버그는 좀 고치고 Collection 코드는 유지하기로 해서 Signal 신호 처리 로직 추가해서 안정성 추가
-
---- 작성일 :2024.04.30 송인용 ---
-
-심플하게 DB 연결하고 UWB 데이터 들어오는대로 table에 집어넣는 코드
-
-Wwebsocket_raw.py 랑 같이 넣어서 간단하게 UWB 움직일때마다 DB에 적재하는 간단한 컨테이너로 만듬
-
-"""
-
 import json
-import psycopg2
-from Websocket_raw import  SewioWebSocketClient_v2
 import os
-from kafka import KafkaProducer
+import psycopg2
+from kafka import KafkaProducer, KafkaConsumer
 
-"""
-
-MVC 신경 안쓰고 오르지 Sewio RLTS 에서 데이터 넘어오면 DB만 적재하도록 작성된 코드
-
-"""
 class DataManager:
     def __init__(self, config_path):
         self.config_path = config_path
         self.load_config()
 
         self.producer = None
-        self.topic_name = None
+        self.consumer = None
+        self.topic_name_in = None
+        self.topic_name_out = None
         self.db_connect()
         self.kafka_connect()
-
-
 
     def load_config(self):
         with open(self.config_path, 'r') as file:
@@ -56,18 +35,30 @@ class DataManager:
 
     def kafka_connect(self):
         try:
-            self.producer = KafkaProducer(bootstrap_servers=self.config['kafka_server'],
-                                          value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-            self.topic_name = self.config['topic_name']
+            # Producer 설정
+            self.producer = KafkaProducer(
+                bootstrap_servers=self.config['kafka_server'],
+                value_serializer=lambda v: json.dumps(v).encode('utf-8')
+            )
+
+            # Consumer 설정
+            self.consumer = KafkaConsumer(
+                self.config['topic_name_in'],
+                bootstrap_servers=self.config['kafka_server'],
+                value_deserializer=lambda v: json.loads(v.decode('utf-8')),
+                group_id=self.config['consumer_group_id']
+            )
+
+            self.topic_name_in = self.config['topic_name_in']
+            self.topic_name_out = self.config['topic_name_out']
 
             print("Kafka connection successfully established.")
         except Exception as e:
             print(f"Failed to connect to Kafka: {e}")
 
     def send_data_to_kafka(self, tag_id, posX, posY):
-        # 데이터를 JSON 문자열로 변환합니다.
         coord_data = {'id': tag_id, 'latitude': posX, 'longitude': posY}
-        self.producer.send(self.topic_name, coord_data)
+        self.producer.send(self.topic_name_out, coord_data)
         self.producer.flush()
 
     def close_producer(self):
@@ -81,21 +72,33 @@ class DataManager:
         self.cursor.execute(query, (tag_id, posX, posY, timestamp, anchor_info))
         self.conn.commit()
 
-    def handle_data(self, tag_id, posX, posY, timestamp, anchor_info):
-        #print(f"Data received: Tag ID={tag_id}, Position X={posX}, Position Y={posY}, Timestamp={timestamp}")
-        self.store_data_in_db(tag_id, posX, posY, timestamp, anchor_info)
-        self.send_data_to_kafka(tag_id, posX, posY)
+    def handle_data(self, data):
+        tag_id = data.get('tag_id')
+        posX = data.get('posX')
+        posY = data.get('posY')
+        timestamp = data.get('timestamp')
+        anchor_info = data.get('anchor_info')
+
+        if tag_id and posX and posY and timestamp and anchor_info:
+            self.store_data_in_db(tag_id, posX, posY, timestamp, anchor_info)
+            self.send_data_to_kafka(tag_id, posX, posY)
+        else:
+            print("Received data is missing required fields.")
+
+    def consume_and_process_data(self):
+        for message in self.consumer:
+            data = message.value
+            print(f"Received data: {data}")
+            self.handle_data(data)
 
 
 def main():
-    url = "ws://10.76.20.88/sensmapserver/api"
     config_path = os.getenv('CONFIG_PATH', '/home/netai/Omniverse/dt_server/UWB_EKF/config.json')
 
     manager = DataManager(config_path)
 
-    client = SewioWebSocketClient_v2(url, data_callback=manager.handle_data)
     try:
-        client.run_forever()
+        manager.consume_and_process_data()
     finally:
         manager.close_producer()
 

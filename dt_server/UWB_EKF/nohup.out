@@ -1,0 +1,708 @@
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Serving Flask app 'flask_webserver'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.32.187.108:5000
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+10.32.36.88 - - [30/May/2024 14:25:57] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:25:58] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:38:41] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:43:01] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:53:14] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:53:17] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:55:10] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:55:14] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:56:15] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:56:37] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 14:56:40] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:06:05] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:06:09] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:08:04] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:08:21] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:08:44] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:08:44] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+10.32.36.88 - - [30/May/2024 15:08:55] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:09:00] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 15:09:27] "POST /robot/control/receive HTTP/1.1" 200 -
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/flask_webserver.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 3.0}
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 3.0}
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}]
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 3.0}
+Type of start_timestamp_utc: 2024-05-30 06:08:55.977386
+Type of end_timestamp_utc: 2024-05-30 06:08:59.077386
+Params being inserted: (datetime.datetime(2024, 5, 30, 6, 8, 55, 977386), datetime.datetime(2024, 5, 30, 6, 8, 59, 77386), '1', '19.1', '-22.6', '19.1', '-17.21')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 3.0}
+Type of start_timestamp_utc: 2024-05-30 06:09:00.012808
+Type of end_timestamp_utc: 2024-05-30 06:09:03.112808
+Params being inserted: (datetime.datetime(2024, 5, 30, 6, 9, 0, 12808), datetime.datetime(2024, 5, 30, 6, 9, 3, 112808), '1', '19.1', '-22.6', '19.1', '-17.21')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 30.0}
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/db_stat.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+10.32.36.88 - - [30/May/2024 15:33:48] "GET /robot/control HTTP/1.1" 200 -
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/flask_webserver.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}, {'id': 2, 'name': 'line2-1', 'x_start': 19.75, 'x_end': 19.75, 'y_start': -22.6, 'y_end': -15.4, 'description': 'MobileX-Studio'}]
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/flask_webserver.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/flask_webserver.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+10.32.36.88 - - [30/May/2024 16:24:01] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:25:41] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:25:51] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:26:07] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:26:25] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:26:32] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:26:40] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:26:51] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:27:03] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:27:11] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:27:20] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:27:32] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:27:39] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:27:50] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:27:59] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:28:14] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:28:28] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:28:35] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:28:40] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:28:46] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:29:01] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:29:11] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:29:19] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:31:57] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:33:19] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:33:27] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:34:16] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:34:22] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:34:38] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:34:57] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:35:04] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:36:21] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 16:36:29] "POST /robot/control/receive HTTP/1.1" 200 -
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}, {'id': 2, 'name': 'line2-1', 'x_start': 19.75, 'x_end': 19.75, 'y_start': -22.6, 'y_end': -15.4, 'description': 'MobileX-Corridor'}]
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 7.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.2}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.15}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.1}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.05}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.38}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.42}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.2}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.8}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.05}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.75}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.03}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.71}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.71}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.02}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.001}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.001}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.0005}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.69}
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}, {'id': 2, 'name': 'line2-1', 'x_start': 19.75, 'x_end': 19.75, 'y_start': -22.6, 'y_end': -15.4, 'description': 'MobileX-Corridor'}]
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}, {'id': 2, 'name': 'line2-1', 'x_start': 19.75, 'x_end': 19.75, 'y_start': -22.6, 'y_end': -15.4, 'description': 'MobileX-Corridor'}]
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.005}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.0005}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.1}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 1.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 1.0}
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+10.32.36.88 - - [30/May/2024 19:19:43] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:20:20] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:20:56] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:21:02] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:21:13] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:22:56] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:23:01] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:23:09] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:23:28] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:23:53] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:24:36] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:25:03] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:26:58] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:27:55] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:28:53] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:30:50] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:31:13] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:31:43] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:31:58] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:32:13] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:33:30] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:34:36] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:36:14] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:37:14] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:38:42] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:40:24] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:40:33] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:40:42] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:42:11] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:42:55] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:43:16] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:44:06] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:44:26] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:46:14] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:47:02] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:48:23] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:49:28] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:50:17] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:51:02] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:52:15] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:52:55] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 19:59:30] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:00:48] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:03:44] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:05:15] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:18:08] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:18:22] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:18:30] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:18:36] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:18:50] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:19:01] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:20:02] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:20:58] "GET /robot/control HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:21:13] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:24:47] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:26:36] "POST /robot/control/receive HTTP/1.1" 200 -
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 13.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 7.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 20.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 20.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 20.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 1.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 40.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 15.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 55.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 4.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 2.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.6}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 5.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 55.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 55.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 7.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 55.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 2.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.69}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 20.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 5.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 0.5}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.5}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 0.3}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.2}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.2}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.67}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.02}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.02}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.01}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 0.01}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 0.005}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "right", "duration": 3.67}
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}, {'id': 2, 'name': 'line2-1', 'x_start': 19.75, 'x_end': 19.75, 'y_start': -22.6, 'y_end': -15.4, 'description': 'MobileX-Corridor'}, {'id': 3, 'name': 'line2-2', 'x_start': 3.55, 'x_end': 3.55, 'y_start': -15.7, 'y_end': -15.7, 'description': 'Corridor-Corridor'}, {'id': 4, 'name': 'line2-3', 'x_start': 3.55, 'x_end': 3.55, 'y_start': -15.7, 'y_end': -23.2, 'description': 'AI-Studio'}]
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Type of start_timestamp_utc: 2024-05-30 11:21:13.199503
+Type of end_timestamp_utc: 2024-05-30 11:21:38.299503
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 21, 13, 199503), datetime.datetime(2024, 5, 30, 11, 21, 38, 299503), '4', '3.55', '-15.7', '3.55', '-23.2')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Type of start_timestamp_utc: 2024-05-30 11:24:47.287076
+Type of end_timestamp_utc: 2024-05-30 11:25:12.487076
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 24, 47, 287076), datetime.datetime(2024, 5, 30, 11, 25, 12, 487076), '4', '3.55', '-23.2', '3.55', '-15.7')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Type of start_timestamp_utc: 2024-05-30 11:26:36.954112
+Type of end_timestamp_utc: 2024-05-30 11:27:02.054112
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 26, 36, 954112), datetime.datetime(2024, 5, 30, 11, 27, 2, 54112), '4', '3.55', '-15.7', '3.55', '-23.2')
+Message delivered to joycollection_0950 [0]
+10.32.36.88 - - [30/May/2024 20:27:35] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:33:27] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:34:05] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:48:37] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:49:15] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:50:33] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:51:30] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:52:19] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 20:53:58] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 21:18:28] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 21:18:43] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 21:19:19] "POST /robot/control/receive HTTP/1.1" 200 -
+10.32.36.88 - - [30/May/2024 21:39:44] "GET /robot/control HTTP/1.1" 200 -
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Type of start_timestamp_utc: 2024-05-30 11:27:35.013971
+Type of end_timestamp_utc: 2024-05-30 11:28:00.213971
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 27, 35, 13971), datetime.datetime(2024, 5, 30, 11, 28, 0, 213971), '4', '3.55', '-23.2', '3.55', '-15.7')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Type of start_timestamp_utc: 2024-05-30 11:33:27.123080
+Type of end_timestamp_utc: 2024-05-30 11:33:52.223080
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 33, 27, 123080), datetime.datetime(2024, 5, 30, 11, 33, 52, 223080), '4', '3.55', '-15.7', '3.55', '-23.2')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Type of start_timestamp_utc: 2024-05-30 11:34:05.809631
+Type of end_timestamp_utc: 2024-05-30 11:34:31.009631
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 34, 5, 809631), datetime.datetime(2024, 5, 30, 11, 34, 31, 9631), '4', '3.55', '-15.7', '3.55', '-23.2')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Type of start_timestamp_utc: 2024-05-30 11:48:37.057258
+Type of end_timestamp_utc: 2024-05-30 11:49:02.157258
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 48, 37, 57258), datetime.datetime(2024, 5, 30, 11, 49, 2, 157258), '4', '3.05', '-15.7', '3.05', '-23.2')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Type of start_timestamp_utc: 2024-05-30 11:49:15.922805
+Type of end_timestamp_utc: 2024-05-30 11:49:41.122805
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 49, 15, 922805), datetime.datetime(2024, 5, 30, 11, 49, 41, 122805), '4', '3.05', '-23.2', '3.05', '-15.7')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.0}
+Type of start_timestamp_utc: 2024-05-30 11:50:33.272843
+Type of end_timestamp_utc: 2024-05-30 11:50:58.372843
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 50, 33, 272843), datetime.datetime(2024, 5, 30, 11, 50, 58, 372843), '4', '3.05', '-15.7', '3.05', '-23.2')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Type of start_timestamp_utc: 2024-05-30 11:51:30.944418
+Type of end_timestamp_utc: 2024-05-30 11:51:56.144418
+Params being inserted: (datetime.datetime(2024, 5, 30, 11, 51, 30, 944418), datetime.datetime(2024, 5, 30, 11, 51, 56, 144418), '4', '3.05', '-23.2', '3.05', '-15.7')
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 25.1}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "backward", "duration": 25.1}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "left", "duration": 3.6}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 30.0}
+Message delivered to joycollection_0950 [0]
+Sent command to joycollection_0950: {"command": "forward", "duration": 20.0}
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}, {'id': 2, 'name': 'line2-1', 'x_start': 19.75, 'x_end': 19.75, 'y_start': -22.6, 'y_end': -15.4, 'description': 'MobileX-Corridor'}, {'id': 4, 'name': 'line2-3', 'x_start': 3.55, 'x_end': 3.55, 'y_start': -15.7, 'y_end': -23.2, 'description': 'AI-Studio'}, {'id': 3, 'name': 'line2-2', 'x_start': 3.55, 'x_end': 20.05, 'y_start': -15.7, 'y_end': -15.7, 'description': 'Corridor-Corridor'}]
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DB_QUERY/db_test2.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DB_QUERY/db_test2.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/db_collection.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/DATA_COLLECTION/Websocket_raw.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+10.32.36.88 - - [01/Jun/2024 18:59:51] "GET /robot/control HTTP/1.1" 200 -
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/db_stat.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+[{'id': 1, 'name': 'line1', 'x_start': 19.1, 'x_end': 19.1, 'y_start': -22.6, 'y_end': -17.21, 'description': 'MobileX-Studio'}, {'id': 2, 'name': 'line2-1', 'x_start': 19.75, 'x_end': 19.75, 'y_start': -22.6, 'y_end': -15.4, 'description': 'MobileX-Corridor'}, {'id': 4, 'name': 'line2-3', 'x_start': 3.55, 'x_end': 3.55, 'y_start': -15.7, 'y_end': -23.2, 'description': 'AI-Studio'}, {'id': 3, 'name': 'line2-2', 'x_start': 3.55, 'x_end': 20.05, 'y_start': -15.7, 'y_end': -15.7, 'description': 'Corridor-Corridor'}]
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+ * Detected change in '/home/netai/Omniverse/dt_server/UWB_EKF/db_stat.py', reloading
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 107-235-882
+Database connection successfully established.
+Database connection successfully established system Manager.
+Database connection successfully established.

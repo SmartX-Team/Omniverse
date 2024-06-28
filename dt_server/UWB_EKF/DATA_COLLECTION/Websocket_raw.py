@@ -33,10 +33,84 @@ reconnect 및 run_forever: 웹소켓 연결이 끊기거나 에러가 발생했�
 import websocket
 import time
 import json
-from collections import defaultdict
+from collections import defaultdict # 일반 dict 가 달리 키가 없으면 자동 생성
 import threading
 import numpy as np
 import os
+import signal
+
+"""
+데이터 처리 로직은 UWB_gateway로 이전, 해당 코드는 오르지 데이터 적재만
+
+"""
+class SewioWebSocketClient_v2:
+
+    def __init__(self, url, data_callback=None):
+        config_path = os.getenv('CONFIG_PATH', '/home/netai/Omniverse/dt_server/UWB_EKF/config.json')
+        with open(config_path, 'r') as file:
+            self.config = json.load(file)
+        self.url = url
+        self.reconnect_delay = self.config['reconnect_delay']  # 재연결 시도 간격(초)
+        self.lock = threading.Lock()
+        self.data_callback = data_callback # DB 저장용 콜백함수
+        self.running = True
+
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+
+    def signal_handler(self, sig, frame):
+        print('Signal received:', sig)
+        self.stop()
+
+    def on_message(self, ws, message):
+        #print("Received:", message)
+        data = json.loads(message)
+        tag_id = data["body"]["id"]
+        posX = float(data["body"]["datastreams"][0]["current_value"].replace('%', ''))
+        posY = float(data["body"]["datastreams"][1]["current_value"].replace('%', ''))
+        timestamp = data["body"]["datastreams"][0]["at"]
+                # extended_tag_position 존재 여부 확인 및 처리
+        if "extended_tag_position" in data["body"]:
+            anchor_info = json.dumps(data["body"]["extended_tag_position"])
+        else:
+            anchor_info = json.dumps({})
+
+        self.data_callback(tag_id, posX, posY, timestamp, anchor_info)
+
+    def on_error(self, ws, error):
+        print("Error:", error)
+
+    def on_close(self, ws, close_status_code, close_msg):
+        print("### closed WebSocket###")
+
+    def on_open(self, ws):
+        print("Opened connection")
+        subscribe_message = f'{{"headers": {{"X-ApiKey": "{self.config["X-ApiKey"]}"}}, "method": "subscribe", "resource": "/feeds/"}}'
+        ws.send(subscribe_message)
+
+    def stop(self):
+        self.running = False
+        if self.ws:
+            self.ws.close()
+        print("WebSocket client has been stopped.")
+
+
+    def run_forever(self):
+        while self.running:
+            try:
+                self.ws = websocket.WebSocketApp(self.url,
+                                                on_open=self.on_open,
+                                                on_message=self.on_message,
+                                                on_error=self.on_error,
+                                                on_close=self.on_close)
+                self.ws.run_forever()
+            except Exception as e:
+                print(f"Error: {e}")
+            if self.running:
+                print("Attempting to reconnect in {} seconds...".format(self.reconnect_delay))
+                time.sleep(self.reconnect_delay)  # 재연결 전 딜레이
+
+
 
 """
 WebSocket 기반 Raw Data
@@ -47,7 +121,7 @@ store_db = True  # 데이터베이스에 저장용 데이터 전송을 활성화
 class SewioWebSocketClient:
 
     def __init__(self, url, calc_avg=False, store_db=False, data_callback=None):
-        config_path = os.getenv('CONFIG_PATH', '/home/netai/dt_server/UWB_EKF/config.json')
+        config_path = os.getenv('CONFIG_PATH', '/home/netai/Omniverse/dt_server/UWB_EKF/config.json')
         with open(config_path, 'r') as file:
             self.config = json.load(file)
 

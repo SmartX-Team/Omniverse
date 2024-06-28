@@ -14,7 +14,6 @@ Wwebsocket_raw.py 랑 같이 넣어서 간단하게 UWB 움직일때마다 DB에
 """
 
 import json
-import psycopg2
 from Websocket_raw import  SewioWebSocketClient_v2
 import os
 from kafka import KafkaProducer
@@ -31,69 +30,42 @@ class DataManager:
 
         self.producer = None
         self.topic_name = None
-        self.db_connect()
         self.kafka_connect()
-
-
 
     def load_config(self):
         with open(self.config_path, 'r') as file:
             self.config = json.load(file)
 
-    def db_connect(self):
-        try:
-            self.conn = psycopg2.connect(
-                dbname=self.config['db_name'],
-                user=self.config['db_user'],
-                password=self.config['db_password'],
-                host=self.config['db_host'],
-                port=self.config['db_port']
-            )
-            self.cursor = self.conn.cursor()
-            print("Database connection successfully established.")
-        except Exception as e:
-            print(f"Failed to connect to the database: {e}")
 
     def kafka_connect(self):
         try:
             self.producer = KafkaProducer(bootstrap_servers=self.config['kafka_server'],
                                           value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-            self.topic_name = self.config['topic_name']
+            self.topic_name = self.config['topic_name_in']
 
             print("Kafka connection successfully established.")
         except Exception as e:
             print(f"Failed to connect to Kafka: {e}")
 
-    def send_data_to_kafka(self, tag_id, posX, posY):
+    def send_data_to_kafka(self, data):
         # 데이터를 JSON 문자열로 변환합니다.
-        coord_data = {'id': tag_id, 'latitude': posX, 'longitude': posY}
-        self.producer.send(self.topic_name, coord_data)
+        #coord_data = {'id': tag_id, 'latitude': posX, 'longitude': posY}
+        self.producer.send(self.topic_name, data)
+        
         self.producer.flush()
 
     def close_producer(self):
         if self.producer is not None:
             self.producer.close()
 
-    def store_data_in_db(self, tag_id, posX, posY, timestamp, anchor_info):
-        query = """
-        INSERT INTO uwb_raw (tag_id, x_position, y_position, timestamp, anchor_info) VALUES (%s, %s, %s, %s, %s)
-        """
-        self.cursor.execute(query, (tag_id, posX, posY, timestamp, anchor_info))
-        self.conn.commit()
-
-    def handle_data(self, tag_id, posX, posY, timestamp, anchor_info):
-        #print(f"Data received: Tag ID={tag_id}, Position X={posX}, Position Y={posY}, Timestamp={timestamp}")
-        self.store_data_in_db(tag_id, posX, posY, timestamp, anchor_info)
-        self.send_data_to_kafka(tag_id, posX, posY)
-
 
 def main():
     url = "ws://10.76.20.88/sensmapserver/api"
-    config_path = os.getenv('CONFIG_PATH', '/home/netai/Omniverse/dt_server/UWB_EKF/config.json')
+    config_path = os.getenv('CONFIG_PATH', '/home/netai/Omniverse/ext_comms/backend_server/config.json')
 
     manager = DataManager(config_path)
 
-    client = SewioWebSocketClient_v2(url, data_callback=manager.handle_data)
+    client = SewioWebSocketClient_v2(url, data_callback=manager.send_data_to_kafka, config_path=config_path)
     try:
         client.run_forever()
     finally:
