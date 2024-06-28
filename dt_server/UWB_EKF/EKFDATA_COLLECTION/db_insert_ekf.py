@@ -1,5 +1,10 @@
 """
 
+--- 최초 작성일 :2024.05.06 송인용 ---
+
+ekf 용 훈련 데이터를 DB에 저장하는 작업을 위해 만들었던 코드
+ROS 에서 직접 데이터 처리 로직으로 수정후 함수 하나 추가
+store_avgdata_in_db
 
 --- 최초 작성일 :2024.05.02 송인용 ---
 
@@ -39,6 +44,23 @@ class DataManager:
             print("Database connection successfully established.")
         except Exception as e:
             print(f"Failed to connect to the database: {e}")
+
+    def store_avgdata_in_db(self, tag_id, posX, posY, timestamp, avg_yaw, avg_ax_avg, avg_ay_avg):
+        if not self.conn:
+            print("Database connection is not available.")
+            return
+
+        try:
+            query = """
+            INSERT INTO auto_saved_movements_rosavg (tag_id, uwb_x, uwb_y, uwb_timestamp, avg_yaw, avg_ax_avg, avg_ay_avg) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            params = tag_id, posX, posY, timestamp, avg_yaw, avg_ax_avg, avg_ay_avg
+            self.cursor.execute(query, params)
+            self.conn.commit()
+
+        except Exception as e:
+            print(f"Failed to insert data: {e}")
+            self.conn.rollback()
 
     def store_data_in_db(self, tag_id, posX, posY, timestamp, min_diff, imu_data):
         imu_data = json.loads(imu_data)

@@ -33,7 +33,7 @@ import psycopg2
 
 
 # config.json 파일에서 설정 로드
-with open('/home/netai/dt_server/UWB_EKF/config.json', 'r') as file:
+with open('/home/netai/Omniverse/dt_server/UWB_EKF/config.json', 'r') as file:
     config = json.load(file)
 
 # 데이터베이스 연결 설정

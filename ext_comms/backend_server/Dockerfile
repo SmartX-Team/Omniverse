@@ -18,3 +18,6 @@ COPY . /app/
 
 # 애플리케이션 실행
 CMD ["python", "db_collection.py"]
+
+# 빌드용 명령어 docker build -t test_backend_server:latest .
+# 실행 명령어 docker run -d --name test_backend_server -e CONFIG_PATH=/app/config.json test_backend_server:latest

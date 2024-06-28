@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Control Panel</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+    /* 간단한 스타일링 */
+    body { font-family: Arial, sans-serif; }
+    label, select, input { display: block; margin-top: 10px; }
+    button { margin-top: 20px; }
+</style>
+</head>
+<body>
+<h1>Robot Control Panel</h1>
+<p>Rotate for approximately 3.69 to 3.71 seconds. Exact 90-degree correction will be updated later to automatically adjust to right angles by reading the robot's sensor.</p>
+<label for="line-select">Select Line:</label>
+<select id="line-select">
+
+</select>
+<!-- 사용자 입력 폼 -->
+<h2>Customize Movement</h2>
+<form id="movement-form">
+
+    
+    <label for="x-input_start">X start Coordinate:</label>
+    <input type="number" id="x_start_input" required>
+    
+    <label for="y-input_start">Y Coordinate:</label>
+    <input type="number" id="y_start_input" required>
+
+    <label for="x-input_end">X start Coordinate:</label>
+    <input type="number" id="x_end_input" required>
+    
+    <label for="y-input_end">Y Coordinate:</label>
+    <input type="number" id="y_end_input" required>
+
+    <label for="time-input">Time (seconds):</label>
+    <input type="number" id="time-input" required>
+
+    <label for="save-movement">Save Movement(Click to save Data when starting the actual measurement.):</label>
+    <input type="checkbox" id="save-movement" checked>
+    
+</form>
+
+
+<!-- 로봇 방향 제어 -->
+<h2>Control Direction</h2>
+<button type="button" id="forward-btn" onclick="submitForm('forward')">Forward</button>
+<button type="button" id="backward-btn" onclick="submitForm('backward')">Backward</button>
+<button type="button" id="backward-btn" onclick="submitForm('right')">Rotate_right</button>
+<button type="button" id="backward-btn" onclick="submitForm('left')">Rotate_left</button>
+
+<h2>Swap start_end X,Y</h2>
+<button type="button" id="swap-coordinates-btn" onclick="swapCoordinates()">Swap Start/End Coordinates</button>
+
+<script>
+    var lines = {{ lines | tojson | safe }};
+    console.log(lines);  // 데이터 확인
+    $(document).ready(function() {
+        var select = $('#line-select');
+        
+        // 라인 데이터 추가
+        lines.forEach(function(line) {
+            var option = $('<option>', {
+                value: line.id,
+                text: line.name + ' : ' + line.description,
+                'line-id': line.id,  // 추가 속성 'line-id
+                'data-x_start': line.x_start,
+                'data-y_start': line.y_start,
+                'data-x_end': line.x_end,
+                'data-y_end': line.y_end
+            });
+            select.append(option);
+        });
+
+        // 첫 번째 라인의 데이터를 입력 필드에 설정
+        if (lines.length > 0) {
+            setLineData(lines[0]);
+        }
+
+        // 드롭다운 선택 변경 시 입력 필드 업데이트
+        $('#line-select').change(function() {
+            var selectedOption = $(this).find('option:selected');
+            setLineData({
+                x_start: selectedOption.attr('data-x_start'),
+                y_start: selectedOption.attr('data-y_start'),
+                x_end: selectedOption.attr('data-x_end'),
+                y_end: selectedOption.attr('data-y_end')
+            });
+        });
+
+        function setLineData(data) {
+            $('#x_start_input').val(data.x_start);
+            $('#y_start_input').val(data.y_start);
+            $('#x_end_input').val(data.x_end);
+            $('#y_end_input').val(data.y_end);
+        }
+
+
+        window.submitForm = function(direction) {
+            const data = {
+                line_id: $('#line-select').val(),
+                x_start: $('#x_start_input').val(),
+                y_start: $('#y_start_input').val(),
+                x_end: $('#x_end_input').val(),
+                y_end: $('#y_end_input').val(),
+                time: $('#time-input').val(),
+                commands: direction,
+                save_movement: $('#save-movement').is(':checked')
+            };
+
+            console.log(`Submitting movement:`, data);
+
+            $.ajax({
+                url: '/robot/control/receive',  // The server endpoint to receive data
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    console.log('Server response:', response);
+                    alert('Command submitted successfully!');
+                },
+                error: function(error) {
+                    console.error('Error submitting data:', error);
+                    alert('Failed to submit command.');
+                }
+            });
+        }
+    });
+
+    function swapCoordinates() {
+    // 현재 입력 필드에서 좌표 값들을 가져옵니다.
+            var currentXStart = $('#x_start_input').val();
+            var currentYStart = $('#y_start_input').val();
+            var currentXEnd = $('#x_end_input').val();
+            var currentYEnd = $('#y_end_input').val();
+
+            // 시작점과 종점의 좌표를 서로 교환합니다.
+            $('#x_start_input').val(currentXEnd);
+            $('#y_start_input').val(currentYEnd);
+            $('#x_end_input').val(currentXStart);
+            $('#y_end_input').val(currentYStart);
+        }
+</script>
+
+</body>
+</html>

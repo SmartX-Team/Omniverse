@@ -62,7 +62,7 @@ class DrawGraph:
         plt.close()  # 현재 그래프 닫기 (리소스 해제)
 
 if __name__ == "__main__":
-    draw_graph = DrawGraph('/home/netai/dt_server/UWB_EKF/config.json')
+    draw_graph = DrawGraph('/home/netai/Omniverse/dt_server/UWB_EKF/config.json')
     timeutil = TimeUtil(timezone_offset='9')
 
     start, end = timeutil.calculate_time_bounds( end='2024-04-30T12:45:30.500')

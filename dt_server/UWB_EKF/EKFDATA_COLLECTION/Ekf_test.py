@@ -15,24 +15,24 @@ import json
 import time
 import redis
 from time_util import TimeUtil
-from dt_server.UWB_EKF.db_insert_ekf import DataManager
+from db_insert_ekf import DataManager
 
 # 전역 메시지 큐 imu 메시지 계속 저장됨
 
 class SewioWebSocketClient:
-    def __init__(self, url, calc_avg=False, store_db=False, queue_name='imu_0950'):
-        with open('/home/netai/dt_server/UWB_EKF/config.json', 'r') as file:
-            config = json.load(file)
+    def __init__(self, url, config_path, calc_avg=False, store_db=False, queue_name='imu_0950'):
+        with open(config_path, 'r') as file:
+            self.config = json.load(file)
         
         self.url = url
         self.calc_avg = calc_avg
         self.store_db = store_db
-        self.reconnect_delay = config['reconnect_delay']  # 재연결 시도 간격(초)
+        self.reconnect_delay = self.config['reconnect_delay']  # 재연결 시도 간격(초)
         self.lock = threading.Lock()
         self.queue_name = queue_name
         self.time_util = TimeUtil()
-        self.data_manager = DataManager('/home/netai/dt_server/UWB_EKF/config.json')
-
+        self.data_manager = DataManager(config_path)
+        self.previous_uwb_timestamp = time.time()
         # 웹소켓 연결
         self.connect()
 
@@ -50,7 +50,7 @@ class SewioWebSocketClient:
             timestamp = data["body"]["datastreams"][0]["at"]
 
             with self.lock:
-                self.handle_data(tag_id, posX, posY, timestamp)  # 스레드 풀에서 데이터 처리
+                self.handle_data(tag_id, posX, posY, timestamp, True)  # 스레드 풀에서 데이터 처리
            
 
     def on_error(self, ws, error):
@@ -98,21 +98,35 @@ class SewioWebSocketClient:
         self.run_forever()  # 재연결 시도
 
         # 인스턴스 생성 및 데이터 처리
-    def handle_data(self, tag_id, posX, posY, timestamp):
+    def handle_data(self, tag_id, posX, posY, timestamp, average_imu=False):
         try:
             unix_time = self.time_util.convert_to_unix_time(timestamp)
             print(f"UWB Data received - Tag: {tag_id}, Position X: {posX}, Y: {posY}, Timestamp: {timestamp}", "Unix Time:", unix_time)
-            closest_data, min_diff = self.find_closest_imu_data(unix_time)
-            #iso_timestamp = self.self.time_util.convert_unix_time_to_utc_iso(float(min_diff))
-            #print(f"Closest IMU Data to UWB Timestamp: {closest_data}, min_diff: {min_diff}")
 
-            # 너무 빨리 접근하면 업데이트 안될떄 있어서 데이터베이스 상태가 최신 상태로 업데이트되기를 기다릴 수 있도록 약간의 딜레이 추가
-            #time.sleep(0.01)  # 5~8밀리초 딜레이 추가
-            imu_data = self.redis_manager.get_imudata(closest_data)
+            if average_imu:
+                # UWB 데이터 타임스탬프 기준 이전 타임스탬프를 찾아서 평균 IMU 데이터를 계산
+                
+                imu_data = self.calculate_average_imu(self.previous_uwb_timestamp, unix_time)
+
+                self.previous_uwb_timestamp = unix_time
+
+                print(self.previous_uwb_timestamp)
+
+                min_diff = 0
+
+            else :
+                closest_data, min_diff = self.find_closest_imu_data(unix_time)
+
+                imu_data = self.redis_manager.get_imudata(closest_data)
+
+
             self.data_manager.store_data_in_db( tag_id, posX, posY, timestamp, min_diff, imu_data)
 
         except RuntimeError as e:
             print(f"Failed to handle data: {e}")
+
+        except Exception as e:
+            print(f"Failed to handle data Exception: {e}")
 
     # UWB 데이터와 timestamp가 가장 가까운 IMU 데이터 찾기
     def find_closest_imu_data(self, uwb_timestamp):
@@ -124,6 +138,19 @@ class SewioWebSocketClient:
                 min_diff = time_diff
                 closest_data = data
         return closest_data, min_diff
+
+
+    # IMU의 오차를 감안해서 UWB 데이터들의 간격의 timestamp들 평균 계산하여 반환
+    def calculate_average_imu(self, start_time, end_time):
+        imu_data_list = self.redis_manager.get_imu_data_range(start_time, end_time)
+
+        print(len(imu_data_list))
+        if not imu_data_list:
+            return None
+        avg_ax = sum(data['linear_acceleration_x'] for data in imu_data_list) / len(imu_data_list)
+        avg_ay = sum(data['linear_acceleration_y'] for data in imu_data_list) / len(imu_data_list)
+        avg_yaw = sum(data['orientation_z'] for data in imu_data_list) / len(imu_data_list)
+        return {'ax': avg_ax, 'ay': avg_ay, 'yaw': avg_yaw}
 """
 Redis 에 저장되는 IMU 데이터 접근하고 처리할려고 만든 클래스
 """
@@ -176,10 +203,24 @@ class RedisManager:
             # JSON 문자열을 파싱하여 Python 딕셔너리로 변환
             return json.loads(data_str.decode())
         return None
+    
+    def get_imu_data_range(self, start_time, end_time):
+        # ZRANGEBYSCORE를 사용하여 주어진 시간 범위에 해당하는 키들을 검색
+        keys = self.redis_client_db1.zrangebyscore('imu_data', start_time, end_time)
+        if not keys:
+            return []
+
+        pipeline = self.redis_client_db1.pipeline()
+        for key in keys:
+            pipeline.get(key)
+        
+        results = pipeline.execute()
+        imu_data_list = [json.loads(data) for data in results if data]
+        return imu_data_list
 
 
 url = "ws://www.sewio-uwb.svc.ops.openark/sensmapserver/api"
-config_path = '/home/netai/dt_server/UWB_EKF/config.json'
-client = SewioWebSocketClient(url)
+config_path = '/home/netai/Omniverse/dt_server/UWB_EKF/config.json'
+client = SewioWebSocketClient(url, config_path)
 
 
