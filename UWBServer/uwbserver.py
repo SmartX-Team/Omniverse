@@ -2,6 +2,8 @@
 UWB Info를 실시간으로 받아오면서 Redis 서버에 저장하는 서버
 Docker Container로 실행
 
+2023 년도 처음 Omniverse 사용하면서 Redis로 UWB 데이터 전달하는 서버 코드이다.
+현재는 deprecated 되었다.
 
 """
 
