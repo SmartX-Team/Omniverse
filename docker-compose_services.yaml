@@ -22,3 +22,13 @@ services:
       - ${HOME}/.kube/config:/root/.kube/config:ro
     ports:
       - "5001:5000"
+  uwb_raw:
+    build: /home/netai/Omniverse/dt_server/UWB_Raw
+    container_name: uwb_raw
+    privileged: true
+    environment:
+      - CONFIG_PATH=/app/config.json
+    volumes:
+      - /home/netai/Omniverse/dt_server/UWB_Raw/config.json:/app/config.json:ro
+    ports:
+      - "5002:5000"
