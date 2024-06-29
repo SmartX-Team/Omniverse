@@ -3,7 +3,13 @@ from kubernetes import client, config
 
 app = Flask(__name__)
 
-config.load_kube_config(config_file="~/.kube/config")
+try:
+    with open("/root/.kube/config", "r") as f:
+        print(f.read())
+except Exception as e:
+    print(f"Error reading Kubernetes config file: {e}")
+
+config.load_kube_config(config_file="/root/.kube/config")
 
 MAP_DATA = {
     "cafd5a3e-19ba-3a14-df21-1c697ad50493":"NUC11_01",

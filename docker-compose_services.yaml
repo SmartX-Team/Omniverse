@@ -1,0 +1,24 @@
+services:
+  flask_screen_capture:
+    build: /home/netai/Omniverse/dt_server/DISPLAY_Streaming
+    container_name: flask_screen_capture
+    privileged: true
+    environment:
+      - DISPLAY=${DISPLAY}
+      - CAPTURE_INTERVAL=1.0
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${HOME}/.Xauthority:/root/.Xauthority
+    ports:
+      - "5000:5000"
+  power_info:
+    build: /home/netai/Omniverse/dt_server/Kubernetes/power_info
+    container_name: power_info
+    privileged: true
+    environment:
+      - FLASK_APP=power_info.py
+      - FLASK_RUN_HOST=0.0.0.0
+    volumes:
+      - ${HOME}/.kube/config:/root/.kube/config:ro
+    ports:
+      - "5001:5000"

@@ -29,3 +29,15 @@ services:
       - ${HOME}/.Xauthority:/root/.Xauthority
     ports:
       - "5000:5000"
+  power_info:
+    build: .
+    container_name: power_info
+    privileged: true
+    network_mode: "host"
+    environment:
+      - FLASK_APP=power_info.py
+      - FLASK_RUN_HOST=0.0.0.0
+    volumes:
+      - ${HOME}/.kube/config:/root/.kube/config:ro
+    ports:
+      - "5001:5000"

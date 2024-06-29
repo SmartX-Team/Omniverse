@@ -1,22 +1,24 @@
-# 기본 이미지로 Python 3.8 사용
-FROM python:3.8-slim
+# Use the official Python base image
+FROM python:3.9-slim
 
-# 작업 디렉토리 설정
+# Set the working directory in the container
 WORKDIR /app
 
-# 환경 변수 설정
-ENV CONFIG_PATH /app/config.json
+# Copy the requirements.txt file into the container
+COPY requirements.txt .
 
-# requirements.txt 파일을 컨테이너로 복사
-
-
-COPY requirements.txt /app/
-
-# 의존성 설치
+# Install the Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 소스 코드를 컨테이너의 작업 디렉토리로 복사
-COPY . /app/
+# Copy the rest of the application code into the container
+COPY . .
 
-# 애플리케이션 실행
-CMD ["python", "power_info.py"]
+# Expose the port the app runs on
+EXPOSE 5001
+
+# Set environment variables
+ENV FLASK_APP=power_info.py
+ENV FLASK_RUN_HOST=0.0.0.0
+
+# Command to run the application
+CMD ["flask", "run"]
