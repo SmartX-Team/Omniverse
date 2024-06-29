@@ -10,7 +10,8 @@ At GIST NetAI, we are continuously developing and adding extensions as part of s
 
 [개념 구성도]
 
-![스크린샷 2024-04-29 오후 3 49 34](https://github.com/SmartX-Team/Omniverse/assets/30370933/dd0b5413-18a1-4433-9764-c2d289536749)
+![스크린샷 2024-06-29 오후 8 53 49](https://github.com/SmartX-Team/Omniverse/assets/30370933/90e7fd6d-c1b7-4071-9762-b54fd91692ce)
+
 
 
 
