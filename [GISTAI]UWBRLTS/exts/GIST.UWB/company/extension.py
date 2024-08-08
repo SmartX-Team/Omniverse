@@ -1,3 +1,9 @@
+"""
+MobileX K8S Cluster 로 전체적인 인프라 구성을 옮겼으므로 환경 설정이 어느 정도 안정화된거 같아
+기존 하드코딩한 매핑 데이터 부분은 DB에서 읽어도록 수정해둠
+
+"""
+
 import omni.ext
 import omni.ui as ui
 from omni.usd import get_context
@@ -5,6 +11,7 @@ from pxr import Usd, UsdGeom, UsdPhysics, UsdShade, Sdf, Gf, Tf, PhysxSchema
 import asyncio
 import json
 from aiokafka import AIOKafkaConsumer
+import psycopg2
 
 prim_map = {}
 stage = get_context().get_stage()
@@ -12,48 +19,55 @@ stage = get_context().get_stage()
 for prim in stage.Traverse():
     prim_map[prim.GetName()] = prim
 
-# 하드코딩한 ID 와 NUC_PC 이름 매핑
-MAP_DATA = {
-    "24":"NUC11_01",
-    "40":"NUC11_02",
-    "39":"NUC11_03",
-    "37":"NUC11_04",
-    "36":"NUC11_05",
-    "31":"NUC11_06",
-    "49":"NUC11_07",
-    "25":"NUC11_08",
-    "44":"NUC11_09",
-    "23":"NUC11_10",
-    "20":"NUC12_01",
-    "22":"NUC12_02",
-    "46":"NUC12_03",
-    "19":"NUC12_04",
-    "45":"NUC12_05",
-    "29":"NUC12_06",
-    "18":"NUC12_07",
-    "33":"NUC12_08",
-    "43":"NUC12_09",
-    "26":"NUC12_10",
-    "48":"NUC12_11",
-    "41":"NUC12_12",
-    "21":"NUC12_13",
-    "35":"NUC12_14",
-    "47":"NUC12_15",
-    "38":"NUC12_16",
-    "9":"NUC12_17",
-    "34":"NUC12_18",
-    "32":"NUC12_19",
-    "42":"NUC12_20",
-    "15":"HUSKY_01"
-}
+# 기존 하드코딩 제거하고 DB에서 매핑 정보가져오도록 수정 해둠
+# Database connection function
+def db_connect():
+    
+    # Check the directory where the config file is located
+    config_path = "C:\\Users\\nuc\\Downloads\\config.json"
+    with open(config_path, 'r') as file:
+        config = json.load(file)
+
+    try:
+        conn = psycopg2.connect(
+            dbname=config['postgres']['db_name'],
+            user=config['postgres']['db_user'],
+            password=config['postgres']['db_password'],
+            host=config['postgres']['db_host'],
+            port=config['postgres']['db_port']
+        )
+        print("Database connection successfully established.")
+        return conn
+    except Exception as e:
+        print(f"Failed to connect to the database: {e}")
+        return None
+
+# Function to fetch data from uwb_tag table and update MAP_DATA
+def fetch_and_update_map_data(conn):
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT tag_id, nuc_id FROM uwb_tag")
+        rows = cursor.fetchall()
+        map_data = {str(row[0]): row[1] for row in rows}
+        print("MAP_DATA successfully updated from database.")
+        return map_data
+    except Exception as e:
+        print(f"Failed to fetch data from the database: {e}")
+        return {}
+
+# Connect to the database and update MAP_DATA
+conn = db_connect()
+if conn:
+    MAP_DATA = fetch_and_update_map_data(conn)
+    conn.close()
 
 class CompanyHelloWorldExtension(omni.ext.IExt):
     # ext_id is current extension id. It can be used with extension manager to query additional information, like where
     # this extension is located on filesystem.
     def __init__(self):
-
-        self.bootstrap_servers = "10.32.187.108:9092"
-        self.topic_name = "omniverse_uwb"
+        super().__init__()
+        self.bootstrap_servers = '10.80.0.3:9094'
+        self.topic_name = "omniverse-uwb"
         self._consumer = None
         self._group_id = "my--group"
         self._consuming_task = None
@@ -105,13 +119,13 @@ class CompanyHelloWorldExtension(omni.ext.IExt):
             # Consume messages
             async for msg in self._consumer:
                 decoded_message = msg.value.decode('utf-8')
-                await move_object_byKafka(decoded_message)
+                await _process_kafka_message(decoded_message)
         finally:
             # Will leave consumer group; perform autocommit if enabled.
             await self._consumer.stop()
             self._consumer = None
 
-async def move_object_byKafka(data):
+async def _process_kafka_message(data):
     deserialized_data = json.loads(data)
     id_str = str(deserialized_data['id'])
     name = MAP_DATA.get(id_str)
