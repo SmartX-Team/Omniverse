@@ -21,7 +21,7 @@ This extension encompasses:
     - and two scripts for saving and reading data to and from Kafka for data storage
 
 The following image is an explenation of the system architecture:
-![alt text](/exts/ni.ki.test.ros/data/Extension_System.png)
+![A picture trying to explain the system architecture.](/exts/ni.ki.test.ros/data/Extension_System.png)
 
 (All of the dotted lines are showing connections that have not yet been connected, but are in the planning.)
 
@@ -54,17 +54,19 @@ The following shows a guide of how to install the prerequists for this extension
 ## Seting up the Extension
 To set up the extension, after everything has been installed you need to open up Isaac Sim with the ROS2 Bridge enabled.
 
-Afterwards go into: Windows -> Extensions -> Three Horizontal Lines -> Settings -> Extension Search Path
+Afterwards go into: Windows -> Extensions -> Humburger Symbol (☰) -> Settings -> Extension Search Path
 When opeing up the extension search path tab, please click on the plus button in the edit column.
 
 1. Use the github link:
-Then copy this link for the current extension: `https://github.com/CosmoAdAstra/NI-KI-Test-ROS/tree/main/exts/`
+Then copy this link for the current extension: `git://github.com/SmartX-Team/Omniverse.git?branch=backend&dir=[GISTAI]NiKI_Test_Ros/exts`
 And that paste it into the now new empty column.
+> This hot reloads every time the github gets updated.
 
 2. Use the files:
 Download the complete 'exts'-folder into a folder on your localhost or server. 
-(You can use services as https://minhaskamal.github.io/DownGit/#/home for this purpose.)
+(You can use services as [GitDown]("https://minhaskamal.github.io/DownGit/#/home") for this purpose.)
 Then copy the path to the 'exts'-folder and paste it into the now new empty column.
+> This hot reloads every time your local extension gets updated.
 
 Finally, look for "ni.ki.test.ros" extension in extension manager and enable it, it should be in the tap for third parties.
 
