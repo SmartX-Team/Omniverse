@@ -21,7 +21,7 @@ This extension encompasses:
     - and two scripts for saving and reading data to and from Kafka for data storage
 
 The following image is an explenation of the system architecture:
-![A picture trying to explain the system architecture.](../exts/ni.ki.test.ros/data/Extension_System.png)
+![A picture trying to explain the system architecture.](exts/ni.ki.test.ros/data/Extension_System.png)
 
 (All of the dotted lines are showing connections that have not yet been connected, but are in the planning.)
 
