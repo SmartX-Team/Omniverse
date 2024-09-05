@@ -5,7 +5,7 @@ FROM python:3.8-slim
 WORKDIR /app
 
 # 환경 변수 설정
-ENV CONFIG_PATH /app/config.json
+ENV CONFIG_PATH /mnt/ceph-pvc/config.json
 
 # requirements.txt 파일을 컨테이너로 복사
 COPY requirements.txt /app/

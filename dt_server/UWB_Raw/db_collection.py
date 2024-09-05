@@ -34,8 +34,6 @@ class DataManager:
         self.db_connect()
         self.kafka_connect()
 
-
-
     def load_config(self):
         with open(self.config_path, 'r') as file:
             self.config = json.load(file)
@@ -43,11 +41,11 @@ class DataManager:
     def db_connect(self):
         try:
             self.conn = psycopg2.connect(
-                dbname=self.config['db_name'],
-                user=self.config['db_user'],
-                password=self.config['db_password'],
-                host=self.config['db_host'],
-                port=self.config['db_port']
+                dbname=self.config['postgres']['db_name'],
+                user=self.config['postgres']['db_user'],
+                password=self.config['postgres']['db_password'],
+                host=self.config['postgres']['db_host'],
+                port=self.config['postgres']['db_port']
             )
             self.cursor = self.conn.cursor()
             print("Database connection successfully established.")
@@ -56,9 +54,9 @@ class DataManager:
 
     def kafka_connect(self):
         try:
-            self.producer = KafkaProducer(bootstrap_servers=self.config['kafka_server'],
+            self.producer = KafkaProducer(bootstrap_servers=self.config['kafka']['bootstrap_servers'],
                                           value_serializer=lambda v: json.dumps(v).encode('utf-8'))
-            self.topic_name = self.config['topic_name']
+            self.topic_name = self.config['kafka']['uwb_rlts']['topic']
 
             print("Kafka connection successfully established.")
         except Exception as e:
@@ -89,11 +87,11 @@ class DataManager:
 
 def main():
     url = "ws://10.76.20.88/sensmapserver/api"
-    config_path = os.getenv('CONFIG_PATH', '/home/netai/Omniverse/dt_server/UWB_EKF/config.json')
+    config_path = os.getenv('CONFIG_PATH', '/mnt/ceph-pvc/config.json')
 
     manager = DataManager(config_path)
 
-    client = SewioWebSocketClient_v2(url, data_callback=manager.handle_data)
+    client = SewioWebSocketClient_v2(url, data_callback=manager.handle_data, config_path=config_path)
     try:
         client.run_forever()
     finally:
