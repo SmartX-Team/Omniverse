@@ -13,6 +13,7 @@ UAV Husky. These mentioned features are:
 - Enabling multiple ways of driving the robot, mainly:
 
     * Controll via the /ackermann_cmd topic and message protocol
+    * Controll via the /cmd_vel topic and message protocol
     * Controll via a linear Joystick
     * Controll via Tank Controller Cosmo - with two drive trains
 
@@ -41,7 +42,7 @@ https://docs.omniverse.nvidia.com/isaacsim/latest/installation/install_ros.html#
 ## Separate Standalone Scripts:
 This extension includes a total of 4 separate Scripts that can be used in combination with or without this extension.
 Two of them, "tank_controller_cosmo.py" and "virtual_joystick_2.py", enable you to drive Husky in Isaac Sim via
-Ackermann Messages on the "/ackermann_cmd" topic.
+Ackermann Messages on the "/ackermann_cmd" topic and in the Real world via Velocity Commands on the "cmd_vel" topic.
 
 The other two, "ros2_kafka_producer.py" and "ros2_kafka_reader.py", are used to save (produce) LiDAR PointClouds
 from the ROS 2 topic "/point_cloud_hydra" to Kafka and read them out from Kafka to ROS 2 respectivly.
