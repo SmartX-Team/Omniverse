@@ -1,6 +1,6 @@
 {
     "kafka_server": "121.147.31.222:9092",
-    "topic_name_in": "uwb_raw",
+    "topic_name_in": "uwb-raw-out",
     "topic_name_out": "output_topic",
     "reconnect_delay": 2,
     "consumer_group_id": "my-consumer-group",

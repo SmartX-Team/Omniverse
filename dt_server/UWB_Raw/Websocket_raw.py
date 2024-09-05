@@ -45,8 +45,8 @@ import signal
 """
 class SewioWebSocketClient_v2:
 
-    def __init__(self, url, data_callback=None):
-        config_path = os.getenv('CONFIG_PATH', '/home/netai/Omniverse/dt_server/UWB_EKF/config.json')
+    def __init__(self, url, data_callback=None, config_path=None):
+        config_path = config_path
         with open(config_path, 'r') as file:
             self.config = json.load(file)
         self.url = url
@@ -69,7 +69,7 @@ class SewioWebSocketClient_v2:
         posX = float(data["body"]["datastreams"][0]["current_value"].replace('%', ''))
         posY = float(data["body"]["datastreams"][1]["current_value"].replace('%', ''))
         timestamp = data["body"]["datastreams"][0]["at"]
-                # extended_tag_position 존재 여부 확인 및 처리
+        # extended_tag_position 존재 여부 확인 및 처리
         if "extended_tag_position" in data["body"]:
             anchor_info = json.dumps(data["body"]["extended_tag_position"])
         else:
@@ -109,8 +109,6 @@ class SewioWebSocketClient_v2:
             if self.running:
                 print("Attempting to reconnect in {} seconds...".format(self.reconnect_delay))
                 time.sleep(self.reconnect_delay)  # 재연결 전 딜레이
-
-
 
 """
 WebSocket 기반 Raw Data
