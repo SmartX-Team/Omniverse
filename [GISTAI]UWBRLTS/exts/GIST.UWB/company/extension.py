@@ -66,7 +66,7 @@ class CompanyHelloWorldExtension(omni.ext.IExt):
     # this extension is located on filesystem.
     def __init__(self):
         super().__init__()
-        self.bootstrap_servers = '10.80.0.3:9094'
+        self.bootstrap_servers = '210.125.85.62:9094'
         self.topic_name = "omniverse-uwb"
         self._consumer = None
         self._group_id = "my--group"

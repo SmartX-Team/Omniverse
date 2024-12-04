@@ -6,8 +6,8 @@ version = "1.0.0"
 authors = ["InYongSong", "NetAI"]
 
 # The title and description fields are primarily for displaying extension info in UI
-title = "GIST Power"
-description="Collect visibility data from Kubernetes to monitor the power status of MobileX Stations within the digital twin."
+title = "gist timetravel"
+description=""
 
 # Path (relative to the root) or content of readme markdown file for UI.
 readme  = "docs/README.md"
@@ -19,7 +19,7 @@ repository = ""
 category = "Example"
 
 # Keywords for the extension
-keywords = ["kit", "visibility", "digital twin"]
+keywords = ["kit", "example"]
 
 # Location of change log file in target (final) folder of extension, relative to the root.
 # More info on writing changelog: https://keepachangelog.com/en/1.0.0/
@@ -36,12 +36,12 @@ icon = "data/icon.png"
 [dependencies]
 "omni.kit.uiapp" = {}
 
-# Main python module this extension provides, it will be publicly available as "import GIST.Power".
+# Main python module this extension provides, it will be publicly available as "import gist.timetravel".
 [[python.module]]
-name = "GIST.Power"
+name = "gist.timetravel"
 
 [python.pipapi]
-requirements = ['requests']
+requirements = ['requests', 'httpx', 'aiokafka', 'Image']
 use_online_index = true
 
 
