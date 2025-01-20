@@ -26,11 +26,11 @@ When working with server components, make sure to check both locations for relev
 
 ## Introduction
 
-This repository serves as the centralized hub for storing and developing various Omniverse Extensions. Originally built to embrace Omniverse’s microservice philosophy, it now supports multiple teams collaborating on Extensions that enhance Digital Twin Visualization at GIST NetAI.
+This repository serves as a central hub for various Omniverse Extensions. Embracing cloud-native microservices architecture, the GIST AI Graduate School's **NetAI Lab** develops and maintains Extensions necessary for implementing a digital twin of the AI Graduate School space. This initiative will continue to expand as part of our research on implementing and validating **Cloud-native Digital Twin Services**. The scope of this repository is indicated by the red rectangles in Fig 1.
 
-The Omniverse Extension embodies the philosophy of Omniverse, aiming for microservices. With the Extension Template, users can easily add the functionalities they desire to the Omniverse App. 
 
-At **GIST NetAI**, we are continuously developing and adding new extensions as part of setting up the **Cloud-native Digital Twin Service**.
+![Github Descrpition](https://github.com/user-attachments/assets/c72c1cb9-444a-4fe0-99e1-1ca9e346ffca)
+
 
 ---
 
@@ -84,3 +84,6 @@ We use **[Bracket Keyword]** at the start of each commit message. Please use one
 #### Examples:
 - `git commit -m "[Update] Improve Dockerfile efficiency for Power Info Extension"`
 - `git commit -m "[Refactor] Clean up WebView extension code"`
+
+
+At **GIST NetAI**, we are continuously developing and adding new extensions as part of setting up the 
