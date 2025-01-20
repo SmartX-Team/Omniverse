@@ -1,40 +1,96 @@
 import omni.ext
-import omni.ui as ui
+import omni.client
 import asyncio
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
+import os
+import json
+from datetime import datetime
+import time
+import redis.asyncio as redis
 
-Gst.init(None)
+OMNIVERSE_PATH = "omniverse://10.32.133.81/Projects/demonstration/"
+ALLOWED_EXTENSIONS = ['.usd', '.usdc', '.usda', '.usdz']
+REDIS_HOST = "10.80.0.20"
+REDIS_PORT = 6379
+REDIS_DB = 0
 
-class StreamExtension(omni.ext.IExt):
+async def list_usd_files(path):
+    usd_files = []
+    stack = [(path, '')]
+
+    while stack:
+        current_path, current_relative_path = stack.pop()
+        result, entries = await omni.client.list_async(current_path)
+        if result != omni.client.Result.OK:
+            print(f"Failed to list folder: {current_path} - {result}")
+            continue
+
+        for entry in entries:
+            try:
+                name = getattr(entry, 'relative_path', '')
+                if not name:
+                    continue
+                name = name.rstrip('/')
+                if name.lower().startswith('.'):
+                    continue
+
+                full_relative_path = os.path.join(current_relative_path, name).replace('\\', '/')
+                
+                _, ext = os.path.splitext(name)
+                if ext.lower() in ALLOWED_EXTENSIONS:
+                    usd_files.append({'entry': entry, 'full_relative_path': full_relative_path})
+                else:
+                    if not ext:
+                        # 폴더이면 재귀 탐색
+                        if not current_path.endswith('/'):
+                            current_path += '/'
+                        subfolder_path = f"{current_path}{name}/"
+                        stack.append((subfolder_path, full_relative_path))
+                    else:
+                        continue
+            except Exception as e:
+                print(f"Error processing entry in {current_path}: {e}")
+
+    return usd_files
+
+def convert_datetime(value):
+    if isinstance(value, datetime):
+        return value.isoformat()
+    return str(value)
+
+async def main_task():
+    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
+    print("Scanning Omniverse directory for USD files...")
+    usd_entries = await list_usd_files(OMNIVERSE_PATH)
+
+    print(f"Found {len(usd_entries)} USD entries. Caching to Redis...")
+    pipeline = r.pipeline(transaction=False)
+    for file_info in usd_entries:
+        entry = file_info['entry']
+        relative_path = file_info['full_relative_path']
+        modified_time = convert_datetime(getattr(entry, 'modified_time', ''))
+        data = {
+            "modified_time": modified_time,
+            "relative_path": relative_path
+        }
+        key = f"usd:{relative_path}"
+        pipeline.set(key, json.dumps(data))
+
+    await pipeline.execute()
+    print("Caching completed.")
+
+class FolderMonitorExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
-        print("[stream_screen] MyExtension startup")
-
-        # Example of starting the stream
-        asyncio.ensure_future(self.start_stream())
+        print("[FolderMonitorExtension] Startup")
+        
+        # asyncio 이벤트 루프 얻기
+        loop = asyncio.get_event_loop()
+        
+        # main_task를 태스크로 실행
+        self._task = loop.create_task(main_task())
 
     def on_shutdown(self):
-        print("[stream_screen] MyExtension shutdown")
-
-    async def start_stream(self):
-        pipeline = Gst.parse_launch(
-            "nvarguscamerasrc ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! x264enc ! rtph264pay ! udpsink host=<TARGET_IP> port=<PORT>"
-        )
-        pipeline.set_state(Gst.State.PLAYING)
-
-        # Run the GStreamer main loop
-        loop = asyncio.get_running_loop()
-        loop.add_reader(pipeline.get_bus().get_fd(), self._on_bus_message, pipeline.get_bus())
-
-    def _on_bus_message(self, bus):
-        message = bus.pop()
-        if message:
-            if message.type == Gst.MessageType.EOS:
-                print('End of stream')
-                bus.pipeline.set_state(Gst.State.NULL)
-            elif message.type == Gst.MessageType.ERROR:
-                err, debug = message.parse_error()
-                print(f"Error: {err}, {debug}")
-                bus.pipeline.set_state(Gst.State.NULL)
-
+        print("[FolderMonitorExtension] Shutdown")
+        if hasattr(self, '_task'):
+            self._task.cancel()
+            # 태스크가 완료되거나 취소될 때까지 여기서 기다릴 수도 있음
+            # 필요하다면 try/except로 asyncio.CancelledError 처리 가능.

@@ -20,12 +20,6 @@ class FolderMonitorExtension(omni.ext.IExt):
         # Allowed file extensions
         self.allowed_extensions = ['.usd', '.usdc', '.usda', '.usdz']
 
-        # Path to store file modification times
-        self.mod_times_file = 'C:/Users/nuc/file_mod_times.json'
-
-        # Load previous modification times
-        self.file_mod_times = self.load_mod_times()
-
         # Start the asynchronous monitoring task
         self.loop = asyncio.get_event_loop()
         self.monitor_task = self.loop.create_task(self.monitor_folder())
@@ -37,55 +31,31 @@ class FolderMonitorExtension(omni.ext.IExt):
         if hasattr(self, 'monitor_task'):
             self.monitor_task.cancel()
 
-    def load_mod_times(self):
-        """
-        Load the file modification times from the JSON file.
-        """
-        if os.path.exists(self.mod_times_file):
-            try:
-                with open(self.mod_times_file, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"[folder_monitor_extension] Error loading mod times: {e}")
-                return {}
-        else:
-            return {}
-
-    def save_mod_times(self):
-        """
-        Save the file modification times to the JSON file.
-        """
-        try:
-            with open(self.mod_times_file, 'w') as f:
-                json.dump(self.file_mod_times, f)
-        except Exception as e:
-            print(f"[folder_monitor_extension] Error saving mod times: {e}")
-
     def create_entry_message(self, entry, file_url, relative_path):
-            """
-            Create a JSON-serializable message from a file entry.
-            """
-            def convert(value):
-                if isinstance(value, datetime):
-                    return value.isoformat()
-                return value
+        """
+        Create a JSON-serializable message from a file entry.
+        """
+        def convert(value):
+            if isinstance(value, datetime):
+                return value.isoformat()
+            return value
 
-            message = {
-                'relative_path': relative_path,
-                'access': getattr(entry, 'access', 0) or 0,
-                'flags': getattr(entry, 'flags', 0) or 0,
-                'size': getattr(entry, 'size', 0) or 0,
-                'modified_time': convert(getattr(entry, 'modified_time', '')) or '',
-                'modified_by': convert(getattr(entry, 'modified_by', '')) or '',
-                'created_time': convert(getattr(entry, 'created_time', '')) or '',
-                'created_by': convert(getattr(entry, 'created_by', '')) or '',
-                'version': getattr(entry, 'version', '') or '',
-                'hash': getattr(entry, 'hash', '') or '',
-                'file_url': file_url,
-                'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
-            }
+        message = {
+            'relative_path': relative_path,
+            'access': getattr(entry, 'access', 0) or 0,
+            'flags': getattr(entry, 'flags', 0) or 0,
+            'size': getattr(entry, 'size', 0) or 0,
+            'modified_time': convert(getattr(entry, 'modified_time', '')) or '',
+            'modified_by': convert(getattr(entry, 'modified_by', '')) or '',
+            'created_time': convert(getattr(entry, 'created_time', '')) or '',
+            'created_by': convert(getattr(entry, 'created_by', '')) or '',
+            'version': getattr(entry, 'version', '') or '',
+            'hash': getattr(entry, 'hash', '') or '',
+            'file_url': file_url,
+            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
+        }
 
-            return message
+        return message
 
     async def monitor_folder(self):
         """
@@ -111,13 +81,6 @@ class FolderMonitorExtension(omni.ext.IExt):
                         # Create message
                         message = self.create_entry_message(entry, file_url, relative_path)
 
-                        # 필요한 경우 파일 내용을 읽어서 메시지에 포함
-                        include_file = False  # 파일 내용을 포함하려면 True로 설정
-                        if include_file:
-                            file_content = await self.read_file_content(file_url)
-                            if file_content is not None:
-                                message['file_content'] = file_content
-
                         # Send message to Kafka asynchronously
                         timestamp = time.strftime("%Y%m%d_%H%M%S")
                         try:
@@ -142,21 +105,6 @@ class FolderMonitorExtension(omni.ext.IExt):
         finally:
             await producer.stop()
             print("[folder_monitor_extension] Kafka Producer stopped")
-
-    async def read_file_content(self, file_url):
-        """
-        Read file content asynchronously.
-        """
-        try:
-            result, file_content = await omni.client.read_file_async(file_url)
-            if result == omni.client.Result.OK:
-                return file_content.decode('utf-8', errors='ignore')
-            else:
-                print(f"[folder_monitor_extension] Failed to read file: {file_url} - {result}")
-                return None
-        except Exception as e:
-            print(f"[folder_monitor_extension] Error reading file content: {e}")
-            return None
 
     async def get_all_usd_files(self, path):
         """

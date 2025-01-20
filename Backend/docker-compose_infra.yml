@@ -1,3 +1,4 @@
+# K8S 이전 하기전 DT 서비스들에 필요힌 인프라 관련 컨테이너들 서버 PC 에 배포하기 위한 docker-compose 파일
 services:
   zookeeper:
     image: wurstmeister/zookeeper

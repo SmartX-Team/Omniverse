@@ -41,7 +41,7 @@ icon = "data/icon.png"
 name = "gist.streamer"
 
 [python.pipapi]
-requirements = ['pygst','pygobject']
+requirements = ['redis']
 use_online_index = true
 
 [[test]]
