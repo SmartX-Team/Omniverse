@@ -7,7 +7,10 @@ It now consists of two main folders at the root level:
 
 In addition, each of these folders includes a **`deprecated/`** subfolder, where older or no longer maintained items are placed. 
 
-For any **Kubernetes (K8S) deployment YAML files** or other infrastructure-related files, please refer to our external repository at the following link (URL to be added).
+For any **Kubernetes (K8S) deployment YAML files** or other infrastructure-related files, please refer to our external repository at the following link [K8S Repo](https://github.com/SmartX-Team/twin-datapond).
+
+Please be aware that backend server-related code is currently distributed across both the `backend/` folder and the K8S repository. 
+When working with server components, make sure to check both locations for relevant code and configurations.
 
 ---
 
@@ -51,8 +54,6 @@ Below is an overview of the main folders in this repository:
 
 - **`README.md`**  
   The main README file (this file).
-
-For **Kubernetes (K8S) deployment YAML files** or other infrastructure-related resources, please visit our dedicated repo (URL will be added here).
 
 ---
 
