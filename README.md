@@ -1,29 +1,85 @@
-# Omniverse
-the repository for storing Omniverse Extensions Code.
+# Omniverse Extensions Repository
 
+As of **25/01/20**, the repository structure has undergone a **major restructuring**.  
+It now consists of two main folders at the root level:  
+- **`extensions/`**: Contains Omniverse Extensions  
+- **`backend/`**: Contains backend-related code or Docker configurations  
 
-The Omniverse Extension embodies the philosophy of Omniverse, which aims for MicroService.
-Users can develop custom extensions they want using the Extension Template, which allows them to easily add desired functionalities to the Omniverse App.
+In addition, each of these folders includes a **`deprecated/`** subfolder, where older or no longer maintained items are placed. 
 
-At GIST NetAI, we are continuously developing and adding extensions as part of setting up the Digital Twin Visualization Center.
+For any **Kubernetes (K8S) deployment YAML files** or other infrastructure-related files, please refer to our external repository at the following link (URL to be added).
 
+---
 
-[개념 구성도]
+## Table of Contents
+1. [Introduction](#introduction)
+2. [Project Structure](#project-structure)
+3. [Installation & Usage](#installation--usage)
+4. [Contribution Guidelines](#contribution-guidelines)
+5. [License](#license)
+6. [Contact](#contact)
 
-![스크린샷 2024-06-29 오후 8 53 49](https://github.com/SmartX-Team/Omniverse/assets/30370933/90e7fd6d-c1b7-4071-9762-b54fd91692ce)
+---
 
+## Introduction
 
+This repository serves as the centralized hub for storing and developing various Omniverse Extensions. Originally built to embrace Omniverse’s microservice philosophy, it now supports multiple teams collaborating on Extensions that enhance Digital Twin Visualization at GIST NetAI.
 
+The Omniverse Extension embodies the philosophy of Omniverse, aiming for microservices. With the Extension Template, users can easily add the functionalities they desire to the Omniverse App. 
 
-<img width="989" alt="스크린샷 2023-11-27 오후 5 44 02" src="https://github.com/ulagbulag/Omniverse/assets/30370933/4078bf36-3de4-4fd3-9011-34807153a2a7">
+At **GIST NetAI**, we are continuously developing and adding new extensions as part of setting up the **Cloud-native Digital Twin Service**.
 
+---
 
-Extension List
+## Project Structure
 
-UWB Tracking: An extension for real-time tracking of MobileX Stations with attached UWB Tags in Omniverse.
+Below is an overview of the main folders in this repository:
 
-Stations Align: An extension created to facilitate the alignment of MobileX Station Models.
+- **`extensions/`**  
+  Contains various Omniverse Extensions (e.g., UWB Tracking, Stations Align, etc.).  
+  - **`deprecated/`**: Houses older or no longer actively maintained extensions.
 
-Power Info: An extension that reflects information on MobileX Stations by retrieving visibility info from the Mobile X Cluster.
+- **`backend/`**  
+  Contains backend-related code and Docker configurations.  
+  - **`deprecated/`**: Houses older or no longer actively maintained backend resources.
 
-WebView: An extension designed to generate a WebView VNC screen of an operational MobileX Station within the Omniverse App for the Visualization Center.
+- **`docs/`**  
+  Additional documentation, references, or concept diagrams.
+
+- **`scripts/`**  
+  Utility scripts for testing, building, or deployment.
+
+- **`README.md`**  
+  The main README file (this file).
+
+For **Kubernetes (K8S) deployment YAML files** or other infrastructure-related resources, please visit our dedicated repo (URL will be added here).
+
+---
+
+## Installation & Usage
+Each Extension has its own specific installation and usage guidelines. For detailed instructions on:
+- How to install Extensions
+- Configuration requirements
+- Usage examples and best practices
+- Troubleshooting common issues
+
+Please refer to our [Wiki Documentation] which is regularly updated with the latest information.
+
+---
+
+## Contribution Guidelines
+
+When contributing to this repository, please follow the guidelines below to keep the workflow efficient and consistent among all team members.
+
+### Git Commit Message Convention
+We use **[Bracket Keyword]** at the start of each commit message. Please use one of the following:
+- **[Restructure]**: Significant changes to folder structure or naming that might break existing dependencies
+- **[Update]**: Update or add functionality to an existing Extension or Docker file
+- **[Refactor]**: Code improvements or restructuring without adding new features
+- **[Create]**: Creation of a new Extension, Docker, or similar
+- **[Remove]**: Deletion of folders/files (though direct file removal is discouraged—use `Deprecated` folder if possible)
+- **[Others]**: For changes that don't fit into the above categories
+
+#### Examples:
+- `git commit -m "[Update] Improve Dockerfile efficiency for Power Info Extension"`
+- `git commit -m "[Refactor] Clean up WebView extension code"`
