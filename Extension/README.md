@@ -1,85 +1,49 @@
 # Omniverse Extensions Repository
 
-As of **25/01/20**, the repository structure has undergone a **major restructuring**.  
-It now consists of two main folders at the root level:  
-- **`extensions/`**: Contains Omniverse Extensions  
-- **`backend/`**: Contains backend-related code or Docker configurations  
+This folder contains all Omniverse Extensions developed by various contributors at GIST NetAI and collaborating partners. 
 
 In addition, each of these folders includes a **`deprecated/`** subfolder, where older or no longer maintained items are placed. 
 
-For any **Kubernetes (K8S) deployment YAML files** or other infrastructure-related files, please refer to our external repository at the following link (URL to be added).
 
----
+## Extension Naming Convention
 
-## Table of Contents
-1. [Introduction](#introduction)
-2. [Project Structure](#project-structure)
-3. [Installation & Usage](#installation--usage)
-4. [Contribution Guidelines](#contribution-guidelines)
-5. [License](#license)
-6. [Contact](#contact)
+While the structure and code style of each extension may be relatively free, **please follow these naming conventions for the folder**:
 
----
+1. **[NetAI]**:  
+   For extensions primarily developed by graduate students in the NetAI group.  
+   Example folder name: `[NetAI]_UWB_Tracking`
+   
+2. **[NetAI_Intern]**:  
+   For extensions primarily developed by NetAI interns.  
+   Example folder name: `[NetAI_Intern]_WebView_Custom`
+   
+3. **Other Collaborations**:  
+   If the extension is a collaborative project with another lab or external partner, please include a suitable tag or naming scheme that identifies the partner.  
+   Example folder name: `[ABC_Lab]_SomeExtension`
 
-## Introduction
+> **Reason**: We use these tags to track potential continuity or maintenance concerns.  
+> Intern-developed extensions (`[NetAI_Intern]`) may require additional follow-up if the intern is no longer available.
 
-This repository serves as the centralized hub for storing and developing various Omniverse Extensions. Originally built to embrace Omniverse’s microservice philosophy, it now supports multiple teams collaborating on Extensions that enhance Digital Twin Visualization at GIST NetAI.
+## Current Extensions
 
-The Omniverse Extension embodies the philosophy of Omniverse, aiming for microservices. With the Extension Template, users can easily add the functionalities they desire to the Omniverse App. 
+Please keep this list updated whenever a **new extension** is added or **existing extensions** are significantly modified. When you create or refactor an extension, **please add or update an entry** in this table:
 
-At **GIST NetAI**, we are continuously developing and adding new extensions as part of setting up the **Cloud-native Digital Twin Service**.
+| Extension Name    | Description                                                                                                              | Status  |
+|-------------------|--------------------------------------------------------------------------------------------------------------------------|---------|
+| **UWB Tracking**  | Real-time tracking of MobileX Stations with attached UWB Tags in Omniverse.                                             | Active  |
+| **Stations Align**| Facilitates the alignment of MobileX Station Models.                                                                    | Deprecated  |
+| **Power Info**    | Retrieves visibility info from the Mobile X Cluster and reflects station information in Omniverse.                      | Deprecated  |
+| **WebView**       | Generates a WebView VNC screen of an operational MobileX Station for the Visualization Center in the Omniverse App.      | Deprecated  |
 
----
+> **Note**: If you are adding a brand-new extension, create a subfolder following the **Extension Naming Convention** above, then add a line to this table describing its purpose and status.
 
-## Project Structure
+## Folder Structure
 
-Below is an overview of the main folders in this repository:
+Inside each extension’s folder, consider including:
+- A brief **README** explaining what the extension does, how to install/enable it, and any dependencies.
+- Source code for the extension (e.g., `.py` files, config files).
+- Optional subfolders for organization (e.g., `assets`, `docs`, etc.).
 
-- **`extensions/`**  
-  Contains various Omniverse Extensions (e.g., UWB Tracking, Stations Align, etc.).  
-  - **`deprecated/`**: Houses older or no longer actively maintained extensions.
+## Maintenance & Deprecation
 
-- **`backend/`**  
-  Contains backend-related code and Docker configurations.  
-  - **`deprecated/`**: Houses older or no longer actively maintained backend resources.
-
-- **`docs/`**  
-  Additional documentation, references, or concept diagrams.
-
-- **`scripts/`**  
-  Utility scripts for testing, building, or deployment.
-
-- **`README.md`**  
-  The main README file (this file).
-
-For **Kubernetes (K8S) deployment YAML files** or other infrastructure-related resources, please visit our dedicated repo (URL will be added here).
-
----
-
-## Installation & Usage
-Each Extension has its own specific installation and usage guidelines. For detailed instructions on:
-- How to install Extensions
-- Configuration requirements
-- Usage examples and best practices
-- Troubleshooting common issues
-
-Please refer to our [Wiki Documentation] which is regularly updated with the latest information.
-
----
-
-## Contribution Guidelines
-
-When contributing to this repository, please follow the guidelines below to keep the workflow efficient and consistent among all team members.
-
-### Git Commit Message Convention
-We use **[Bracket Keyword]** at the start of each commit message. Please use one of the following:
-- **[Restructure]**: Significant changes to folder structure or naming that might break existing dependencies
-- **[Update]**: Update or add functionality to an existing Extension or Docker file
-- **[Refactor]**: Code improvements or restructuring without adding new features
-- **[Create]**: Creation of a new Extension, Docker, or similar
-- **[Remove]**: Deletion of folders/files (though direct file removal is discouraged—use `Deprecated` folder if possible)
-- **[Others]**: For changes that don't fit into the above categories
-
-#### Examples:
-- `git commit -m "[Update] Improve Dockerfile efficiency for Power Info Extension"`
-- `git commit -m "[Refactor] Clean up WebView extension code"`
+If an extension is no longer supported or has been replaced, please move it to a `deprecated/` folder within this directory (following the main repository structure).
