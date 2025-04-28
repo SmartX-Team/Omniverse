@@ -57,7 +57,7 @@ PRIM_PATH_OF_HUSKY = "/World/Ni_KI_Husky"
 PRIM_PATH_OF_FOOTPRINT = get_footprint_path(PRIM_PATH_OF_HUSKY)
 PRIM_PATH_OF_FRONT_BUMPER = PRIM_PATH_OF_HUSKY + "/front_bumper_link"
 PRIM_PATH_OF_LIDAR = PRIM_PATH_OF_HUSKY + "/lidar_link"
-LIDAR_CONFIG = "OS1_32ch10hz2048res" # Example config
+LIDAR_CONFIG = "OS1_REV6_32ch10hz2048res.json" # Example config
 
 
 class NiKiTestRosExtension(omni.ext.IExt):
@@ -114,6 +114,12 @@ class NiKiTestRosExtension(omni.ext.IExt):
     # --- Class Methods for Functionality ---
 
     def on_initialize(self):
+
+        if not self.label:
+            return False
+        stage = get_context().get_stage()
+
+        self.label.text = "Start of initialization\n"
         """Initializes the Husky simulation environment, sensors, and position."""
         try:
             # Create/ensure IMU prim exists (using command in create_imu_sensor)
@@ -192,13 +198,14 @@ class NiKiTestRosExtension(omni.ext.IExt):
                 # Get reading using the object
                 imu_sensor_instance = IMUSensor(prim_path=imu_sensor_path)
                 # imu_sensor_instance.initialize() # If needed
-                imu_data = imu_sensor_instance.get_current_reading()
+                #imu_data = imu_sensor_instance.get_current_reading()
+                imu_data = imu_sensor_instance.get_current_frame()
 
-                if imu_data is not None:
-                    print("IMU Data:", imu_data)
-                    self.label.text += " | IMU: Valid"
+                if isinstance(imu_data, dict) and imu_data: # 데이터가 비어있지 않은 사전인지 확인
+                    print("IMU Data (Frame):", imu_data)
+                    self.label.text += " | IMU: Valid (Frame Read)"
                 else:
-                    self.label.text += " | IMU: Failed (No Data)"
+                    self.label.text += " | IMU: Failed (No Frame Data)"
 
             except ImportError as e:
                 print(f"IMU Error: {e}")

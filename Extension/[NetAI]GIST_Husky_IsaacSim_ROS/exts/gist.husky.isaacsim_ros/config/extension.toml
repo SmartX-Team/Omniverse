@@ -35,7 +35,8 @@ icon = "data/Ni-KI_icon_rounded.png"
 # Use omni.ui to build simple UI
 [dependencies]
 "omni.kit.uiapp" = {}
-
+"isaacsim.sensors.physics" = {}
+"isaacsim.sensors.rtx"     = {}
 # Main python module this extension provides, it will be publicly available as "import ni.ki.test.ros".
 [[python.module]]
 name = "gist.husky.isaacsim_ros"
