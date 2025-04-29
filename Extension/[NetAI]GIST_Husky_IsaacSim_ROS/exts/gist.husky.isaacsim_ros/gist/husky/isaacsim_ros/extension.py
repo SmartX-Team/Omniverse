@@ -28,36 +28,38 @@ import omni.kit.commands
 import omni.ui as ui
 from omni.usd import get_context
 import omni.usd # For get_world_transform_matrix
+import time # time.sleep 사용을 위해 필요
+import omni
+import warnings # 다른 곳에서 사용할 수 있으므로 유지
 
-# Local Imports (Ensure these files exist and are correct)
-from .sensors import create_rgb_camera, create_depth_camera, create_lidar_sensor, create_imu_sensor # .isaac_sensor -> .sensors 로 변경
-from .ros_listeners import create_tank_controll_listener # .ros2_recivers -> .ros_listeners 로 변경 (가정)
+# Local Imports (파일 경로 확인 필요)
+from .sensors import create_rgb_camera, create_depth_camera, create_lidar_sensor, create_imu_sensor
+from .ros_listeners import create_tank_controll_listener
 from .utils import print_info, print_instructions_for_tank_controll
-# --- 수정된 부분 끝 ---
-import warnings
-# Import IMUSensor here for type hinting or potential direct use if needed
-try:
-    #from omni.isaac.imu import IMUSensor
-    from isaacsim.sensors.physics import IMUSensor    
-except ImportError:
-    IMUSensor = None # Define as None if import fails, handle appropriately later
 
-# 동적으로 읽어오도록 수정
+# Import IMUSensor (경로 확인 필요)
+try:
+    from isaacsim.sensors.physics import IMUSensor
+except ImportError:
+    IMUSensor = None
+
+# get_footprint_path 함수
 def get_footprint_path(husky_path):
     stage = get_context().get_stage()
     link_path = f"{husky_path}/base_link"
     if stage.GetPrimAtPath(link_path).IsValid(): return link_path
     footprint_path = f"{husky_path}/base_footprint"
     if stage.GetPrimAtPath(footprint_path).IsValid(): return footprint_path
-    warnings.warn(f"Neither base_link nor base_footprint found under {husky_path}. Using default base_footprint path.")
-    return footprint_path # 기본값 반환 (오류 처리는 함수 내에서)
+    # warnings.warn(...) # 필요 시 print로 대체 가능
+    print(f"[Warning] Neither base_link nor base_footprint found under {husky_path}. Using default base_footprint path.")
+    return footprint_path
 
 # --- Constants and Configuration ---
 PRIM_PATH_OF_HUSKY = "/World/Ni_KI_Husky"
 PRIM_PATH_OF_FOOTPRINT = get_footprint_path(PRIM_PATH_OF_HUSKY)
 PRIM_PATH_OF_FRONT_BUMPER = PRIM_PATH_OF_HUSKY + "/front_bumper_link"
 PRIM_PATH_OF_LIDAR = PRIM_PATH_OF_HUSKY + "/lidar_link"
-LIDAR_CONFIG = "OS1_REV6_32ch10hz2048res.json" # Example config
+LIDAR_CONFIG = "OS1_REV6_32ch10hz2048res" # Example config
 
 
 class NiKiTestRosExtension(omni.ext.IExt):
@@ -68,27 +70,26 @@ class NiKiTestRosExtension(omni.ext.IExt):
     def on_startup(self, ext_id):
         print("[ni.ki.test.ros] ni ki test ros startup")
         print_info()  # Creates Info Box
+        print("[DEBUG] id(self) =", id(self))
 
         # --- Initialize class attributes ---
         self._window = None
-        self.label = None # UI Label for status messages
-        self.matrix = None # Husky transform matrix
-        self.translate = None # Husky translation
-        self.rotation = None # Husky rotation
-        self.husky_cam_prim = None # Prim for the RGB camera
-        self.husky_cam = None # Camera object for RGB
-        self.husky_cam_depth = None # Camera object for Depth
-        self.lidar_sensor = None # Prim for the LiDAR sensor
-        self.wheels = [] # List to store wheel joint prims
+        self.label = None
+        self.matrix = None
+        self.translate = None
+        self.rotation = None
+        self.husky_cam_prim = None
+        self.husky_cam = None
+        self.husky_cam_depth = None
+        self.lidar_sensor = None
+        self.wheels = []
+        self.lidar_rp_actual_path = None # Lidar RenderProduct 경로 저장용
 
         # --- Build the UI ---
         self._window = ui.Window("Test ROS (Ni-KI)", width=500, height=180)
         with self._window.frame:
             with ui.VStack():
-                # Create the label and assign it to the class attribute
                 self.label = ui.Label("Extension not initialised.", height=60, alignment=ui.Alignment.TOP, word_wrap=True)
-
-                # UI Buttons - Use self.method_name for callbacks
                 with ui.VStack():
                     with ui.HStack():
                         ui.Button("Init.", clicked_fn=self.on_initialize, tooltip="Sets up the robot sensors and position.")
@@ -98,55 +99,38 @@ class NiKiTestRosExtension(omni.ext.IExt):
                                   tooltip="Enables driving via external tank control script. (COntrolled Simulated MOtion)")
                         ui.Button("Pilot", clicked_fn=self.on_pilot,
                                   tooltip="Drives Husky forward by setting wheel target velocity.")
-        # Optional: Automatically initialize when the extension starts
-        # self.on_initialize()
 
     def on_shutdown(self):
         print("[ni.ki.test.ros] ni ki test ros shutdown")
-        # Clean up resources if necessary (e.g., remove listeners, stop threads)
-        # Destroy the UI window
         if self._window:
             self._window.destroy()
         self._window = None
-        self.label = None # Clear reference
-        # Add cleanup for ROS listeners if needed
+        self.label = None
 
     # --- Class Methods for Functionality ---
 
     def on_initialize(self):
-
-        if not self.label:
-            return False
-        stage = get_context().get_stage()
-
-        self.label.text = "Start of initialization\n"
         """Initializes the Husky simulation environment, sensors, and position."""
+        if not self.label: return False
+        stage = get_context().get_stage()
+        self.label.text = "Start of initialization\n"
+        self.lidar_rp_actual_path = None # 함수 시작 시 초기화
+        print("[DEBUG] id(self) =", id(self))
+
+        # --- IMU 초기화 ---
         try:
-            # Create/ensure IMU prim exists (using command in create_imu_sensor)
             create_imu_sensor(stage, PRIM_PATH_OF_LIDAR)
-            imu_sensor_path = PRIM_PATH_OF_LIDAR + "/imu_sensor"
-            imu_prim = stage.GetPrimAtPath(imu_sensor_path)
-
-            if not imu_prim.IsValid():
-                raise Exception("IMU prim '/imu_sensor' not valid after creation call.")
-
-            # IMU Prim 생성 확인됨
+            imu_prim = stage.GetPrimAtPath(PRIM_PATH_OF_LIDAR + "/imu_sensor")
+            if not imu_prim.IsValid(): raise Exception("IMU prim '/imu_sensor' not valid after creation call.")
             self.label.text += " | IMU: Prim Created"
-            # >>> 데이터 읽기 시도 로직은 여기서 제거 <<<
-            # (읽기는 시뮬레이션 업데이트 루프나 ROS2 Publisher에서 처리 필요)
-
-        except ImportError as e: # 'isaacsim.sensors.physics' import 실패 시
-             print(f"IMU Error: {e}. Is 'isaacsim.sensors.physics' extension enabled?")
-             self.label.text += " | IMU: Failed (Import Error)"
-             warnings.warn(f"IMU functionality unavailable: {e}")
+        except ImportError as e:
+            print(f"IMU Error: {e}. Is 'isaacsim.sensors.physics' extension enabled?")
+            self.label.text += " | IMU: Failed (Import Error)"
         except Exception as e:
-             print(f"Error during IMU setup: {e}")
-             self.label.text += f" | IMU: Failed ({type(e).__name__})"
-             warnings.warn(f"IMU setup/reading failed: {e}")
-            # Continue or return?
+            print(f"Error during IMU setup: {e}")
+            self.label.text += f" | IMU: Failed ({type(e).__name__})"
 
-        # --- Sensor Initialization ---
-        # Husky RGB/Depth Cam
+        # --- 카메라 초기화 ---
         husky_cam_path = PRIM_PATH_OF_FRONT_BUMPER + "/husky_rgb_cam"
         husky_depth_cam_path = PRIM_PATH_OF_FRONT_BUMPER + "/husky_depth_cam"
         self.husky_cam_prim = stage.GetPrimAtPath(husky_cam_path)
@@ -154,97 +138,122 @@ class NiKiTestRosExtension(omni.ext.IExt):
             try:
                 self.husky_cam = create_rgb_camera(stage=stage, prim_path=husky_cam_path)
                 self.husky_cam_depth = create_depth_camera(stage=stage, prim_path=husky_depth_cam_path)
-                self.husky_cam_prim = stage.GetPrimAtPath(husky_cam_path) # Re-get after creation
+                self.husky_cam_prim = stage.GetPrimAtPath(husky_cam_path)
                 self.label.text += " | Husky Cam: Created"
             except Exception as e:
                 self.label.text += f" | Husky Cam: Creation Failed ({type(e).__name__})"
-                warnings.warn(f"Failed to create Husky cameras: {e}")
+                print(f"[Warning] Failed to create Husky cameras: {e}") # warnings 대신 print
         else:
-            # Optionally re-initialize publishers if needed for existing cameras
             self.label.text += " | Husky Cam: Exists"
 
-        # LiDAR and IMU
-        self.lidar_sensor = stage.GetPrimAtPath(PRIM_PATH_OF_LIDAR + "/lidar_sensor")
-        lidar_ready = self.lidar_sensor.IsValid()
-        if not lidar_ready:
-            try:
-                # create_lidar_sensor should return True on prim creation success
-                if create_lidar_sensor(PRIM_PATH_OF_LIDAR, LIDAR_CONFIG):
-                    self.lidar_sensor = stage.GetPrimAtPath(PRIM_PATH_OF_LIDAR + "/lidar_sensor")
-                    lidar_ready = self.lidar_sensor.IsValid()
+        # --- LiDAR 및 RenderProduct 안정화 ---
+        lidar_sensor_prim_path = PRIM_PATH_OF_LIDAR + "/lidar_sensor"
+        lidar_rp_status = "Failed"
+
+        try:
+            # create_lidar_sensor는 경로 또는 None 반환 (sensors_py_time_fix 버전 기준)
+            returned_rp_path = create_lidar_sensor(PRIM_PATH_OF_LIDAR, LIDAR_CONFIG)
+            print(f"[DEBUG Init] create_lidar_sensor returned: {returned_rp_path}")
+
+            if isinstance(returned_rp_path, str):
+                rp_prim = stage.GetPrimAtPath(returned_rp_path)
+                is_rp_valid = rp_prim.IsValid()
+                if not is_rp_valid:
+                    print(f"RenderProduct at '{returned_rp_path}' not immediately valid. Waiting briefly...")
+                    max_wait_frames = 10
+                    wait_interval = 0.05
+                    for i in range(max_wait_frames):
+                        print(f"  Waiting... ({i+1}/{max_wait_frames})")
+                        time.sleep(wait_interval) # 대기
+                        rp_prim = stage.GetPrimAtPath(returned_rp_path)
+                        if rp_prim.IsValid():
+                            print(f"RenderProduct became valid after waiting.")
+                            is_rp_valid = True
+                            break
+                    if not is_rp_valid:
+                         print(f"RenderProduct at '{returned_rp_path}' did not become valid after waiting.")
+
+                if is_rp_valid:
+                    self.lidar_rp_actual_path = returned_rp_path # 경로 저장
+                    lidar_rp_status = f"Valid (RP at {self.lidar_rp_actual_path})"
+                    print(f"LiDAR Render Product Path stored: {self.lidar_rp_actual_path}")
                 else:
-                    lidar_ready = False
-            except Exception as e:
-                 warnings.warn(f"Exception during LiDAR creation: {e}")
-                 lidar_ready = False
+                    lidar_rp_status = "Failed (RP Invalid)"
+                    print("RenderProduct prim is invalid, cannot use for LiDAR.")
+            else:
+                lidar_rp_status = "Failed (No RP Path)"
+                print("create_lidar_sensor did not return a valid path string.")
 
-        if not lidar_ready:
-            self.label.text += " | LiDAR: Failed"
-        else:
-            self.label.text += " | LiDAR: Valid"
-            # --- If LiDAR is ready, proceed with IMU ---
-            try:
-                # Create/ensure IMU prim exists
-                create_imu_sensor(stage, PRIM_PATH_OF_LIDAR)
-                imu_sensor_path = PRIM_PATH_OF_LIDAR + "/imu_sensor"
-                imu_prim = stage.GetPrimAtPath(imu_sensor_path)
+        except Exception as e:
+            self.label.text += f" | LiDAR Setup Exception: ({type(e).__name__})"
+            print(f"[Warning] Exception during LiDAR/RP setup: {e}") # warnings 대신 print
+            lidar_rp_status = f"Failed (Exception: {type(e).__name__})"
+            # self.lidar_rp_actual_path는 None 유지
 
-                if not imu_prim.IsValid():
-                    raise Exception("IMU prim not valid after creation call.")
+        # --- 최종 LiDAR 상태 UI 레이블 업데이트 ---
+        lidar_sensor_prim_final = stage.GetPrimAtPath(lidar_sensor_prim_path)
+        lidar_sensor_status = "Valid" if lidar_sensor_prim_final.IsValid() else "Failed"
+        self.label.text += f" | LiDAR Sensor: {lidar_sensor_status}"
+        self.label.text += f" | LiDAR RP: {lidar_rp_status}"
 
-                if IMUSensor is None:
-                    raise ImportError("IMUSensor class could not be imported.")
+        # --- IMU 데이터 읽기 시도 ---
+        if stage.GetPrimAtPath(PRIM_PATH_OF_LIDAR + "/imu_sensor").IsValid():
+             try:
+                 if IMUSensor is None: raise ImportError("IMUSensor class could not be imported.")
+                 imu_sensor_instance = IMUSensor(prim_path=PRIM_PATH_OF_LIDAR + "/imu_sensor")
+                 imu_data = imu_sensor_instance.get_current_frame()
+                 if isinstance(imu_data, dict) and imu_data:
+                     print("IMU Data (Frame):", imu_data)
+                     self.label.text += " | IMU Read: OK"
+                 else: self.label.text += " | IMU Read: No Data"
+             except ImportError as e:
+                 print(f"IMU Reading Error: {e}")
+                 self.label.text += " | IMU Read: Import Error"
+             except Exception as e:
+                 print(f"Error during IMU reading: {e}")
+                 self.label.text += f" | IMU Read: Failed ({type(e).__name__})"
+        else: self.label.text += " | IMU Read: Skipped (No Prim)"
 
-                # Get reading using the object
-                imu_sensor_instance = IMUSensor(prim_path=imu_sensor_path)
-                # imu_sensor_instance.initialize() # If needed
-                #imu_data = imu_sensor_instance.get_current_reading()
-                imu_data = imu_sensor_instance.get_current_frame()
-
-                if isinstance(imu_data, dict) and imu_data: # 데이터가 비어있지 않은 사전인지 확인
-                    print("IMU Data (Frame):", imu_data)
-                    self.label.text += " | IMU: Valid (Frame Read)"
-                else:
-                    self.label.text += " | IMU: Failed (No Frame Data)"
-
-            except ImportError as e:
-                print(f"IMU Error: {e}")
-                self.label.text += " | IMU: Failed (Import Error)"
-                warnings.warn(f"IMU functionality unavailable: {e}")
-            except Exception as e:
-                print(f"Error during IMU setup or reading: {e}")
-                self.label.text += f" | IMU: Failed ({type(e).__name__})"
-                warnings.warn(f"IMU setup/reading failed: {e}")
-            # --- End of IMU Handling ---
-
-        # Remove root_joint
+        # --- Root Joint 제거 ---
         path_to_root_joint = PRIM_PATH_OF_HUSKY + "/root_joint"
         root_of_all_evil = stage.GetPrimAtPath(path_to_root_joint)
         if root_of_all_evil.IsValid():
             if stage.RemovePrim(path_to_root_joint):
-                warnings.warn("Root Joint was removed! - NI.KI.Test.ROS")
+                print("[Warning] Root Joint was removed! - NI.KI.Test.ROS")
                 print("Root joint removed.")
             else:
-                warnings.warn("Failed to remove root_joint. Please delete manually.")
+                print("[Warning] Failed to remove root_joint. Please delete manually.")
                 print("Failed to remove root_joint.")
-        else:
-            print("Root joint not found (which is good).")
+        else: print("Root joint not found (which is good).")
 
         self.label.text += "\nInit finished."
+        print(f"[DEBUG Init - Before Return] Final value of self.lidar_rp_actual_path: {self.lidar_rp_actual_path}") # 최종 값 확인
         return True
 
     def on_cosmo(self):
         """Sets up the robot for tank control via external script."""
         if not self.label: return
-        self.on_cease() # Stop previous movement first
+        self.on_cease()
 
         self.label.text = "Starting Tank Control mode.\nPlease run the control script."
+        print("[DEBUG] id(self) =", id(self))
+        print(f"[DEBUG Cosmo - Before Call] Value of self.lidar_rp_actual_path: {self.lidar_rp_actual_path}") # 전달 전 값 확인
+
         try:
-            create_tank_controll_listener(PRIM_PATH_OF_HUSKY)
+            # ROS2 브릿지 초기화 시간 확보를 위해 유지 (값 조절 가능)
+            delay_seconds = 2.0
+            print(f"Waiting {delay_seconds} seconds before creating graph (for ROS2 bridge)...")
+            time.sleep(delay_seconds)
+            print("Now creating graph...")
+
+            create_tank_controll_listener(
+                PRIM_PATH_OF_HUSKY,
+                lidar_render_product_actual_path=self.lidar_rp_actual_path # 저장된 경로 전달
+            )
             print_instructions_for_tank_controll()
         except Exception as e:
             self.label.text = f"Failed to start Tank Control: {e}"
-            warnings.warn(f"Failed to create tank control listener: {e}")
+            print(f"[WARN] Error creating OmniGraph: {e}")
 
     def on_pilot(self):
         """Drives the Husky forward by setting wheel velocities."""

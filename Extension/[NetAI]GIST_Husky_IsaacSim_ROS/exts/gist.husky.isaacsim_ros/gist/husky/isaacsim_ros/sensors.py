@@ -21,6 +21,8 @@ import omni.isaac.core.utils.numpy.rotations as rot_utils
 
 # Publisher for ROS2 Humble (Assuming this file exists and works)
 from .camera_publishers import *
+import warnings
+import time
 
 # Publisher for Kafka (Imported but not used directly in this file)
 # from kafka import KafkaProducer # If not used by camera_ros_publisher, consider removing
@@ -124,89 +126,42 @@ def create_imu_sensor(stage: Usd.Stage, path_to_parent: str): # Renamed arg for 
     # This function now primarily ensures the IMU prim exists.
     # It doesn't return anything explicitly but modifies the stage.
 
-def create_lidar_sensor(path_to_parent: str, lidar_config: str) -> bool: # Renamed arg, added return type hint
+def create_lidar_sensor(path_to_parent: str, lidar_config: str) -> bool:
     """
-    Creates an RTX Lidar sensor using the IsaacSensorCreateRtxLidar command
-    and sets up Replicator pipelines for ROS2 publishing.
-    Returns True if the sensor prim creation command was successful, False otherwise.
+    Ensures the RTX Lidar sensor prim exists.
+    Does NOT create a RenderProduct or use Replicator.
+    Returns True if the sensor prim exists or was successfully created, False otherwise.
     """
-    lidar_prim_path = path_to_parent + "/lidar_sensor" # Define full path for clarity
-    stage = omni.usd.get_context().get_stage() # Get stage context
-    lidar_prim = stage.GetPrimAtPath(lidar_prim_path)
+    lidar_sensor_path = f"{path_to_parent}/lidar_sensor"
+    stage = omni.usd.get_context().get_stage()
+    if not stage:
+        print("Error inside create_lidar_sensor: Could not get USD stage.")
+        return False
+    lidar_prim = stage.GetPrimAtPath(lidar_sensor_path)
 
     if lidar_prim.IsValid():
-        print(f"LiDAR sensor already exists at {lidar_prim_path}")
-        # Decide if existing setup needs modification or just return True
-        # For now, assume existing is okay. Replicator setup might need checking/resetting.
-        return True # Indicate sensor prim exists
+        print(f"LiDAR sensor already exists at {lidar_sensor_path}")
+        return True # 센서 프리미티브가 존재함
 
-    print(f"LiDAR sensor not found at {lidar_prim_path}, attempting creation...")
-    # 1. Create The Lidar Sensor Prim
-    success, sensor_prim_path_or_obj = omni.kit.commands.execute(
+    print(f"LiDAR sensor not found at {lidar_sensor_path}, attempting creation...")
+    success, _ = omni.kit.commands.execute(
         "IsaacSensorCreateRtxLidar",
-        path="/lidar_sensor", # Relative path for the new prim
-        parent=path_to_parent, # Parent prim path
-        config=lidar_config, # Lidar configuration name
-        translation=(0.0, 0.0, 0.0), # Relative position (use floats)
-        orientation=Gf.Quatd(1.0, 0.0, 0.0, 0.0), # Relative orientation (W, X, Y, Z - identity, corrected from original)
-        # IMPORTANT: Original orientation Gf.Quatd(0,0,0,0.10) was likely incorrect/invalid quaternion. Using identity. Adjust if needed.
+        path="/lidar_sensor",
+        parent=path_to_parent,
+        config=lidar_config,
+        translation=(0.0, 0.0, 0.0),
+        orientation=Gf.Quatd(1.0, 0.0, 0.0, 0.0),
     )
 
-    # Starts publishing data via Replicator if creation was successful
-    if success:
-        print(f"RTX Lidar sensor created successfully at {lidar_prim_path}")
-        lidar_prim = stage.GetPrimAtPath(lidar_prim_path) # Get the created prim
-        if not lidar_prim or not lidar_prim.IsValid():
-             print(f"Error: Lidar prim invalid after creation command at {lidar_prim_path}")
-             return False # Indicate failure despite command success report
-
-        try:
-            lidar_path_str = lidar_prim.GetPath().pathString # Get path as string for Replicator
-
-            # --- Replicator Setup ---
-            # Ensure render product names are unique if called multiple times or handle existing ones
-            render_product_name = f"{lidar_prim.GetName()}_rp"
-            hydra_texture_name = f"{lidar_prim.GetName()}_hydra_rp"
-
-            # 1. Create and Attach a render product for point cloud data
-            # Use resolution [1, 1] for non-camera sensors typically
-            render_product = rep.create.render_product(lidar_path_str, [1, 1], name=render_product_name)
-
-            # 2. Get point cloud data annotator
-            annotator = rep.AnnotatorRegistry.get_annotator("RtxSensorCpuIsaacCreateRTXLidarScanBuffer")
-            annotator.attach(render_product) # Attach to the render product
-
-            # 3. Create ROS2 PointCloud Writer
-            # Ensure writer names/types are correct for your Isaac Sim version
-            writer_type_pc = "RtxLidar" + "ROS2PublishPointCloud"
-            writer_pc = rep.writers.get(writer_type_pc)
-            if writer_pc:
-                writer_pc.initialize(topicName="/point_cloud", frameId="lidar_link") # Use appropriate frame_id
-                writer_pc.attach(render_product)
-                print("Attached ROS2 PointCloud writer.")
-            else:
-                print(f"Error: Could not get Replicator writer type: {writer_type_pc}")
-
-
-            # 3.5 (Optional) Create a second writer that publishes a hydra_texture (if needed)
-            # This part seems less standard, verify if "ROS2PublishPointCloudBuffer" writer exists/is needed.
-            # hydra_texture = rep.create.render_product(lidar_path_str, [1, 1], name=hydra_texture_name)
-            # writer_type_hydra = "RtxLidar" + "ROS2PublishPointCloud" + "Buffer" # Verify this writer type
-            # writer_hydra = rep.writers.get(writer_type_hydra)
-            # if writer_hydra:
-            #     writer_hydra.initialize(topicName="/point_cloud_hydra", frameId="lidar_link") # Use appropriate frame_id
-            #     writer_hydra.attach([hydra_texture]) # Attach to the hydra render product
-            #     print("Attached Hydra Texture PointCloud writer.")
-            # else:
-            #     print(f"Error: Could not get Replicator writer type: {writer_type_hydra}")
-            # --- End of Replicator Setup ---
-
-        except Exception as e:
-            print(f"Error setting up Replicator pipeline for LiDAR: {e}")
-            # Decide if failure to set up replicator means overall failure
-            # return False # Uncomment if Replicator setup is critical
-
-    else:
+    if not success:
         print(f"Error: Failed to execute IsaacSensorCreateRtxLidar command at {path_to_parent}")
+        return False
 
-    return success # Return the success status of the prim creation command
+    # 생성 후 다시 확인
+    lidar_prim = stage.GetPrimAtPath(lidar_sensor_path)
+    if lidar_prim.IsValid():
+        print(f"RTX Lidar sensor prim created successfully at {lidar_sensor_path}")
+        return True # 생성 성공
+    else:
+        print(f"Error: Lidar prim invalid after creation command at {lidar_sensor_path}")
+        return False
