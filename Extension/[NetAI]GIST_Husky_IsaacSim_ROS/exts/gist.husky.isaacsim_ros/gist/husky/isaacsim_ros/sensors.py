@@ -23,7 +23,7 @@ import omni.isaac.core.utils.numpy.rotations as rot_utils
 from .camera_publishers import *
 import warnings
 import time
-
+import carb
 # Publisher for Kafka (Imported but not used directly in this file)
 # from kafka import KafkaProducer # If not used by camera_ros_publisher, consider removing
 
@@ -125,43 +125,52 @@ def create_imu_sensor(stage: Usd.Stage, path_to_parent: str): # Renamed arg for 
 
     # This function now primarily ensures the IMU prim exists.
     # It doesn't return anything explicitly but modifies the stage.
-
-def create_lidar_sensor(path_to_parent: str, lidar_config: str) -> bool:
+def create_lidar_sensor(parent: str, cfg_name: str) -> bool: # 반환 타입을 bool로 변경
     """
-    Ensures the RTX Lidar sensor prim exists.
-    Does NOT create a RenderProduct or use Replicator.
+    Ensures the RtxLidar sensor prim exists using IsaacSensorCreateRtxLidar command.
+    Does NOT create RenderProduct, Annotator, or Writer.
     Returns True if the sensor prim exists or was successfully created, False otherwise.
     """
-    lidar_sensor_path = f"{path_to_parent}/lidar_sensor"
+    print(f"[DEBUG sensors.py - OmniGraph Mode] Entering create_lidar_sensor. parent='{parent}', cfg_name='{cfg_name}'")
     stage = omni.usd.get_context().get_stage()
     if not stage:
-        print("Error inside create_lidar_sensor: Could not get USD stage.")
-        return False
-    lidar_prim = stage.GetPrimAtPath(lidar_sensor_path)
-
-    if lidar_prim.IsValid():
-        print(f"LiDAR sensor already exists at {lidar_sensor_path}")
-        return True # 센서 프리미티브가 존재함
-
-    print(f"LiDAR sensor not found at {lidar_sensor_path}, attempting creation...")
-    success, _ = omni.kit.commands.execute(
-        "IsaacSensorCreateRtxLidar",
-        path="/lidar_sensor",
-        parent=path_to_parent,
-        config=lidar_config,
-        translation=(0.0, 0.0, 0.0),
-        orientation=Gf.Quatd(1.0, 0.0, 0.0, 0.0),
-    )
-
-    if not success:
-        print(f"Error: Failed to execute IsaacSensorCreateRtxLidar command at {path_to_parent}")
+        carb.log_error("[sensors.py] Could not get USD stage.")
         return False
 
-    # 생성 후 다시 확인
-    lidar_prim = stage.GetPrimAtPath(lidar_sensor_path)
-    if lidar_prim.IsValid():
-        print(f"RTX Lidar sensor prim created successfully at {lidar_sensor_path}")
-        return True # 생성 성공
-    else:
-        print(f"Error: Lidar prim invalid after creation command at {lidar_sensor_path}")
+    # 센서 프리미티브 경로 확인 및 생성 시도
+    # 참고: extension.py에서 PRIM_PATH_OF_LIDAR (/World/Ni_KI_Husky/lidar_link)를 parent로 전달함
+    sensor_prim_path_abs = f"{parent}/lidar_sensor" # 절대 경로
+    sensor_prim = stage.GetPrimAtPath(sensor_prim_path_abs)
+
+    if sensor_prim.IsValid():
+        carb.log_info(f"[sensors.py] LiDAR sensor prim already exists at {sensor_prim_path_abs}")
+        return True # 이미 존재하면 성공으로 간주
+
+    # 존재하지 않으면 생성 시도
+    carb.log_info(f"[sensors.py] LiDAR sensor prim not found at {sensor_prim_path_abs}. Attempting creation...")
+    try:
+        # 인자 이름 확인 (parent, cfg_name 사용)
+        success, sensor_prim_obj = omni.kit.commands.execute(
+            "IsaacSensorCreateRtxLidar",
+            path="lidar_sensor",      # 부모 기준 상대 경로
+            parent=parent,            # 부모 프리미티브 경로
+            config=cfg_name,          # 설정 이름
+            translation=(0, 0, 0),    # 상대 위치
+            orientation=Gf.Quatd(1, 0, 0, 0) # 기본 방향 (W,X,Y,Z)
+        )
+
+        if success:
+            # 생성 후 프리미티브 유효성 재확인
+            sensor_prim_check = stage.GetPrimAtPath(sensor_prim_path_abs)
+            if sensor_prim_check.IsValid():
+                carb.log_info(f"[sensors.py] LiDAR prim created successfully at: {sensor_prim_path_abs}")
+                return True
+            else:
+                carb.log_error(f"[sensors.py] LiDAR prim creation command succeeded but prim is still invalid at {sensor_prim_path_abs}")
+                return False
+        else:
+            carb.log_error(f"[sensors.py] IsaacSensorCreateRtxLidar command failed for parent '{parent}' config '{cfg_name}'.")
+            return False
+    except Exception as e:
+        carb.log_error(f"[sensors.py] Exception during LiDAR prim creation: {e}")
         return False

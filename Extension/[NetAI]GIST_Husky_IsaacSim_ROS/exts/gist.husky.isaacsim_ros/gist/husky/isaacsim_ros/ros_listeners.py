@@ -18,12 +18,17 @@ import omni.kit.commands
 
 
 # --- Function to check and create Tank Control Listener ---
-def create_tank_controll_listener(prim_path_of_husky, lidar_render_product_actual_path=None):
-    print(f"[DEBUG Listener - Received] lidar_render_product_actual_path: {lidar_render_product_actual_path}")
+def create_tank_controll_listener(prim_path_of_husky):
+    LIDAR_SENSOR_PRIM_PATH = prim_path_of_husky + "/lidar_link/lidar_sensor" # <<< 이 경로가 정확한지 최종 확인!
+    LIDAR_FRAME_ID = "lidar_link" # <<< 사용할 TF Frame ID, 이것도 최종 확인!
+    LIDAR_TOPIC_NAME = "/pointcloud" # <<< 발행할 토픽 이름
 
-    graph_path = "/tank_control_graph"
+    graph_path = "/husky_ros_graph"
+
     stage = omni.usd.get_context().get_stage()
-    if not stage: print("Error: Could not get USD stage."); return
+    if not stage:
+        carb.log_error("Error: Could not get USD stage.")
+        return
 
     # --- 경로 유효성 검사 로직 ---
     print("Validating required prim paths and APIs...")
@@ -78,34 +83,35 @@ def create_tank_controll_listener(prim_path_of_husky, lidar_render_product_actua
         print(f"  [Info] Dynamic TF Targets: {dynamic_tf_targets}")
 
 
-    # --- LiDAR 경로 유효성 검사 ---
-    if lidar_render_product_actual_path and isinstance(lidar_render_product_actual_path, str) and stage.GetPrimAtPath(lidar_render_product_actual_path).IsValid():
-        print(f"  [OK] LiDAR RenderProduct Path Valid: {lidar_render_product_actual_path}")
-        valid_paths["lidar_render_product"] = lidar_render_product_actual_path
-        lidar_publishing_possible = True
+    # --- LiDAR 센서 프리미티브 경로 확인 및 lidar_sensor_valid 변수 정의 ---
+    lidar_sensor_valid = False # <<< 변수 정의 및 초기화
+    if stage.GetPrimAtPath(LIDAR_SENSOR_PRIM_PATH).IsValid():
+        print(f"  [OK] LiDAR Sensor Prim Path Valid: {LIDAR_SENSOR_PRIM_PATH}")
+        lidar_sensor_valid = True # <<< 확인 후 True 로 설정
     else:
-        print(f"  [Warning - Skipping LiDAR] Received path type: {type(lidar_render_product_actual_path)}, value: '{lidar_render_product_actual_path}'")
-        print(f"  [Warning] Valid LiDAR RenderProduct path ('{lidar_render_product_actual_path}') was not provided or prim not found. LiDAR publishing will be skipped.")
-        lidar_publishing_possible = False
+        carb.log_error(f"Error: LiDAR Sensor Prim not found or invalid at expected path: {LIDAR_SENSOR_PRIM_PATH}. LiDAR publishing will be disabled.")
+        lidar_sensor_valid = False # <<< 확인 후 False 로 설정 (LiDAR 노드 추가 안 함)
+
 
     if not validation_passed:
-        print("Critical validation failed (Controller/husky_root path). Cannot create OmniGraph.")
+        carb.log_error("Critical validation failed (Controller/husky_root path). Cannot create OmniGraph.")
         return
     print("Path validation finished.")
+
 
     # --- 그래프 삭제 로직 ---
     if stage.GetPrimAtPath(graph_path).IsValid():
         print(f"Deleting existing graph at {graph_path} for fresh start.")
         omni.kit.commands.execute("DeletePrims", paths=[graph_path])
 
+
     # --- 단일 og.Controller.edit 호출 ---
-    print(f"--- DEBUG: Preparing to create graph. lidar_publishing_possible = {lidar_publishing_possible} ---") # 디버그 메시지 수정
+    print(f"--- DEBUG: Preparing to create graph. Including LiDAR nodes: {lidar_sensor_valid} ---")
     keys = og.Controller.Keys
     try:
-        # --- ★★★ 디버깅 Print 추가 ★★★ ---
-        print(f"--- DEBUG: Defining nodes_to_create. Including lidar_pub: {lidar_publishing_possible} ---")
+        # --- 노드 정의 (LiDAR 관련 노드 조건부 추가) ---
         nodes_to_create = [
-            # Controller, TF 노드들
+            # 기존 노드들
             ("phys_step", "isaacsim.core.nodes.OnPhysicsStep"),
             ("ack_sub", "isaacsim.ros2.bridge.ROS2SubscribeAckermannDrive"),
             ("array", "omni.graph.nodes.ConstructArray"),
@@ -113,39 +119,43 @@ def create_tank_controll_listener(prim_path_of_husky, lidar_render_product_actua
             ("array_add2", "omni.graph.nodes.ArrayInsertValue"),
             ("array_add3", "omni.graph.nodes.ArrayInsertValue"),
             ("controller", "isaacsim.core.nodes.IsaacArticulationController"),
-            ("sim_time", "isaacsim.core.nodes.IsaacReadSimulationTime"),
+            ("sim_time", "isaacsim.core.nodes.IsaacReadSimulationTime"), # 익스텐션 활성화 필수
             ("tf_static_pub", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
             ("tf_dynamic_pub", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
-            # 조건부 LIDAR 노드 생성
-            *([("lidar_pub", "isaacsim.ros2.bridge.ROS2RtxLidarHelper")] if lidar_publishing_possible else [])
+            # LiDAR 관련 노드 추가 (lidar_sensor_valid 값 사용)
+            *([("rp_creator", "isaacsim.core.nodes.IsaacCreateRenderProduct")] if lidar_sensor_valid else []),
+            *([("lidar_pub", "isaacsim.ros2.bridge.ROS2RtxLidarHelper")] if lidar_sensor_valid else []),
         ]
         print(f"--- DEBUG: nodes_to_create defined: {nodes_to_create}")
 
-        print(f"--- DEBUG: Defining values_to_set. Including lidar_pub values: {lidar_publishing_possible and 'lidar_render_product' in valid_paths} ---")
+        # --- 값 설정 (LiDAR 관련 노드 값 조건부 추가) ---
         values_to_set = [
-            # Controller, TF 값 설정
+            # 기존 값 설정
             ("array.inputs:arraySize", 1),
             ("controller.inputs:robotPath", controller_target_path),
             ("controller.inputs:jointNames", ["back_right_wheel_joint", "back_left_wheel_joint", "front_right_wheel_joint", "front_left_wheel_joint"]),
             ("ack_sub.inputs:topicName", "/ackermann_cmd"),
-            ("tf_static_pub.inputs:targetPrims", [valid_paths.get("husky_root")]),
+            ("tf_static_pub.inputs:targetPrims", [valid_paths.get("husky_root")]), # husky_root 유효성 검사 필요
             ("tf_static_pub.inputs:topicName", "/tf_static"),
             ("tf_static_pub.inputs:staticPublisher", True),
-            ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets),
+            ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets), # dynamic_tf_targets 리스트 사용
             ("tf_dynamic_pub.inputs:topicName", "/tf"),
             ("tf_dynamic_pub.inputs:staticPublisher", False),
-            # 조건부 LIDAR 값 설정
+            # LiDAR 관련 노드 값 설정 추가 (lidar_sensor_valid 값 사용)
             *([
-                ("lidar_pub.inputs:renderProductPath", valid_paths.get("lidar_render_product")),
-                ("lidar_pub.inputs:topicName", "/pointcloud"),
-                ("lidar_pub.inputs:frameId", "lidar_link"),
-             ] if lidar_publishing_possible and "lidar_render_product" in valid_paths else [])
+                ("rp_creator.inputs:cameraPrim", LIDAR_SENSOR_PRIM_PATH), # LiDAR 센서 경로 직접 지정
+                ("rp_creator.inputs:width", 1),
+                ("rp_creator.inputs:height", 1),
+                ("lidar_pub.inputs:topicName", LIDAR_TOPIC_NAME), # 상수 사용
+                ("lidar_pub.inputs:frameId", LIDAR_FRAME_ID),     # 상수 사용
+                ("lidar_pub.inputs:type", "point_cloud"),       # 발행 타입 지정
+             ] if lidar_sensor_valid else [])
         ]
         print(f"--- DEBUG: values_to_set defined: {values_to_set}")
 
-        print(f"--- DEBUG: Defining connections. Including lidar_pub connections: {lidar_publishing_possible and 'lidar_render_product' in valid_paths} ---")
+        # --- 연결 설정 (LiDAR 관련 연결 조건부 추가) ---
         connections = [
-            # Controller, TF 연결
+            # 기존 연결
             ("phys_step.outputs:step", "ack_sub.inputs:execIn"),
             ("phys_step.outputs:step", "controller.inputs:execIn"),
             ("array.outputs:array", "array_add1.inputs:array"),
@@ -157,36 +167,37 @@ def create_tank_controll_listener(prim_path_of_husky, lidar_render_product_actua
             ("array_add2.outputs:array", "array_add3.inputs:array"),
             ("array_add3.outputs:array","controller.inputs:velocityCommand"),
             ("phys_step.outputs:step", "tf_static_pub.inputs:execIn"),
-            ("sim_time.outputs:simulationTime", "tf_static_pub.inputs:timeStamp"),
             ("phys_step.outputs:step", "tf_dynamic_pub.inputs:execIn"),
             ("sim_time.outputs:simulationTime", "tf_dynamic_pub.inputs:timeStamp"),
-            # 조건부 LIDAR 연결
+            # LiDAR 관련 연결 추가 (lidar_sensor_valid 값 사용)
             *([
-                ("phys_step.outputs:step", "lidar_pub.inputs:execIn"),
-                ("sim_time.outputs:simulationTime", "lidar_pub.inputs:timeStamp"),
-             ] if lidar_publishing_possible and "lidar_render_product" in valid_paths else [])
+                ("phys_step.outputs:step", "rp_creator.inputs:execIn"),
+                ("rp_creator.outputs:renderProductPath", "lidar_pub.inputs:renderProductPath"), # RP 경로 전달
+                ("rp_creator.outputs:execOut", "lidar_pub.inputs:execIn"), # 순차 실행
+             ] if lidar_sensor_valid else [])
         ]
         print(f"--- DEBUG: connections defined: {connections}")
-        # --- 디버깅 Print 끝 ---
 
+        # --- og.Controller.edit 호출 ---
         og.Controller.edit(
             { # Graph settings
-                "graph_path": graph_path,
-                "evaluator_name": "execution",
-                "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND,
+              "graph_path": graph_path,
+              "evaluator_name": "execution",
+              "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND,
             },
             { # Edits
-                keys.CREATE_NODES: nodes_to_create,
-                keys.SET_VALUES: values_to_set,
-                keys.CONNECT: connections,
+              keys.CREATE_NODES: nodes_to_create,
+              keys.SET_VALUES: values_to_set,
+              keys.CONNECT: connections,
             }
         )
-        print(f"Successfully created comprehensive graph at {graph_path}!")
+        print(f"Successfully created/updated graph at {graph_path}!")
 
     except Exception as e:
-        error_msg = f"Error during comprehensive graph creation for '{graph_path}': {e}"
+        error_msg = f"Error during graph creation/modification for '{graph_path}': {e}"
         print(error_msg)
         traceback.print_exc()
+
 
 # --- Function to check and create Joystick Listener ---
 # 이 함수는 현재 호출되지 않으므로, 그대로 두거나 삭제해도 무방합니다.

@@ -83,7 +83,7 @@ class NiKiTestRosExtension(omni.ext.IExt):
         self.husky_cam_depth = None
         self.lidar_sensor = None
         self.wheels = []
-        self.lidar_rp_actual_path = None # Lidar RenderProduct 경로 저장용
+        #self.lidar_rp_actual_path = None # Lidar RenderProduct 경로 저장용
 
         # --- Build the UI ---
         self._window = ui.Window("Test ROS (Ni-KI)", width=500, height=180)
@@ -114,7 +114,8 @@ class NiKiTestRosExtension(omni.ext.IExt):
         if not self.label: return False
         stage = get_context().get_stage()
         self.label.text = "Start of initialization\n"
-        self.lidar_rp_actual_path = None # 함수 시작 시 초기화
+        #lidar_sensor_prim_path_ref = PRIM_PATH_OF_LIDAR + "/lidar_sensor" # 함수 시작 시 초기화
+        lidar_prim_creation_success = False
         print("[DEBUG] id(self) =", id(self))
 
         # --- IMU 초기화 ---
@@ -146,55 +147,22 @@ class NiKiTestRosExtension(omni.ext.IExt):
         else:
             self.label.text += " | Husky Cam: Exists"
 
-        # --- LiDAR 및 RenderProduct 안정화 ---
-        lidar_sensor_prim_path = PRIM_PATH_OF_LIDAR + "/lidar_sensor"
-        lidar_rp_status = "Failed"
-
+        # --- LiDAR 및 RenderProduct 안정화 --
         try:
-            # create_lidar_sensor는 경로 또는 None 반환 (sensors_py_time_fix 버전 기준)
-            returned_rp_path = create_lidar_sensor(PRIM_PATH_OF_LIDAR, LIDAR_CONFIG)
-            print(f"[DEBUG Init] create_lidar_sensor returned: {returned_rp_path}")
+            lidar_prim_creation_success = create_lidar_sensor(PRIM_PATH_OF_LIDAR, LIDAR_CONFIG) # <<< 반환값 저장 방식 변경
+            print(f"[DEBUG Init] create_lidar_sensor (for OmniGraph) returned: {lidar_prim_creation_success}")
 
-            if isinstance(returned_rp_path, str):
-                rp_prim = stage.GetPrimAtPath(returned_rp_path)
-                is_rp_valid = rp_prim.IsValid()
-                if not is_rp_valid:
-                    print(f"RenderProduct at '{returned_rp_path}' not immediately valid. Waiting briefly...")
-                    max_wait_frames = 10
-                    wait_interval = 0.05
-                    for i in range(max_wait_frames):
-                        print(f"  Waiting... ({i+1}/{max_wait_frames})")
-                        time.sleep(wait_interval) # 대기
-                        rp_prim = stage.GetPrimAtPath(returned_rp_path)
-                        if rp_prim.IsValid():
-                            print(f"RenderProduct became valid after waiting.")
-                            is_rp_valid = True
-                            break
-                    if not is_rp_valid:
-                         print(f"RenderProduct at '{returned_rp_path}' did not become valid after waiting.")
-
-                if is_rp_valid:
-                    self.lidar_rp_actual_path = returned_rp_path # 경로 저장
-                    lidar_rp_status = f"Valid (RP at {self.lidar_rp_actual_path})"
-                    print(f"LiDAR Render Product Path stored: {self.lidar_rp_actual_path}")
-                else:
-                    lidar_rp_status = "Failed (RP Invalid)"
-                    print("RenderProduct prim is invalid, cannot use for LiDAR.")
-            else:
-                lidar_rp_status = "Failed (No RP Path)"
-                print("create_lidar_sensor did not return a valid path string.")
+            # --- RP 경로 처리 로직 **모두 제거** ---
+            # if isinstance(returned_rp_path, str): ... 부터
+            # print("create_lidar_sensor did not return a valid path string.") 까지 모두 제거
 
         except Exception as e:
-            self.label.text += f" | LiDAR Setup Exception: ({type(e).__name__})"
-            print(f"[Warning] Exception during LiDAR/RP setup: {e}") # warnings 대신 print
-            lidar_rp_status = f"Failed (Exception: {type(e).__name__})"
-            # self.lidar_rp_actual_path는 None 유지
-
-        # --- 최종 LiDAR 상태 UI 레이블 업데이트 ---
-        lidar_sensor_prim_final = stage.GetPrimAtPath(lidar_sensor_prim_path)
-        lidar_sensor_status = "Valid" if lidar_sensor_prim_final.IsValid() else "Failed"
-        self.label.text += f" | LiDAR Sensor: {lidar_sensor_status}"
-        self.label.text += f" | LiDAR RP: {lidar_rp_status}"
+            self.label.text += f" | LiDAR Prim Creation Exception: ({type(e).__name__})"
+            print(f"[Warning] Exception during LiDAR prim creation call: {e}")
+            lidar_prim_creation_success = False
+         # --- 최종 LiDAR 상태 UI 레이블 업데이트 ---    
+        lidar_status_str = "OK" if lidar_prim_creation_success else "Failed"
+        self.label.text += f" | LiDAR Prim Creation: {lidar_status_str}"
 
         # --- IMU 데이터 읽기 시도 ---
         if stage.GetPrimAtPath(PRIM_PATH_OF_LIDAR + "/imu_sensor").IsValid():
@@ -227,7 +195,6 @@ class NiKiTestRosExtension(omni.ext.IExt):
         else: print("Root joint not found (which is good).")
 
         self.label.text += "\nInit finished."
-        print(f"[DEBUG Init - Before Return] Final value of self.lidar_rp_actual_path: {self.lidar_rp_actual_path}") # 최종 값 확인
         return True
 
     def on_cosmo(self):
@@ -237,7 +204,7 @@ class NiKiTestRosExtension(omni.ext.IExt):
 
         self.label.text = "Starting Tank Control mode.\nPlease run the control script."
         print("[DEBUG] id(self) =", id(self))
-        print(f"[DEBUG Cosmo - Before Call] Value of self.lidar_rp_actual_path: {self.lidar_rp_actual_path}") # 전달 전 값 확인
+        #print(f"[DEBUG Cosmo - Before Call] Value of self.lidar_rp_actual_path: {self.lidar_rp_actual_path}") # 전달 전 값 확인
 
         try:
             # ROS2 브릿지 초기화 시간 확보를 위해 유지 (값 조절 가능)
@@ -248,7 +215,6 @@ class NiKiTestRosExtension(omni.ext.IExt):
 
             create_tank_controll_listener(
                 PRIM_PATH_OF_HUSKY,
-                lidar_render_product_actual_path=self.lidar_rp_actual_path # 저장된 경로 전달
             )
             print_instructions_for_tank_controll()
         except Exception as e:
