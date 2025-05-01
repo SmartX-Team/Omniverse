@@ -35,6 +35,7 @@ def initialize_husky(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, 
     Returns:
         True if initialization sequence completed (doesn't guarantee success of all steps), False otherwise.
     """
+    print(f"[DEBUG actions.py] Entered initialize_husky for: {husky_path}")
     if not label_widget or not stage:
         print("[ERROR actions.py] Stage or Label Widget not provided for initialization.")
         return False
@@ -163,6 +164,7 @@ def start_cosmo_mode(stage: Usd.Stage, label_widget: ui.Label, husky_path: str):
         label_widget: The UI label to display feedback.
         husky_path: The USD path to the main Husky prim.
     """
+    print(f"[DEBUG actions.py] Entered start_cosmo_mode for: {husky_path}")
     if not label_widget or not stage:
         print("[ERROR actions.py] Stage or Label Widget not provided for Cosmo mode.")
         return
@@ -264,6 +266,7 @@ def pilot_forward(stage: Usd.Stage, label_widget: ui.Label, husky_path: str):
         label_widget: The UI label to display feedback.
         husky_path: The USD path to the main Husky prim.
     """
+    print(f"[DEBUG actions.py] Entered pilot_forward for: {husky_path}")
     if not label_widget or not stage:
         print("[ERROR actions.py] Stage or Label Widget not provided for Pilot mode.")
         return
@@ -293,6 +296,7 @@ def cease_movement(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, up
         husky_path: The USD path to the main Husky prim.
         update_label: Whether to update the label widget (set False if called internally).
     """
+    print(f"[DEBUG actions.py] Entered cease_movement for: {husky_path}")
     if update_label and not label_widget:
         print("[ERROR actions.py] Label Widget not provided for Cease movement.")
         return
