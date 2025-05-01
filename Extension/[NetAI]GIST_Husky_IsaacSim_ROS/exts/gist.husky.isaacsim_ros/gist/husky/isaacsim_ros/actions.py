@@ -10,6 +10,11 @@ from .sensors import create_rgb_camera, create_depth_camera, create_lidar_sensor
 from .ros_listeners import create_tank_controll_listener
 from .utils import print_instructions_for_tank_controll, get_footprint_path # Import required utils
 
+
+
+# 멀티 로봇으로 변경할꺼면 꼭 지우삼; 구현하다가 시간 없어서 중단했었음
+GRAPH_PATH = "/husky_ros_graph"
+
 # Attempt to import IMUSensor, handle failure gracefully
 try:
     from isaacsim.sensors.physics import IMUSensor
@@ -218,7 +223,7 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
     # Common axes are X or Y. If wheels rotate around Y: Gf.Vec3f(0, vel, 0)
     # If wheels rotate around X: Gf.Vec3f(vel, 0, 0)
     # Assuming Y-axis rotation for this example:
-    target_velocity_vec = Gf.Vec3f(0, target_velocity_component, 0) # Using Float precision
+    target_velocity_float = float(target_velocity_component) # Using Float precision
 
     for joint_path in wheel_paths:
         wheel_prim = stage.GetPrimAtPath(joint_path)
@@ -239,11 +244,11 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
 
                 # Set Target Velocity
                 target_vel_attr = drive_api.CreateTargetVelocityAttr()
-                target_vel_attr.Set(target_velocity_vec)
+                target_vel_attr.Set(target_velocity_float)
 
                 # Set Max Force (optional, prevents extreme forces)
-                # max_force_attr = drive_api.CreateMaxForceAttr()
-                # max_force_attr.Set(10000.0) # Example max force
+                max_force_attr = drive_api.CreateMaxForceAttr()
+                max_force_attr.Set(10000.0) # Example max force
 
                 wheels_set_count += 1
                 # print(f"[DEBUG] Applied drive to {joint_path}")
@@ -272,8 +277,17 @@ def pilot_forward(stage: Usd.Stage, label_widget: ui.Label, husky_path: str):
         return
     print(f"[DEBUG actions.py] pilot_forward called for {husky_path}")
 
-    target_velocity = 10.0 # Target angular velocity (e.g., rad/s - check Isaac Sim docs/units)
-    stiffness = 0.0     # Low stiffness for velocity control
+    if stage.GetPrimAtPath(GRAPH_PATH).IsValid():
+        print(f"[Info] Deleting existing OmniGraph '{GRAPH_PATH}' before entering Pilot mode.")
+        try:
+            omni.kit.commands.execute("DeletePrims", paths=[GRAPH_PATH])
+            # 그래프 삭제 후 반영될 시간을 잠시 줍니다 (선택적)
+            # time.sleep(0.1)
+        except Exception as e:
+            print(f"[Error] Failed to delete graph '{GRAPH_PATH}': {e}")
+
+    target_velocity = 40.0 # Target angular velocity (e.g., rad/s - check Isaac Sim docs/units)
+    stiffness = 0     # Low stiffness for velocity control
     label_widget.text = f"Engaging Pilot Mode (Target Vel: {target_velocity:.1f})"
 
     wheels_set, expected_wheels = _apply_wheel_drive(stage, husky_path, target_velocity, stiffness)
@@ -308,6 +322,19 @@ def cease_movement(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, up
     if update_label:
         label_widget.text = "Ceasing Movement..."
 
+    if stage.GetPrimAtPath(GRAPH_PATH).IsValid():
+        print(f"[Info] Deleting existing OmniGraph '{GRAPH_PATH}' before entering Pilot mode.")
+        try:
+            omni.kit.commands.execute("DeletePrims", paths=[GRAPH_PATH])
+            # 그래프 삭제 후 반영될 시간을 잠시 줍니다 (선택적)
+            # time.sleep(0.1)
+        except Exception as e:
+            print(f"[Error] Failed to delete graph '{GRAPH_PATH}': {e}")
+
+    graph_path = "/husky_ros_graph"
+    if stage.GetPrimAtPath(graph_path).IsValid():
+        print(f"[Info] Deleting existing OmniGraph '{graph_path}' before entering Pilot mode.")
+        omni.kit.commands.execute("DeletePrims", paths=[graph_path])
     target_velocity = 0.0 # Stop
     stiffness = 0.0     # Maintain low stiffness
 

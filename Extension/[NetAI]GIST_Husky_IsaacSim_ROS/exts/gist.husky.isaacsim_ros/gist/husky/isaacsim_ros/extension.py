@@ -266,4 +266,3 @@ class NiKiTestRosExtension(omni.ext.IExt):
         self._robot_path_model = None
         self._robot_ui_container = None
         print("[DEBUG] Shutdown complete.")
-

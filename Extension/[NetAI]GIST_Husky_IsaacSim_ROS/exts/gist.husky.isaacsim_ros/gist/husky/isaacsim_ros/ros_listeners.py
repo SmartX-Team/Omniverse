@@ -12,7 +12,7 @@ import warnings
 from pxr import UsdPhysics
 import traceback # 오류 추적 위해 추가
 import omni.kit.commands
-
+import carb
 # --- get_py_script_node_type 함수는 현재 사용하지 않음 ---
 # def get_py_script_node_type(): ...
 
