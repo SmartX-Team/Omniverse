@@ -1,7 +1,99 @@
-"""slice_of_life_adjustments
+import warnings
+from pxr import Gf, Usd, UsdGeom # Added UsdGeom
+import omni.usd
+import omni.kit
 
-This file only contains elements that could be left away, but they are way of uniqifing the project.
-"""
+
+
+# --- Utility Functions ---
+
+def print_info():
+    """Prints informational message about the extension to the console."""
+    print("\n" + "=" * 60)
+    print(" GIST Husky Isaac Sim ROS Extension (ni.ki.test.ros Refactored)")
+    print(" Based on foundational work by: Niki C. Zils (GIST)")
+    print(" Compatibility: NVIDIA Isaac Sim 4.5+ / ROS2 Humble")
+    print("=" * 60 + "\n")
+
+def print_instructions_for_tank_controll():
+    """Prints instructions for running the external ROS2 tank control script."""
+    print("\n--- Tank Control (Cosmo Mode) Instructions ---")
+    print("1. Ensure your ROS2 Humble environment is sourced in a separate terminal.")
+    print("   (e.g., `source /opt/ros/humble/setup.bash`)")
+    print("2. Run the tank controller script from the project's Standalone_Scripts directory:")
+    print("   `python Standalone_Scripts/tank_controller_cosmo.py`")
+    print("   Alternatively, use the virtual joystick script if available.")
+    print("3. The script will publish Twist messages to the '/cmd_vel' topic.")
+    print("---------------------------------------------\n")
+
+def get_footprint_path(husky_path: str) -> str:
+    """
+    Determines the USD path for the Husky's primary ground contact prim.
+    Checks for '/base_link' first, then '/base_footprint'. Issues a warning
+    and returns a default path if neither is found.
+
+    Args:
+        husky_path: The USD path to the main Husky prim (e.g., /World/Ni_KI_Husky).
+
+    Returns:
+        The determined path string (e.g., /World/Ni_KI_Husky/base_link).
+    """
+    context = omni.usd.get_context()
+    if not context:
+        print("[ERROR utils.py] Failed to get USD context.")
+        # Return a default guess, but this scenario is problematic
+        return f"{husky_path}/base_link"
+    stage = context.get_stage()
+    if not stage:
+        print("[ERROR utils.py] Failed to get USD stage.")
+        return f"{husky_path}/base_link"
+
+    # Prefer base_link if it exists
+    link_path = f"{husky_path}/base_link"
+    link_prim = stage.GetPrimAtPath(link_path)
+    if link_prim and link_prim.IsValid():
+        # print(f"[DEBUG utils.py] Found base link at: {link_path}")
+        return link_path
+
+    # Fallback to base_footprint
+    footprint_path = f"{husky_path}/base_footprint"
+    footprint_prim = stage.GetPrimAtPath(footprint_path)
+    if footprint_prim and footprint_prim.IsValid():
+        # print(f"[DEBUG utils.py] Found base footprint at: {footprint_path}")
+        return footprint_path
+
+    # If neither found, issue warning and return a default guess
+    default_path = link_path # Default to trying base_link path
+    warnings.warn(
+        f"Neither '{link_path}' nor '{footprint_path}' found under '{husky_path}'. "
+        f"Physics and transform adjustments might be incorrect. Using default guess: '{default_path}'"
+    )
+    return default_path
+
+def update_scaling_orientation(prim: Usd.Prim, stage: Usd.Stage, translation: Gf.Vec3d):
+    """
+    DEPRECATED / NEEDS REVIEW: This function attempted to adjust height based on footprint.
+    Direct manipulation of prim transforms, especially root prims with physics,
+    can be complex and might interfere with simulation. Consider setting the initial
+    position correctly in the USD scene or using PhysX API for teleportation if needed
+    during runtime *before* simulation starts or between paused steps.
+
+    Leaving the original logic commented out for reference, but use with caution.
+
+    Args:
+        prim: The prim to modify (e.g., the Husky root prim).
+        stage: The current USD stage.
+        translation: The desired XY translation (Z will be calculated).
+
+    Returns:
+        The calculated Z height (adj_height).
+    """
+    warnings.warn("update_scaling_orientation function is deprecated and may cause issues. "
+                  "Consider setting initial position directly or using physics teleportation APIs.",
+                  DeprecationWarning)
+
+    return 0.0
+
 def print_fox() -> None:
     # https://www.asciiart.eu/image-to-ascii - website used to create the picture
     print("""....................................................................................................
@@ -82,6 +174,9 @@ def print_info() -> None:
 # (3) https://docs.omniverse.nvidia.com/isaacsim/latest/overview.html
 # (4) https://docs.ros.org/en/humble/index.html
 """)
+
+
+
 
 def print_instructions_for_tank_controll() -> None:
     print("""

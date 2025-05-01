@@ -1,0 +1,314 @@
+import omni.kit.commands # Potentially needed for specific commands
+import omni.usd
+import omni.ui as ui # For type hinting label_widget
+from pxr import Usd, Gf , UsdPhysics # USD Prim, Vec3f/d, Quatf/d
+import time
+import warnings
+
+# Local Imports (using relative paths)
+from .sensors import create_rgb_camera, create_depth_camera, create_lidar_sensor, create_imu_sensor
+from .ros_listeners import create_tank_controll_listener
+from .utils import print_instructions_for_tank_controll, get_footprint_path # Import required utils
+
+# Attempt to import IMUSensor, handle failure gracefully
+try:
+    from isaacsim.sensors.physics import IMUSensor
+except ImportError:
+    warnings.warn("Could not import IMUSensor from isaacsim.sensors.physics. IMU functionality will be limited.")
+    IMUSensor = None # Define as None if import fails
+
+# --- Action Functions ---
+
+def initialize_husky(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, front_bumper_path: str, lidar_path: str, lidar_config: str) -> bool:
+    """
+    Initializes the Husky simulation environment: sensors, root joint removal.
+    Updates the provided label widget with status messages.
+
+    Args:
+        stage: The current USD stage.
+        label_widget: The UI label to display feedback.
+        husky_path: The USD path to the main Husky prim.
+        front_bumper_path: The USD path to the front bumper link (for cameras).
+        lidar_path: The USD path to the lidar link (for lidar and IMU).
+        lidar_config: The configuration name for the LiDAR sensor.
+
+    Returns:
+        True if initialization sequence completed (doesn't guarantee success of all steps), False otherwise.
+    """
+    if not label_widget or not stage:
+        print("[ERROR actions.py] Stage or Label Widget not provided for initialization.")
+        return False
+
+    label_widget.text = "Initializing Husky...\n"
+    print(f"[DEBUG actions.py] initialize_husky called for {husky_path}")
+    start_time = time.time()
+    initialization_steps = [] # Keep track of steps for summary
+
+    # --- 1. IMU Initialization ---
+    imu_sensor_path = lidar_path + "/imu_sensor"
+    try:
+        create_imu_sensor(stage, lidar_path) # Assumes this function handles prim creation
+        imu_prim = stage.GetPrimAtPath(imu_sensor_path)
+        if not imu_prim or not imu_prim.IsValid():
+             raise Exception(f"IMU prim '{imu_sensor_path}' not valid after creation call.")
+        initialization_steps.append("IMU Prim: Created")
+    except ImportError as e:
+        error_msg = f"IMU Failed (Import Error: {e}. Is 'isaacsim.sensors.physics' enabled?)"
+        print(f"[ERROR] {error_msg}")
+        initialization_steps.append(error_msg)
+    except Exception as e:
+        error_msg = f"IMU Failed ({type(e).__name__}: {e})"
+        print(f"[ERROR] {error_msg}")
+        initialization_steps.append(error_msg)
+
+    # --- 2. Camera Initialization ---
+    husky_cam_rgb_path = front_bumper_path + "/husky_rgb_cam"
+    husky_cam_depth_path = front_bumper_path + "/husky_depth_cam"
+    # Check if cameras already exist
+    rgb_cam_prim = stage.GetPrimAtPath(husky_cam_rgb_path)
+    if not rgb_cam_prim or not rgb_cam_prim.IsValid():
+        try:
+            # Pass stage if required by the creation functions
+            create_rgb_camera(stage=stage, prim_path=husky_cam_rgb_path)
+            create_depth_camera(stage=stage, prim_path=husky_cam_depth_path)
+            # Verify creation
+            if not stage.GetPrimAtPath(husky_cam_rgb_path).IsValid() or \
+               not stage.GetPrimAtPath(husky_cam_depth_path).IsValid():
+                raise Exception("Camera prims not valid after creation calls.")
+            initialization_steps.append("Cameras: Created")
+        except Exception as e:
+            error_msg = f"Cameras Failed ({type(e).__name__}: {e})"
+            print(f"[ERROR] {error_msg}")
+            initialization_steps.append(error_msg)
+    else:
+        initialization_steps.append("Cameras: Existed")
+
+    # --- 3. LiDAR Initialization ---
+    lidar_prim_creation_success = False
+    try:
+        # create_lidar_sensor handles prim creation and graph setup
+        lidar_prim_creation_success = create_lidar_sensor(lidar_path, lidar_config)
+        if lidar_prim_creation_success:
+             initialization_steps.append("LiDAR Prim: OK")
+             print(f"[DEBUG Init] create_lidar_sensor reported success for {lidar_path}")
+        else:
+             # The function might return False without raising an exception
+             raise Exception("create_lidar_sensor returned False, indicating failure.")
+    except Exception as e:
+        error_msg = f"LiDAR Failed ({type(e).__name__}: {e})"
+        print(f"[ERROR] {error_msg}")
+        initialization_steps.append(error_msg)
+        lidar_prim_creation_success = False # Ensure flag is False
+
+    # --- 4. Attempt IMU Data Read (Post-Initialization Check) ---
+    # Note: Reading data immediately might not yield results if simulation hasn't stepped.
+    imu_prim_for_read = stage.GetPrimAtPath(imu_sensor_path)
+    if imu_prim_for_read and imu_prim_for_read.IsValid():
+        if IMUSensor: # Check if the class was imported successfully
+            try:
+                imu_sensor_instance = IMUSensor(prim_path=imu_sensor_path)
+                # Optional: Attempt to get data, but expect it might be empty initially
+                # imu_data = imu_sensor_instance.get_current_frame()
+                # if isinstance(imu_data, dict) and imu_data:
+                #     print("IMU Initial Data (Frame):", imu_data)
+                #     initialization_steps.append("IMU Read Check: OK (See Console)")
+                # else:
+                #     initialization_steps.append("IMU Read Check: No Data Yet")
+                initialization_steps.append("IMU Read Check: Ready (Instantiated)") # More realistic check
+            except Exception as e:
+                error_msg = f"IMU Read Check Failed ({type(e).__name__}: {e})"
+                print(f"[ERROR] {error_msg}")
+                initialization_steps.append(error_msg)
+        else:
+             initialization_steps.append("IMU Read Check: Skipped (IMUSensor not imported)")
+    else:
+        initialization_steps.append("IMU Read Check: Skipped (No Prim)")
+
+    # --- 5. Root Joint Removal ---
+    path_to_root_joint = husky_path + "/root_joint"
+    root_joint_prim = stage.GetPrimAtPath(path_to_root_joint)
+    if root_joint_prim and root_joint_prim.IsValid():
+        try:
+            if stage.RemovePrim(path_to_root_joint):
+                print(f"[Info] Root Joint '{path_to_root_joint}' was removed.")
+                initialization_steps.append("RootJoint: Removed")
+            else:
+                # This case might be rare if IsValid passed
+                print(f"[Warning] Failed to remove root_joint '{path_to_root_joint}'.")
+                initialization_steps.append("RootJoint: Removal Failed")
+        except Exception as e:
+             error_msg = f"RootJoint Removal Failed ({type(e).__name__}: {e})"
+             print(f"[ERROR] {error_msg}")
+             initialization_steps.append(error_msg)
+    else:
+        print(f"[Info] Root joint '{path_to_root_joint}' not found (or already removed).")
+        initialization_steps.append("RootJoint: Not Found")
+
+    # --- Final Update ---
+    end_time = time.time()
+    duration = end_time - start_time
+    label_widget.text = "Initialization Summary:\n" + "\n".join(f"- {s}" for s in initialization_steps)
+    label_widget.text += f"\n\nInit finished in {duration:.2f} seconds."
+    print(f"[Info] Initialization sequence completed in {duration:.2f} seconds.")
+
+    return True
+
+def start_cosmo_mode(stage: Usd.Stage, label_widget: ui.Label, husky_path: str):
+    """
+    Sets up the robot for tank control via an external ROS2 script.
+    Calls cease_movement first and then creates the ROS listener graph.
+
+    Args:
+        stage: The current USD stage.
+        label_widget: The UI label to display feedback.
+        husky_path: The USD path to the main Husky prim.
+    """
+    if not label_widget or not stage:
+        print("[ERROR actions.py] Stage or Label Widget not provided for Cosmo mode.")
+        return
+    print(f"[DEBUG actions.py] start_cosmo_mode called for {husky_path}")
+
+    # 1. Stop any existing movement
+    print("[Info] Ceasing existing movement before enabling Cosmo mode.")
+    cease_movement(stage, label_widget, husky_path, update_label=False) # Avoid intermediate label update
+
+    # 2. Update UI and print instructions
+    label_widget.text = "Starting Tank Control (Cosmo) mode..."
+    print_instructions_for_tank_controll() # Show console instructions
+
+    # 3. Wait briefly for ROS bridge components to potentially initialize (adjust as needed)
+    delay_seconds = 2.0
+    print(f"[Info] Waiting {delay_seconds} seconds before creating ROS listener graph...")
+    # NOTE: time.sleep() blocks the main thread. For long delays or complex apps,
+    # consider omni.kit.app.get_app().next_update_async() or asyncio.
+    time.sleep(delay_seconds)
+
+    # 4. Create the ROS listener OmniGraph
+    try:
+        print("[Info] Creating Tank Control listener graph...")
+        # Ensure create_tank_controll_listener takes necessary args (currently just husky_path)
+        create_tank_controll_listener(husky_path)
+        label_widget.text += "\nListener graph created. Ready for external script."
+        print("[Info] Tank Control listener graph created successfully.")
+    except Exception as e:
+        error_msg = f"Failed to start Tank Control: {type(e).__name__}: {e}"
+        label_widget.text = error_msg
+        print(f"[ERROR] {error_msg}")
+
+
+def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_component: float, stiffness: float) -> tuple[int, int]:
+    """Internal helper to apply drive settings to Husky wheels."""
+    # Determine base link/footprint path robustly
+    base_path = get_footprint_path(husky_path) # Use the utility function
+    if not stage.GetPrimAtPath(base_path).IsValid():
+        print(f"[ERROR] Base path '{base_path}' not found for Husky.")
+        return 0, 4 # 0 wheels set, 4 expected
+
+    wheel_joint_names = [
+        "back_left_wheel_joint", "back_right_wheel_joint",
+        "front_left_wheel_joint", "front_right_wheel_joint"
+    ]
+    wheel_paths = [f"{base_path}/{name}" for name in wheel_joint_names]
+    expected_wheels = len(wheel_paths)
+    wheels_set_count = 0
+
+    # IMPORTANT: Determine the correct rotation axis for the wheels in your USD asset.
+    # Common axes are X or Y. If wheels rotate around Y: Gf.Vec3f(0, vel, 0)
+    # If wheels rotate around X: Gf.Vec3f(vel, 0, 0)
+    # Assuming Y-axis rotation for this example:
+    target_velocity_vec = Gf.Vec3f(0, target_velocity_component, 0) # Using Float precision
+
+    for joint_path in wheel_paths:
+        wheel_prim = stage.GetPrimAtPath(joint_path)
+        if wheel_prim and wheel_prim.IsValid():
+            try:
+                # Use DriveAPI - Apply ensures it exists
+                # Use "angular" drive type for rotation
+                drive_api = UsdPhysics.DriveAPI.Apply(wheel_prim, "angular")
+
+                # Set Stiffness
+                stiffness_attr = drive_api.CreateStiffnessAttr() # Creates if doesn't exist
+                stiffness_attr.Set(stiffness)
+
+                # Set Damping (optional, often useful for stability)
+                damping = 100.0 # Example damping value, tune as needed
+                damping_attr = drive_api.CreateDampingAttr()
+                damping_attr.Set(damping)
+
+                # Set Target Velocity
+                target_vel_attr = drive_api.CreateTargetVelocityAttr()
+                target_vel_attr.Set(target_velocity_vec)
+
+                # Set Max Force (optional, prevents extreme forces)
+                # max_force_attr = drive_api.CreateMaxForceAttr()
+                # max_force_attr.Set(10000.0) # Example max force
+
+                wheels_set_count += 1
+                # print(f"[DEBUG] Applied drive to {joint_path}")
+
+            except Exception as e:
+                print(f"[Warning] Failed to apply drive attributes to {joint_path}: {type(e).__name__}: {e}")
+        else:
+            print(f"[Warning] Wheel joint prim not found or invalid: {joint_path}")
+
+    return wheels_set_count, expected_wheels
+
+
+def pilot_forward(stage: Usd.Stage, label_widget: ui.Label, husky_path: str):
+    """
+    Drives the Husky forward by setting a fixed target velocity on wheel joints
+    using the Usd.DriveAPI.
+
+    Args:
+        stage: The current USD stage.
+        label_widget: The UI label to display feedback.
+        husky_path: The USD path to the main Husky prim.
+    """
+    if not label_widget or not stage:
+        print("[ERROR actions.py] Stage or Label Widget not provided for Pilot mode.")
+        return
+    print(f"[DEBUG actions.py] pilot_forward called for {husky_path}")
+
+    target_velocity = 10.0 # Target angular velocity (e.g., rad/s - check Isaac Sim docs/units)
+    stiffness = 0.0     # Low stiffness for velocity control
+    label_widget.text = f"Engaging Pilot Mode (Target Vel: {target_velocity:.1f})"
+
+    wheels_set, expected_wheels = _apply_wheel_drive(stage, husky_path, target_velocity, stiffness)
+
+    if wheels_set == expected_wheels:
+        label_widget.text += f"\nApplied drive to {wheels_set}/{expected_wheels} wheels."
+        print(f"[Info] Pilot mode engaged for {wheels_set} wheels.")
+    else:
+        label_widget.text += f"\nWarning: Applied drive to only {wheels_set}/{expected_wheels} wheels."
+        print(f"[Warning] Pilot mode: Could only apply drive to {wheels_set}/{expected_wheels} wheels.")
+
+
+def cease_movement(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, update_label: bool = True):
+    """
+    Stops Husky movement by setting wheel target velocities to zero using Usd.DriveAPI.
+
+    Args:
+        stage: The current USD stage.
+        label_widget: The UI label to display feedback.
+        husky_path: The USD path to the main Husky prim.
+        update_label: Whether to update the label widget (set False if called internally).
+    """
+    if update_label and not label_widget:
+        print("[ERROR actions.py] Label Widget not provided for Cease movement.")
+        return
+    if not stage:
+        print("[ERROR actions.py] Stage not provided for Cease movement.")
+        return
+
+    print(f"[DEBUG actions.py] cease_movement called for {husky_path}")
+    if update_label:
+        label_widget.text = "Ceasing Movement..."
+
+    target_velocity = 0.0 # Stop
+    stiffness = 0.0     # Maintain low stiffness
+
+    wheels_set, expected_wheels = _apply_wheel_drive(stage, husky_path, target_velocity, stiffness)
+
+    if update_label:
+        label_widget.text += f"\nMovement ceased ({wheels_set}/{expected_wheels} wheels stopped)."
+    print(f"[Info] Cease movement: Applied zero velocity to {wheels_set}/{expected_wheels} wheels.")
