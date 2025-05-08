@@ -4,6 +4,10 @@
 # The options are: Joystick or Tank Controll
 
 # Used to create a graph node
+# Creates graph based node systems in Isaac Sim for the purpose of listening to ROS2 Topics
+# and moving husky in accordance with those.
+# This version uses /cmd_vel (geometry_msgs/Twist) for tank control.
+
 import omni
 import omni.graph.core as og
 import omni.usd
@@ -13,196 +17,280 @@ from pxr import UsdPhysics
 import traceback # 오류 추적 위해 추가
 import omni.kit.commands
 import carb
-# --- get_py_script_node_type 함수는 현재 사용하지 않음 ---
-# def get_py_script_node_type(): ...
-
 
 # --- Function to check and create Tank Control Listener ---
 def create_tank_controll_listener(prim_path_of_husky):
-    LIDAR_SENSOR_PRIM_PATH = prim_path_of_husky + "/lidar_link/lidar_sensor" # <<< 이 경로가 정확한지 최종 확인!
-    LIDAR_FRAME_ID = "lidar_link" # <<< 사용할 TF Frame ID, 이것도 최종 확인!
-    LIDAR_TOPIC_NAME = "/pointcloud" # <<< 발행할 토픽 이름
+    LIDAR_SENSOR_PRIM_PATH = prim_path_of_husky + "/lidar_link/lidar_sensor"
+    LIDAR_FRAME_ID = "lidar_link"
+    LIDAR_TOPIC_NAME = "/pointcloud"
 
-    graph_path = "/husky_ros_graph"
+    graph_path = "/husky_ros_graph" # 그래프 경로 일관성 유지
 
     stage = omni.usd.get_context().get_stage()
     if not stage:
         carb.log_error("Error: Could not get USD stage.")
         return
 
-    # --- 경로 유효성 검사 로직 ---
     print("Validating required prim paths and APIs...")
     valid_paths = {}
     validation_passed = True
-    lidar_publishing_possible = False # 초기화
 
-    # ... (Controller 경로, husky_root 경로, 동적 TF 경로 확인 로직) ...
     husky_prim = stage.GetPrimAtPath(prim_path_of_husky)
     husky_base_link_path = f"{prim_path_of_husky}/base_link"
     husky_base_link_prim = stage.GetPrimAtPath(husky_base_link_path)
     controller_target_path = None
+
     if husky_base_link_prim.IsValid() and husky_base_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI):
         controller_target_path = husky_base_link_path
-        valid_paths["husky_root"] = prim_path_of_husky
-        print(f"  [OK] Controller Target Path: {controller_target_path}")
+        valid_paths["husky_root"] = prim_path_of_husky # TF에는 상위 경로 사용 가능
+        print(f"  [OK] Controller Target Path (ArticulationRootAPI on base_link): {controller_target_path}")
         print(f"  [OK] Husky Root Path for TF: {valid_paths['husky_root']}")
     elif husky_prim.IsValid() and husky_prim.HasAPI(UsdPhysics.ArticulationRootAPI):
         controller_target_path = prim_path_of_husky
         valid_paths["husky_root"] = prim_path_of_husky
-        print(f"  [OK] Controller Target Path: {controller_target_path}")
+        print(f"  [OK] Controller Target Path (ArticulationRootAPI on husky_prim): {controller_target_path}")
         print(f"  [OK] Husky Root Path for TF: {valid_paths['husky_root']}")
     else:
         print(f"Error: Prim at {prim_path_of_husky} or {husky_base_link_path} does not exist or does not have ArticulationRootAPI.")
         validation_passed = False
+
     if "husky_root" not in valid_paths:
         print(f"Error: Could not determine a valid 'husky_root' path for TF.")
         validation_passed = False
 
     lidar_link_path = f"{prim_path_of_husky}/lidar_link"
-    front_bumper_link_path = f"{prim_path_of_husky}/front_bumper_link"
-    imu_sensor_path = f"{lidar_link_path}/imu_sensor"
+    front_bumper_link_path = f"{prim_path_of_husky}/front_bumper_link" # 예시, 실제 경로 확인 필요
+    imu_sensor_path = f"{lidar_link_path}/imu_sensor" # imu_link 하위 또는 base_link 하위일 수 있음, 경로 확인
+
     paths_to_check_for_dynamic_tf = {
-        "lidar_link": lidar_link_path, "front_bumper_link": front_bumper_link_path, "imu_sensor": imu_sensor_path,
+        "lidar_link": lidar_link_path,
+        "front_bumper_link": front_bumper_link_path,
+        "imu_sensor": imu_sensor_path,
     }
     valid_tf_sensor_paths = []
-    for name, path in paths_to_check_for_dynamic_tf.items():
-        prim = stage.GetPrimAtPath(path)
-        if prim.IsValid():
-            print(f"  [OK] Dynamic TF Target Candidate Path Valid: {path}")
-            valid_paths[name] = path
-            valid_tf_sensor_paths.append(path)
-        else:
-            # warnings.warn(...) # print로 대체
-            print(f"  [Warning] Prim for Dynamic TF Target {name} not found at {path}. It will be excluded.")
-    dynamic_tf_targets = []
-    if validation_passed:
+    if validation_passed: # husky_root가 유효할 때만 센서 경로 구성
+        for name, path in paths_to_check_for_dynamic_tf.items():
+            prim = stage.GetPrimAtPath(path)
+            if prim.IsValid():
+                print(f"  [OK] Dynamic TF Target Candidate Path Valid: {path}")
+                # valid_paths[name] = path # valid_paths는 이제 사용 안 함
+                valid_tf_sensor_paths.append(path)
+            else:
+                print(f"  [Warning] Prim for Dynamic TF Target {name} not found at {path}. It will be excluded from dynamic TF.")
+
+        # dynamic_tf_targets는 husky_root와 유효한 센서 경로들로 구성
         dynamic_tf_targets = [valid_paths["husky_root"]] + valid_tf_sensor_paths
-        if len(dynamic_tf_targets) <= 1:
-            # warnings.warn(...) # print로 대체
-             print("[Warning] Dynamic TF target list only contains husky_root. No additional sensor links found or validated.")
+        if len(dynamic_tf_targets) <= 1 and valid_tf_sensor_paths: # husky_root 외 유효 센서가 있었어야 함
+             print("[Warning] Dynamic TF target list only contains husky_root. No additional sensor links found or validated for dynamic TF.")
+        elif not valid_tf_sensor_paths :
+             print("[Info] No additional sensor links found or validated for dynamic TF, only husky_root will be published.")
         print(f"  [Info] Dynamic TF Targets: {dynamic_tf_targets}")
 
 
-    # --- LiDAR 센서 프리미티브 경로 확인 및 lidar_sensor_valid 변수 정의 ---
-    lidar_sensor_valid = False # <<< 변수 정의 및 초기화
+    lidar_sensor_valid = False
     if stage.GetPrimAtPath(LIDAR_SENSOR_PRIM_PATH).IsValid():
         print(f"  [OK] LiDAR Sensor Prim Path Valid: {LIDAR_SENSOR_PRIM_PATH}")
-        lidar_sensor_valid = True # <<< 확인 후 True 로 설정
+        lidar_sensor_valid = True
     else:
         carb.log_error(f"Error: LiDAR Sensor Prim not found or invalid at expected path: {LIDAR_SENSOR_PRIM_PATH}. LiDAR publishing will be disabled.")
-        lidar_sensor_valid = False # <<< 확인 후 False 로 설정 (LiDAR 노드 추가 안 함)
-
+        lidar_sensor_valid = False
 
     if not validation_passed:
-        carb.log_error("Critical validation failed (Controller/husky_root path). Cannot create OmniGraph.")
+        carb.log_error("Critical validation failed (Controller Target/Husky Root path). Cannot create OmniGraph.")
         return
     print("Path validation finished.")
 
-
-    # --- 그래프 삭제 로직 ---
     if stage.GetPrimAtPath(graph_path).IsValid():
         print(f"Deleting existing graph at {graph_path} for fresh start.")
         omni.kit.commands.execute("DeletePrims", paths=[graph_path])
 
-
-    # --- 단일 og.Controller.edit 호출 ---
     print(f"--- DEBUG: Preparing to create graph. Including LiDAR nodes: {lidar_sensor_valid} ---")
     keys = og.Controller.Keys
     try:
-        # --- 노드 정의 (LiDAR 관련 노드 조건부 추가) ---
+        # --- 노드 정의 (조향 로직 변경 및 LiDAR 조건부 추가) ---
         nodes_to_create = [
-            # 기존 노드들
             ("phys_step", "isaacsim.core.nodes.OnPhysicsStep"),
-            ("ack_sub", "isaacsim.ros2.bridge.ROS2SubscribeAckermannDrive"),
-            ("array", "omni.graph.nodes.ConstructArray"),
-            ("array_add1", "omni.graph.nodes.ArrayInsertValue"),
-            ("array_add2", "omni.graph.nodes.ArrayInsertValue"),
-            ("array_add3", "omni.graph.nodes.ArrayInsertValue"),
+            # ("ack_sub", "isaacsim.ros2.bridge.ROS2SubscribeAckermannDrive"), # 기존 Ackermann 구독 노드 삭제
+            ("twist_sub", "isaacsim.ros2.bridge.ROS2SubscribeTwist"),       # Twist 구독 노드로 변경
+            ("diff_ctrl", "isaacsim.robot.wheeled_robots.DifferentialController"), # 차동 컨트롤러 추가
+
+            ("break_linear_velocity", "omni.graph.nodes.BreakVector3"),
+            ("break_angular_velocity", "omni.graph.nodes.BreakVector3"),
+
+            #("get_linear_x", "omni.graph.nodes.ArrayIndex"),      # Twist 메시지에서 linear.x 추출
+            #("get_angular_z", "omni.graph.nodes.ArrayIndex"),     # Twist 메시지에서 angular.z 추출
+
+
+            ("get_v_left", "omni.graph.nodes.ArrayIndex"),        # DifferentialController 출력에서 왼쪽 바퀴 속도 추출
+            ("get_v_right", "omni.graph.nodes.ArrayIndex"),       # DifferentialController 출력에서 오른쪽 바퀴 속도 추출
+            ("initial_command_array", "omni.graph.nodes.ConstructArray"), # 최종 바퀴 속도 배열 생성
+            ("insert_val_at_idx0", "omni.graph.nodes.ArrayInsertValue"),
+            ("insert_val_at_idx1", "omni.graph.nodes.ArrayInsertValue"),
+            ("insert_val_at_idx2", "omni.graph.nodes.ArrayInsertValue"),
+            ("insert_val_at_idx3", "omni.graph.nodes.ArrayInsertValue"),
+
+
             ("controller", "isaacsim.core.nodes.IsaacArticulationController"),
-            ("sim_time", "isaacsim.core.nodes.IsaacReadSimulationTime"), # 익스텐션 활성화 필수
+            ("sim_time", "isaacsim.core.nodes.IsaacReadSimulationTime"),
             ("tf_static_pub", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
             ("tf_dynamic_pub", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
-            # LiDAR 관련 노드 추가 (lidar_sensor_valid 값 사용)
             *([("rp_creator", "isaacsim.core.nodes.IsaacCreateRenderProduct")] if lidar_sensor_valid else []),
             *([("lidar_pub", "isaacsim.ros2.bridge.ROS2RtxLidarHelper")] if lidar_sensor_valid else []),
         ]
         print(f"--- DEBUG: nodes_to_create defined: {nodes_to_create}")
 
-        # --- 값 설정 (LiDAR 관련 노드 값 조건부 추가) ---
+        # --- 값 설정 (조향 로직 변경 및 LiDAR 조건부 추가) ---
+        # Husky A200 매뉴얼 기준 값 
+        HUSKY_WHEEL_RADIUS = 0.165  # 바퀴 반지름 (m) - 330mm 타이어
+        HUSKY_WHEEL_BASE = 0.555    # 바퀴 간 거리 (m) - 트랙 폭 (허브-허브)
+        HUSKY_MAX_ANGULAR_SPEED = 1.5 # 예시: 1.5 rad/s (후에 필요에 따라 조절하삼)
+        # Articulation Controller에 사용될 조인트 이름 순서 (USD 모델과 일치해야 함)
+        # 순서: [후방 우측, 후방 좌측, 전방 우측, 전방 좌측]
+        # DifferentialController 출력: [v_left, v_right]
+        # 따라서 initial_command_array 입력은 [v_right, v_left, v_right, v_left] 순서로 매핑 지금 버그로 복잡해보이는 Chain 형태로 사용해야함
+        husky_joint_names = [
+            "back_right_wheel_joint", "back_left_wheel_joint",
+            "front_right_wheel_joint", "front_left_wheel_joint"
+        ]
+
         values_to_set = [
-            # 기존 값 설정
-            ("array.inputs:arraySize", 1),
+            ("twist_sub.inputs:topicName", "/cmd_vel"), # 구독 토픽 변경
+            ("diff_ctrl.inputs:wheelRadius", HUSKY_WHEEL_RADIUS),
+            ("diff_ctrl.inputs:wheelDistance", HUSKY_WHEEL_BASE), # 아이작심에서는 속성 이름 wheelDistance 임
+            ("diff_ctrl.inputs:maxAngularSpeed", HUSKY_MAX_ANGULAR_SPEED),
+            #("get_linear_x.inputs:index", 0),
+            #("get_angular_z.inputs:index", 2),
+
+            ("get_v_left.inputs:index", 0),  # DifferentialController 출력의 첫 번째 요소 (왼쪽 바퀴)
+            ("get_v_right.inputs:index", 1), # DifferentialController 출력의 두 번째 요소 (오른쪽 바퀴)
+
+            ("initial_command_array.inputs:arraySize", 0), # 4개 바퀴 속도
+            ("initial_command_array.inputs:arrayType", "double[]"),
+
+            ("insert_val_at_idx0.inputs:index", 0),
+            ("insert_val_at_idx1.inputs:index", 1),
+            ("insert_val_at_idx2.inputs:index", 2),
+            ("insert_val_at_idx3.inputs:index", 3),
+
             ("controller.inputs:robotPath", controller_target_path),
-            ("controller.inputs:jointNames", ["back_right_wheel_joint", "back_left_wheel_joint", "front_right_wheel_joint", "front_left_wheel_joint"]),
-            ("ack_sub.inputs:topicName", "/ackermann_cmd"),
-            ("tf_static_pub.inputs:targetPrims", [valid_paths.get("husky_root")]), # husky_root 유효성 검사 필요
+            ("controller.inputs:jointNames", husky_joint_names),
+
+            ("tf_static_pub.inputs:targetPrims", [valid_paths.get("husky_root")]),
             ("tf_static_pub.inputs:topicName", "/tf_static"),
             ("tf_static_pub.inputs:staticPublisher", True),
-            ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets), # dynamic_tf_targets 리스트 사용
+            ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets),
             ("tf_dynamic_pub.inputs:topicName", "/tf"),
             ("tf_dynamic_pub.inputs:staticPublisher", False),
-            # LiDAR 관련 노드 값 설정 추가 (lidar_sensor_valid 값 사용)
+
             *([
-                ("rp_creator.inputs:cameraPrim", LIDAR_SENSOR_PRIM_PATH), # LiDAR 센서 경로 직접 지정
-                ("rp_creator.inputs:width", 1),
+                ("rp_creator.inputs:cameraPrim", LIDAR_SENSOR_PRIM_PATH),
+                ("rp_creator.inputs:width", 1), # RTX Lidar는 Render Product 해상도 1x1로 충분
                 ("rp_creator.inputs:height", 1),
-                ("lidar_pub.inputs:topicName", LIDAR_TOPIC_NAME), # 상수 사용
-                ("lidar_pub.inputs:frameId", LIDAR_FRAME_ID),     # 상수 사용
-                ("lidar_pub.inputs:type", "point_cloud"),       # 발행 타입 지정
+                ("lidar_pub.inputs:topicName", LIDAR_TOPIC_NAME),
+                ("lidar_pub.inputs:frameId", LIDAR_FRAME_ID),
+                ("lidar_pub.inputs:type", "point_cloud"),
              ] if lidar_sensor_valid else [])
         ]
         print(f"--- DEBUG: values_to_set defined: {values_to_set}")
 
-        # --- 연결 설정 (LiDAR 관련 연결 조건부 추가) ---
+        # --- 연결 설정 (조향 로직 변경 및 LiDAR 조건부 추가) ---
         connections = [
-            # 기존 연결
-            ("phys_step.outputs:step", "ack_sub.inputs:execIn"),
+            ("phys_step.outputs:step", "twist_sub.inputs:execIn"),
+            ("phys_step.outputs:deltaSimulationTime", "diff_ctrl.inputs:dt"), # OnPhysicsStep의 deltaSimulationTime 사용
+
+
+            ("twist_sub.outputs:linearVelocity", "break_linear_velocity.inputs:tuple"),
+            ("twist_sub.outputs:angularVelocity", "break_angular_velocity.inputs:tuple"),
+            ("break_linear_velocity.outputs:x", "diff_ctrl.inputs:linearVelocity"),
+            ("break_angular_velocity.outputs:z", "diff_ctrl.inputs:angularVelocity"),
+
+            #("twist_sub.outputs:linearVelocity", "get_linear_x.inputs:array"),
+            #("twist_sub.outputs:angularVelocity", "get_angular_z.inputs:array"),
+
+            #("get_linear_x.outputs:value", "diff_ctrl.inputs:linearVelocity"),   
+            #("get_angular_z.outputs:value", "diff_ctrl.inputs:angularVelocity"),
+            ("phys_step.outputs:step", "diff_ctrl.inputs:execIn"), # DifferentialController도 실행 신호 필요할 수 있음
+
+            ("diff_ctrl.outputs:velocityCommand", "get_v_left.inputs:array"),
+            ("diff_ctrl.outputs:velocityCommand", "get_v_right.inputs:array"),
+
+            # === 배열 구성 로직: 모든 요소를 ArrayInsertValue로만 추가 ===
+            # 1. 첫 번째 요소 (v_right)를 인덱스 0에 삽입
+            ("initial_command_array.outputs:array", "insert_val_at_idx0.inputs:array"), # 빈 배열을 첫 번째 insert 노드로
+            ("get_v_right.outputs:value", "insert_val_at_idx0.inputs:value"),
+
+            # 2. 두 번째 요소 (v_left)를 인덱스 1에 삽입
+            ("insert_val_at_idx0.outputs:array", "insert_val_at_idx1.inputs:array"),
+            ("get_v_left.outputs:value", "insert_val_at_idx1.inputs:value"),
+
+            # 3. 세 번째 요소 (v_right)를 인덱스 2에 삽입
+            ("insert_val_at_idx1.outputs:array", "insert_val_at_idx2.inputs:array"),
+            ("get_v_right.outputs:value", "insert_val_at_idx2.inputs:value"),
+
+            # 4. 네 번째 요소 (v_left)를 인덱스 3에 삽입
+            ("insert_val_at_idx2.outputs:array", "insert_val_at_idx3.inputs:array"),
+            ("get_v_left.outputs:value", "insert_val_at_idx3.inputs:value"),
+
+            # === 최종 배열을 controller에 연결 ===
+            ("insert_val_at_idx3.outputs:array", "controller.inputs:velocityCommand"),
             ("phys_step.outputs:step", "controller.inputs:execIn"),
-            ("array.outputs:array", "array_add1.inputs:array"),
-            ("ack_sub.outputs:speed", "array.inputs:input0"),
-            ("ack_sub.outputs:speed", "array_add2.inputs:value"),
-            ("ack_sub.outputs:jerk", "array_add1.inputs:value"),
-            ("ack_sub.outputs:jerk", "array_add3.inputs:value"),
-            ("array_add1.outputs:array", "array_add2.inputs:array"),
-            ("array_add2.outputs:array", "array_add3.inputs:array"),
-            ("array_add3.outputs:array","controller.inputs:velocityCommand"),
+
             ("phys_step.outputs:step", "tf_static_pub.inputs:execIn"),
             ("phys_step.outputs:step", "tf_dynamic_pub.inputs:execIn"),
             ("sim_time.outputs:simulationTime", "tf_dynamic_pub.inputs:timeStamp"),
-            # LiDAR 관련 연결 추가 (lidar_sensor_valid 값 사용)
             *([
                 ("phys_step.outputs:step", "rp_creator.inputs:execIn"),
-                ("rp_creator.outputs:renderProductPath", "lidar_pub.inputs:renderProductPath"), # RP 경로 전달
-                ("rp_creator.outputs:execOut", "lidar_pub.inputs:execIn"), # 순차 실행
+                ("rp_creator.outputs:renderProductPath", "lidar_pub.inputs:renderProductPath"),
+                ("rp_creator.outputs:execOut", "lidar_pub.inputs:execIn"),
              ] if lidar_sensor_valid else [])
         ]
         print(f"--- DEBUG: connections defined: {connections}")
 
-        # --- og.Controller.edit 호출 ---
         og.Controller.edit(
-            { # Graph settings
+            {
               "graph_path": graph_path,
               "evaluator_name": "execution",
               "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND,
             },
-            { # Edits
+            {
               keys.CREATE_NODES: nodes_to_create,
               keys.SET_VALUES: values_to_set,
               keys.CONNECT: connections,
             }
         )
-        print(f"Successfully created/updated graph at {graph_path}!")
+        print(f"Successfully created/updated graph at {graph_path} with Twist control!")
 
     except Exception as e:
         error_msg = f"Error during graph creation/modification for '{graph_path}': {e}"
         print(error_msg)
         traceback.print_exc()
 
-
-# --- Function to check and create Joystick Listener ---
-# 이 함수는 현재 호출되지 않으므로, 그대로 두거나 삭제해도 무방합니다.
-# 만약 사용한다면 내부의 delete 로직도 수정해야 합니다.
+# --- Function to check and create Joystick Listener (Placeholder) ---
 def create_joystick_listener(prim_path_of_husky):
-    # ... (기존 Joystick Listener 코드) ...
-    # 내부의 og.delete_graph 부분도 stage.RemovePrim으로 바꿔야 함
-    pass # 임시로 비워둠
+    print("Joystick listener function is a placeholder and not implemented in this version.")
+    pass
+
+# --- Example Usage (Illustrative) ---
+# if __name__ == "__main__":
+#     # This part is typically run from an Isaac Sim extension or script editor
+#     # Ensure a Husky robot prim exists at the specified path in your USD stage
+#     HUSKY_PRIM_PATH = "/World/Husky" # Adjust this to your actual Husky prim path
+#
+#     # It's usually better to call this from an extension's on_startup or a UI button
+#     # For direct script execution, ensure the simulation is ready.
+#     # omni.timeline.get_timeline_interface().play() # Or wait for physics step
+#
+#     # Check if the prim exists before attempting to create the graph
+#     stage = omni.usd.get_context().get_stage()
+#     if stage and stage.GetPrimAtPath(HUSKY_PRIM_PATH).IsValid():
+#         create_tank_controll_listener(HUSKY_PRIM_PATH)
+#     else:
+#         carb.log_error(f"Husky prim not found at '{HUSKY_PRIM_PATH}'. Cannot create control graph.")
+#
+#     # To ensure the script runs after the stage is loaded, you might use:
+#     # def on_stage_event(e):
+#     #     if e.type == omni.usd.StageEventType.OPENED:
+#     #         # Now it's safer to access the stage and prims
+#     #         if stage.GetPrimAtPath(HUSKY_PRIM_PATH).IsValid():
+#     #            create_tank_controll_listener(HUSKY_PRIM_PATH)
+#     # stage_event_sub = omni.usd.get_context().get_stage_event_stream().create_subscription_to_pop(on_stage_event)
