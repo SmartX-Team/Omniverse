@@ -4,6 +4,7 @@ As of **25/01/20**, the repository structure has undergone a **major restructuri
 It now consists of two main folders at the root level:  
 - **`extensions/`**: Contains Omniverse Extensions  
 - **`backend/`**: Contains backend-related code or Docker configurations  
+- **`ros2/`**:Contains ROS2 packages for simulation control and data publishing within Isaac Sim.
 
 In addition, each of these folders includes a **`deprecated/`** subfolder, where older or no longer maintained items are placed. 
 
@@ -45,6 +46,10 @@ Below is an overview of the main folders in this repository:
 - **`backend/`**  
   Contains backend-related code and Docker configurations.  
   - **`deprecated/`**: Houses older or no longer actively maintained backend resources.
+
+- **`ros2/`**
+  Contains ROS2 packages for simulation control and data publishing within Isaac Sim. 
+
 
 - **`docs/`**  
   Additional documentation, references, or concept diagrams.

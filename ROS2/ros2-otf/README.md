@@ -1,0 +1,5 @@
+Within the backend components, we have developed a crucial data pipeline for handling sensor data, specifically **point clouds**. This pipeline is designed to receive point cloud data streams via **Kafka** within the **MobileX Kubernetes cluster**. It then implements **streaming ingestion and storage directly into MinIO**, our S3-compatible object storage, using an on-the-fly processing approach.
+
+Leveraging **Apache Spark**, which is a primary engine for **Delta Lake**, this pipeline is structured to be deployed conveniently as a **Spark Application** within the K8s cluster. Deployment utilizes the established methods for deploying Spark Applications on our cluster infrastructure (referencing internal documentation on script uploads via Filebrowser and PVC mounting). Code examples for this data ingestion process are included.
+
+For detailed instructions on deploying and configuring this point cloud data pipeline, please refer to the [Wiki Documentation].
