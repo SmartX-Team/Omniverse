@@ -1,0 +1,82 @@
+serial_number: a200-0000
+version: 0
+system:
+  username: lidar 
+  hosts:
+    - hostname: cpr-a200-0000
+      ip: 192.168.131.1
+  ros2:
+    namespace: a200_0000
+    domain_id: 0
+    middleware:
+      implementation: rmw_fastrtps_cpp
+    workspaces: []
+platform:
+  controller: ps4  
+  battery:
+    model: ES20_12C
+    configuration: S2P1
+  enable_ekf: false    
+  attachments:
+    - name: front_bumper
+      type: a200.bumper
+      model: default
+      parent: front_bumper_mount
+      xyz: [0.0, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]
+      enabled: true
+      extension: 0.0
+    - name: rear_bumper
+      type: a200.bumper
+      model: default
+      parent: rear_bumper_mount
+      xyz: [0.0, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]
+      enabled: true
+      extension: 0.0
+    - name: top_plate
+      type: a200.top_plate
+      model: pacs
+      parent: default_mount
+      xyz: [0.0, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]
+      enabled: true
+    - name: sensor_arch
+      type: a200.sensor_arch
+      model: sensor_arch_300
+      parent: default_mount
+      xyz: [0.0, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]
+      enabled: true
+links:
+  box:
+    - name: user_bay_cover
+      parent: top_plate_link
+      xyz: [0.0, 0.0, 0.00735]
+      rpy: [0.0, 0.0, 0.0]
+      size: [0.4, 0.4, 0.002]
+  cylinder: []
+  frame: []
+  mesh: []
+  sphere: []
+mounts:
+  bracket:
+    - parent: top_plate_mount_d1
+      xyz: [0.0, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]
+      model: horizontal
+  fath_pivot:
+    - parent: sensor_arch_mount
+      xyz: [0.0, 0.0, -0.021]
+      rpy: [3.1415, 0.0, 0.0]
+      angle: 0.0
+  riser: []
+  sick: []
+  post: []
+  disk: []
+sensors:
+  camera: [] 
+  gps: []
+  imu: []
+  lidar2d: []
+  lidar3d: []

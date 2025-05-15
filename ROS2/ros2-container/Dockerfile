@@ -33,22 +33,88 @@ RUN . /opt/ros/humble/setup.bash && \
     colcon build --symlink-install
 # --- 여기까지 IsaacSim-ros_workspaces 관련 부분 ---
 
+# --- Ouster LiDAR Driver Workspace (ouster_ws) 빌드 ---
+ENV OUSTER_WS_ROOT=/root/ouster_ws
+ENV OUSTER_WS_SRC=${OUSTER_WS_ROOT}/src
+RUN mkdir -p ${OUSTER_WS_SRC}
+WORKDIR ${OUSTER_WS_SRC}
+RUN git clone --branch ros2 --recurse-submodules https://github.com/ouster-lidar/ouster-ros.git
+WORKDIR ${OUSTER_WS_ROOT}
+RUN . /opt/ros/humble/setup.bash && \
+    rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
+RUN . /opt/ros/humble/setup.bash && \
+    colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
+# --- 여기까지 Ouster LiDAR Driver Workspace (ouster_ws) 빌드 ---
+
 
 # --- Runtime Stage ---
 FROM ros:humble-ros-base-jammy
 
 ARG DEBIAN_FRONTEND=noninteractive
-
+SHELL ["/bin/bash", "-c"]
 # RMW 구현을 FastDDS로 명시적으로 설정(Omniverse Isaac Sim 공식 권장 사항)
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 
-# 런타임에 필요한 패키지 설치
+# --- 여기부터 설정 파일 복사 ---
+
+# robot.yaml 파일 복사
+RUN mkdir -p /configs /etc/clearpath
+
+COPY robot.yaml /etc/clearpath/robot.yaml
+
+# Ouster LiDAR용 driver_params.yaml 파일 복사
+COPY driver_params.yaml /configs/ouster_driver_params.yaml
+# --- 여기까지 설정 파일 복사 ---
+
+# 런타임에 필요한 패키지 설치 및 Clearpath 저장소 설정
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get install -y --no-install-recommends \
+        # Clearpath 저장소 설정에 필요한 도구
+        curl \
+        gnupg \
+        lsb-release \
+        # 기존 의존성
         python3-pip \
         python3-venv \
         ros-humble-rmw-fastrtps-cpp \
-    && rm -rf /var/lib/apt/lists/*
+        libpcap-dev \
+    && \
+    # Clearpath Robotics APT 저장소 설정 시작
+    echo "Setting up Clearpath Robotics APT repository..." && \
+    mkdir -p /usr/share/keyrings && \
+    curl -fsSL https://packages.clearpathrobotics.com/public.key | gpg --dearmor -o /usr/share/keyrings/clearpath-archive-keyring.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/clearpath-archive-keyring.gpg] \
+    https://packages.clearpathrobotics.com/stable/ubuntu jammy main" > /etc/apt/sources.list.d/clearpath-robotics.list && \
+    apt-get update && \
+    # --- Clearpath Husky A200 패키지 설치 ---    
+    echo "Installing Clearpath Husky A200 packages..." && \
+    apt-get install -y --no-install-recommends \
+        ros-humble-clearpath-robot \
+        ros-humble-clearpath-simulator \
+        ros-humble-clearpath-config \
+        ros-humble-clearpath-generator-common \
+        ros-humble-robot-upstart \
+        ros-humble-xacro \
+    && \
+    echo "Attempting to generate Clearpath platform scripts and configurations using ros2 run..." && \
+    . /opt/ros/humble/setup.bash && \
+    # generate_bash: /etc/clearpath/setup.bash 생성
+    echo "Executing ros2 run clearpath_generator_common generate_bash..." && \
+    ros2 run clearpath_generator_common generate_bash --setup_path /etc/clearpath && \
+    # generate_description: /etc/clearpath/robot.urdf.xacro 등 생성
+    echo "Executing ros2 run clearpath_generator_common generate_description..." && \
+    ros2 run clearpath_generator_common generate_description --setup_path /etc/clearpath && \
+    # generate_param: YAML 파라미터 파일들 생성 (예: /etc/clearpath/platform/config/control.yaml)
+    echo "Executing ros2 run clearpath_generator_robot generate_param --setup_path /etc/clearpath..." && \
+    ros2 run clearpath_generator_robot generate_param --setup_path /etc/clearpath && \
+    # generate_launch: /etc/clearpath/launch/ 디렉토리 및 launch 파일들 생성
+    echo "Executing ros2 run clearpath_generator_robot generate_launch --setup_path /etc/clearpath..." && \
+    ros2 run clearpath_generator_robot generate_launch --setup_path /etc/clearpath && \
+    
+    echo "Clearpath generation scripts executed via ros2 run. Check /etc/clearpath/ for generated files." && \
+    # APT 캐시 정리
+    rm -rf /var/lib/apt/lists/*
+
 
 # <<<--- 여기에 kafka-python 등 필요한 라이브러리들 있으면 설치
 RUN pip3 install kafka-python
@@ -58,11 +124,21 @@ ENV HOST_LIKE_WORKSPACE_ROOT=/root/isaac_sim_ros_ws
 COPY --from=builder ${HOST_LIKE_WORKSPACE_ROOT} ${HOST_LIKE_WORKSPACE_ROOT}
 # --- 여기까지 IsaacSim-ros_workspaces 관련 부분 ---
 
+# --- Ouster LiDAR Driver Workspace (ouster_ws) 복사 ---
+ENV OUSTER_WS_ROOT=/root/ouster_ws
+COPY --from=builder ${OUSTER_WS_ROOT} ${OUSTER_WS_ROOT}
+
+
 COPY simple_subscriber.py /root/simple_subscriber.py
 COPY pointcloud_to_kafka.py /root/pointcloud_to_kafka.py
 COPY fastdds_force_udp.xml /etc/fastdds/fastdds_force_udp.xml
 
 WORKDIR /root
+
+# ============================================================================ #
+# =================== bash 접속 시 ROS Humble 환경 자동 source =================== #
+# ============================================================================ #
+RUN echo 'source /opt/ros/humble/setup.bash' >> /root/.bashrc
 
 COPY entrypoint.sh /ros_entrypoint.sh
 RUN chmod +x /ros_entrypoint.sh
