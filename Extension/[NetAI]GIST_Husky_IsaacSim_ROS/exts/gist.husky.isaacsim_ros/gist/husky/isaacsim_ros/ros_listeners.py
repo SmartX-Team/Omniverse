@@ -24,6 +24,24 @@ def create_tank_controll_listener(prim_path_of_husky):
     LIDAR_FRAME_ID = "lidar_link"
     LIDAR_TOPIC_NAME = "/pointcloud"
 
+    # --- RGB Camera Configuration (이미지 기반) ---
+    RGB_CAMERA_SENSOR_PRIM_PATH = prim_path_of_husky + "/front_bumper_link/husky_rgb_cam"
+    RGB_CAMERA_FRAME_ID = "front_bumper_link"
+    RGB_IMAGE_TOPIC_NAME = "/camera/color/image_raw"  # RGB 이미지 토픽 이름
+    RGB_INFO_TOPIC_NAME = "/camera/color/camera_info"   # RGB 카메라 정보 토픽 이름
+    RGB_CAMERA_RESOLUTION_WIDTH = 640 # 해상도는 실제 해상도에 맞춰서 수정 
+    RGB_CAMERA_RESOLUTION_HEIGHT = 480 # 해상도는 실제 해상도에 맞춰서 수정 
+
+    # --- Depth Camera Configuration (이미지 기반으로 수정) ---
+    DEPTH_CAMERA_SENSOR_PRIM_PATH = prim_path_of_husky + "/front_bumper_link/husky_depth_cam"
+    DEPTH_CAMERA_FRAME_ID = "front_bumper_link"
+
+    DEPTH_RGB_TOPIC_NAME = "/depth_camera/color/image_raw"
+    DEPTH_IMAGE_TOPIC_NAME = "/depth_camera/depth/image_rect_raw" # Depth image
+    DEPTH_DEPTH_INFO_TOPIC_NAME = "/depth_camera/depth/camera_info" # CameraInfo for Depth
+    DEPTH_CAMERA_RESOLUTION_WIDTH = 640 # 해상도는 실제 해상도에 맞춰서 수정 
+    DEPTH_CAMERA_RESOLUTION_HEIGHT = 480 # 해상도는 실제 해상도에 맞춰서 수정 
+
     graph_path = "/husky_ros_graph" # 그래프 경로 일관성 유지
 
     stage = omni.usd.get_context().get_stage()
@@ -94,6 +112,38 @@ def create_tank_controll_listener(prim_path_of_husky):
     else:
         carb.log_error(f"Error: LiDAR Sensor Prim not found or invalid at expected path: {LIDAR_SENSOR_PRIM_PATH}. LiDAR publishing will be disabled.")
         lidar_sensor_valid = False
+    # --- RGB Camera Sensor Validation ---
+    rgb_camera_sensor_valid = False # 먼저 False로 초기화
+    if RGB_CAMERA_SENSOR_PRIM_PATH: # 경로가 정의되었는지 확인
+        rgb_camera_prim_check = stage.GetPrimAtPath(RGB_CAMERA_SENSOR_PRIM_PATH)
+        if rgb_camera_prim_check.IsValid() and rgb_camera_prim_check.GetTypeName() == 'Camera':
+            print(f"  [OK] RGB Camera Sensor Prim Path Valid: {RGB_CAMERA_SENSOR_PRIM_PATH}")
+            rgb_camera_sensor_valid = True
+        else:
+            carb.log_error(f"Warning: RGB Camera Sensor Prim not found, invalid, or not type 'Camera' at {RGB_CAMERA_SENSOR_PRIM_PATH}. RGB publishing will be disabled.")
+    else:
+        carb.log_error("Warning: RGB_CAMERA_SENSOR_PRIM_PATH is not defined. RGB publishing will be disabled.")
+
+
+
+    # --- Depth Camera Sensor Validation ---
+    depth_camera_sensor_valid = False # 먼저 False로 초기화
+    if DEPTH_CAMERA_SENSOR_PRIM_PATH: # 경로가 정의되었는지 확인 (선택적이지만 안전)
+        depth_camera_prim_check = stage.GetPrimAtPath(DEPTH_CAMERA_SENSOR_PRIM_PATH)
+        if depth_camera_prim_check.IsValid() and depth_camera_prim_check.GetTypeName() == 'Camera':
+            print(f"  [OK] Depth Camera Sensor Prim Path Valid: {DEPTH_CAMERA_SENSOR_PRIM_PATH}")
+            depth_camera_sensor_valid = True
+        else:
+            carb.log_error(f"Warning: Depth Camera Sensor Prim not found, invalid, or not type 'Camera' at {DEPTH_CAMERA_SENSOR_PRIM_PATH}. Depth publishing will be disabled.")
+    else:
+        carb.log_error("Warning: DEPTH_CAMERA_SENSOR_PRIM_PATH is not defined. Depth publishing will be disabled.")
+
+    # --- DEBUG 메시지 업데이트 ---
+    # 기존: print(f"--- DEBUG: Preparing to create graph. Including LiDAR nodes: {lidar_sensor_valid} ---")
+    # 변경:
+    print(f"--- DEBUG: Preparing to create graph. LiDAR: {lidar_sensor_valid}, RGB Cam: {rgb_camera_sensor_valid}, Depth Cam: {depth_camera_sensor_valid} ---")
+
+
 
     if not validation_passed:
         carb.log_error("Critical validation failed (Controller Target/Husky Root path). Cannot create OmniGraph.")
@@ -136,6 +186,18 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("tf_dynamic_pub", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
             *([("rp_creator", "isaacsim.core.nodes.IsaacCreateRenderProduct")] if lidar_sensor_valid else []),
             *([("lidar_pub", "isaacsim.ros2.bridge.ROS2RtxLidarHelper")] if lidar_sensor_valid else []),
+            # RGB Camera Helper Node (Conditional)
+            *([ ("rp_creator_rgb", "isaacsim.core.nodes.IsaacCreateRenderProduct"),
+                ("rgb_camera_helper", "isaacsim.ros2.bridge.ROS2CameraHelper"),
+                ("rgb_camera_info_helper", "isaacsim.ros2.bridge.ROS2CameraInfoHelper")
+                ] if rgb_camera_sensor_valid else []),
+                
+
+            # Depth Camera Helper Node (Conditional)
+            *([ ("rp_creator_depth", "isaacsim.core.nodes.IsaacCreateRenderProduct"),
+                ("depth_camera_helper", "isaacsim.ros2.bridge.ROS2CameraHelper"),
+                ("depth_camera_info_helper", "isaacsim.ros2.bridge.ROS2CameraInfoHelper")
+                ] if depth_camera_sensor_valid else []),            
         ]
         print(f"--- DEBUG: nodes_to_create defined: {nodes_to_create}")
 
@@ -181,7 +243,7 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets),
             ("tf_dynamic_pub.inputs:topicName", "/tf"),
             ("tf_dynamic_pub.inputs:staticPublisher", False),
-
+            # LiDAR Values
             *([
                 ("rp_creator.inputs:cameraPrim", LIDAR_SENSOR_PRIM_PATH),
                 ("rp_creator.inputs:width", 1), # RTX Lidar는 Render Product 해상도 1x1로 충분
@@ -189,7 +251,33 @@ def create_tank_controll_listener(prim_path_of_husky):
                 ("lidar_pub.inputs:topicName", LIDAR_TOPIC_NAME),
                 ("lidar_pub.inputs:frameId", LIDAR_FRAME_ID),
                 ("lidar_pub.inputs:type", "point_cloud"),
-             ] if lidar_sensor_valid else [])
+             ] if lidar_sensor_valid else []),
+            # RGB Camera Values
+            *([
+                ("rp_creator_rgb.inputs:cameraPrim", RGB_CAMERA_SENSOR_PRIM_PATH),
+                ("rp_creator_rgb.inputs:width", RGB_CAMERA_RESOLUTION_WIDTH),
+                ("rp_creator_rgb.inputs:height", RGB_CAMERA_RESOLUTION_HEIGHT),
+                ("rgb_camera_helper.inputs:frameId", RGB_CAMERA_FRAME_ID),
+                ("rgb_camera_helper.inputs:topicName", RGB_IMAGE_TOPIC_NAME),
+                ("rgb_camera_helper.inputs:type", "rgb"),
+                # Added RGB Camera Info
+                ("rgb_camera_info_helper.inputs:frameId", RGB_CAMERA_FRAME_ID),
+                ("rgb_camera_info_helper.inputs:topicName", RGB_INFO_TOPIC_NAME),
+             ] if rgb_camera_sensor_valid else []),
+
+            # Depth Camera Values (Conditional & NEW)
+            *([
+                ("rp_creator_depth.inputs:cameraPrim", DEPTH_CAMERA_SENSOR_PRIM_PATH),
+                ("rp_creator_depth.inputs:width", DEPTH_CAMERA_RESOLUTION_WIDTH),
+                ("rp_creator_depth.inputs:height", DEPTH_CAMERA_RESOLUTION_HEIGHT),
+                ("depth_camera_helper.inputs:frameId", DEPTH_CAMERA_FRAME_ID),
+                ("depth_camera_helper.inputs:topicName", DEPTH_IMAGE_TOPIC_NAME),
+                ("depth_camera_helper.inputs:type", "depth"),
+
+                # Added Depth Camera Info
+                ("depth_camera_info_helper.inputs:frameId", DEPTH_CAMERA_FRAME_ID),
+                ("depth_camera_info_helper.inputs:topicName", DEPTH_DEPTH_INFO_TOPIC_NAME),
+             ] if depth_camera_sensor_valid else [])             
         ]
         print(f"--- DEBUG: values_to_set defined: {values_to_set}")
 
@@ -242,9 +330,33 @@ def create_tank_controll_listener(prim_path_of_husky):
                 ("phys_step.outputs:step", "rp_creator.inputs:execIn"),
                 ("rp_creator.outputs:renderProductPath", "lidar_pub.inputs:renderProductPath"),
                 ("rp_creator.outputs:execOut", "lidar_pub.inputs:execIn"),
-             ] if lidar_sensor_valid else [])
+             ] if lidar_sensor_valid else []),
+
+            # RGB Camera Connections
+            *([
+                ("phys_step.outputs:step", "rp_creator_rgb.inputs:execIn"),
+                ("rp_creator_rgb.outputs:renderProductPath", "rgb_camera_helper.inputs:renderProductPath"),
+                ("rp_creator_rgb.outputs:execOut", "rgb_camera_helper.inputs:execIn"),
+
+                # RGB Camera Info Connections
+                ("phys_step.outputs:step", "rgb_camera_info_helper.inputs:execIn"),
+                # 동일 RenderProductPath 재사용
+                ("rp_creator_rgb.outputs:renderProductPath", "rgb_camera_info_helper.inputs:renderProductPath"),
+
+             ] if rgb_camera_sensor_valid else []),
+
+            # Depth Camera Connections
+
+            *([
+                ("phys_step.outputs:step", "rp_creator_depth.inputs:execIn"),
+                ("rp_creator_depth.outputs:renderProductPath", "depth_camera_helper.inputs:renderProductPath"),
+                ("rp_creator_depth.outputs:execOut", "depth_camera_helper.inputs:execIn"),
+
+                ("phys_step.outputs:step", "depth_camera_info_helper.inputs:execIn"),
+                ("rp_creator_depth.outputs:renderProductPath", "depth_camera_info_helper.inputs:renderProductPath"),
+             ] if depth_camera_sensor_valid else [])            
         ]
-        print(f"--- DEBUG: connections defined: {connections}")
+        print(f"--- DEBUG: connections defined (length: {len(connections)}): {connections}")
 
         og.Controller.edit(
             {

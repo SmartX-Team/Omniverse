@@ -73,12 +73,31 @@ RUN apt-get update && \
         curl \
         gnupg \
         lsb-release \
+        apt-transport-https \
+        software-properties-common \        
         # 기존 의존성
         python3-pip \
         python3-venv \
+        python3-yaml \
+        libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 \
+        ros-humble-rviz2 \
         ros-humble-rmw-fastrtps-cpp \
         libpcap-dev \
     && \
+
+    # --- Intel RealSense 저장소 추가 및 SDK 설치 ---
+        echo "Setting up Intel RealSense APT repository..." && \
+        mkdir -p /etc/apt/keyrings && \
+        curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | tee /etc/apt/keyrings/librealsense.pgp > /dev/null && \
+        echo "deb [signed-by=/etc/apt/keyrings/librealsense.pgp] https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/librealsense.list && \
+        apt-get update && \
+        echo "Installing Intel RealSense SDK packages..." && \
+        apt-get install -y --no-install-recommends \
+            librealsense2-utils \
+            librealsense2-dev \
+            librealsense2-gl-dev \
+        && \
+
     # Clearpath Robotics APT 저장소 설정 시작
     echo "Setting up Clearpath Robotics APT repository..." && \
     mkdir -p /usr/share/keyrings && \
@@ -95,6 +114,8 @@ RUN apt-get update && \
         ros-humble-clearpath-generator-common \
         ros-humble-robot-upstart \
         ros-humble-xacro \
+        ros-humble-realsense2-camera \
+        ros-humble-realsense2-description \        
     && \
     echo "Attempting to generate Clearpath platform scripts and configurations using ros2 run..." && \
     . /opt/ros/humble/setup.bash && \
