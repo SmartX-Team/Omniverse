@@ -83,6 +83,8 @@ RUN apt-get update && \
         ros-humble-rviz2 \
         ros-humble-rmw-fastrtps-cpp \
         libpcap-dev \
+        ros-humble-cv-bridge \
+        python3-opencv \
     && \
 
     # --- Intel RealSense 저장소 추가 및 SDK 설치 ---
@@ -131,14 +133,13 @@ RUN apt-get update && \
     # generate_launch: /etc/clearpath/launch/ 디렉토리 및 launch 파일들 생성
     echo "Executing ros2 run clearpath_generator_robot generate_launch --setup_path /etc/clearpath..." && \
     ros2 run clearpath_generator_robot generate_launch --setup_path /etc/clearpath && \
-    
     echo "Clearpath generation scripts executed via ros2 run. Check /etc/clearpath/ for generated files." && \
     # APT 캐시 정리
     rm -rf /var/lib/apt/lists/*
 
 
 # <<<--- 여기에 kafka-python 등 필요한 라이브러리들 있으면 설치
-RUN pip3 install kafka-python
+RUN pip3 install kafka-python requests
 
 # --- IsaacSim-ros_workspaces 관련 부분 ---
 ENV HOST_LIKE_WORKSPACE_ROOT=/root/isaac_sim_ros_ws
@@ -149,11 +150,11 @@ COPY --from=builder ${HOST_LIKE_WORKSPACE_ROOT} ${HOST_LIKE_WORKSPACE_ROOT}
 ENV OUSTER_WS_ROOT=/root/ouster_ws
 COPY --from=builder ${OUSTER_WS_ROOT} ${OUSTER_WS_ROOT}
 
-
+# --- 그 외 필요한 테스트나 ROS2 용 코드들 있으면 여기서 복사사 키보드 왜 이래ㅔㅅ .ㅇ ---
 COPY simple_subscriber.py /root/simple_subscriber.py
 COPY pointcloud_to_kafka.py /root/pointcloud_to_kafka.py
 COPY fastdds_force_udp.xml /etc/fastdds/fastdds_force_udp.xml
-
+COPY ros2_camera_to_kafka_agent.py /root/ros2_camera_to_kafka_agent.py
 WORKDIR /root
 
 # ============================================================================ #
