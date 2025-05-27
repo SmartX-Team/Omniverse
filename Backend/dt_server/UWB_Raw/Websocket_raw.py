@@ -38,77 +38,111 @@ import threading
 import numpy as np
 import os
 import signal
+import sys # sys.exit()를 위해 추가
 
-"""
-데이터 처리 로직은 UWB_gateway로 이전, 해당 코드는 오르지 데이터 적재만
-
-"""
 class SewioWebSocketClient_v2:
-
-    def __init__(self, url, data_callback=None, config_path=None):
-        config_path = config_path
-        with open(config_path, 'r') as file:
-            self.config = json.load(file)
+    def __init__(self, url, data_callback=None): # config_path 제거
         self.url = url
-        self.reconnect_delay = self.config['reconnect_delay']  # 재연결 시도 간격(초)
-        self.lock = threading.Lock()
-        self.data_callback = data_callback # DB 저장용 콜백함수
+        self.api_key = os.getenv('SEWIO_API_KEY')
+        # SEWIO_RECONNECT_DELAY를 int로 변환, 없으면 기본값 5초
+        try:
+            self.reconnect_delay = int(os.getenv('SEWIO_RECONNECT_DELAY', '5'))
+        except ValueError:
+            print("Warning: Invalid SEWIO_RECONNECT_DELAY value. Using default 5 seconds.")
+            self.reconnect_delay = 5
+
+        if not self.api_key:
+            print("ERROR: SEWIO_API_KEY environment variable not set.")
+            # Sewio 클라이언트가 API 키 없이 제대로 동작하지 않을 수 있으므로, 여기서 종료하거나 예외 발생
+            sys.exit(1) 
+
+        # self.lock = threading.Lock() # 현재 코드에서는 직접 사용되지 않음
+        self.data_callback = data_callback
         self.running = True
+        self.ws = None # ws 객체 초기화
 
         signal.signal(signal.SIGINT, self.signal_handler)
         signal.signal(signal.SIGTERM, self.signal_handler)
+        print(f"SewioWebSocketClient_v2 initialized. URL: {self.url}, ReconnectDelay: {self.reconnect_delay}s")
+
 
     def signal_handler(self, sig, frame):
-        print('Signal received:', sig)
+        print(f'Signal {sig} received. Stopping client...')
         self.stop()
 
     def on_message(self, ws, message):
-        #print("Received:", message)
-        data = json.loads(message)
-        tag_id = data["body"]["id"]
-        posX = float(data["body"]["datastreams"][0]["current_value"].replace('%', ''))
-        posY = float(data["body"]["datastreams"][1]["current_value"].replace('%', ''))
-        timestamp = data["body"]["datastreams"][0]["at"]
-        # extended_tag_position 존재 여부 확인 및 처리
-        if "extended_tag_position" in data["body"]:
-            anchor_info = json.dumps(data["body"]["extended_tag_position"])
-        else:
-            anchor_info = json.dumps({})
+        try:
+            data = json.loads(message)
+            tag_id = data["body"]["id"]
+            posX = float(data["body"]["datastreams"][0]["current_value"].replace('%', ''))
+            posY = float(data["body"]["datastreams"][1]["current_value"].replace('%', ''))
+            timestamp = data["body"]["datastreams"][0]["at"]
+            
+            if "extended_tag_position" in data["body"]:
+                anchor_info = json.dumps(data["body"]["extended_tag_position"])
+            else:
+                anchor_info = json.dumps({})
 
-        self.data_callback(tag_id, posX, posY, timestamp, anchor_info)
+            if self.data_callback:
+                self.data_callback(tag_id, posX, posY, timestamp, anchor_info)
+        except Exception as e:
+            print(f"Error processing message: {e}\nMessage: {message}")
+
 
     def on_error(self, ws, error):
-        print("Error:", error)
+        print(f"WebSocket Error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("### closed WebSocket###")
+        # close_status_code와 close_msg가 None으로 올 수 있음
+        status_msg = f"Status: {close_status_code}, Msg: {close_msg}" if close_status_code is not None else "Connection closed."
+        print(f"### WebSocket closed. {status_msg} ###")
+        # self.running 플래그에 따라 재연결 로직은 run_forever 루프에서 처리
 
     def on_open(self, ws):
-        print("Opened connection")
-        subscribe_message = f'{{"headers": {{"X-ApiKey": "{self.config["X-ApiKey"]}"}}, "method": "subscribe", "resource": "/feeds/"}}'
-        ws.send(subscribe_message)
+        print("WebSocket connection opened.")
+        subscribe_message = f'{{"headers": {{"X-ApiKey": "{self.api_key}"}}, "method": "subscribe", "resource": "/feeds/"}}'
+        try:
+            ws.send(subscribe_message)
+            print("Subscription message sent.")
+        except Exception as e:
+            print(f"Failed to send subscription message: {e}")
+
 
     def stop(self):
+        print("Stopping WebSocket client...")
         self.running = False
         if self.ws:
-            self.ws.close()
-        print("WebSocket client has been stopped.")
+            try:
+                self.ws.close() # WebSocketApp의 close 호출
+            except Exception as e:
+                print(f"Error closing WebSocket: {e}")
+        print("WebSocket client has been signaled to stop.")
 
 
     def run_forever(self):
         while self.running:
+            print(f"Attempting to connect to WebSocket: {self.url}")
             try:
                 self.ws = websocket.WebSocketApp(self.url,
                                                 on_open=self.on_open,
                                                 on_message=self.on_message,
                                                 on_error=self.on_error,
                                                 on_close=self.on_close)
-                self.ws.run_forever()
-            except Exception as e:
-                print(f"Error: {e}")
-            if self.running:
-                print("Attempting to reconnect in {} seconds...".format(self.reconnect_delay))
-                time.sleep(self.reconnect_delay)  # 재연결 전 딜레이
+                self.ws.run_forever(ping_interval=60, ping_timeout=10) # Keepalive 추가
+            except Exception as e: # WebSocketApp 생성 또는 run_forever 내부의 예외
+                print(f"WebSocketApp run_forever error: {e}")
+            
+            if self.running: # stop()이 호출되지 않은 경우에만 재연결 시도
+                print(f"Disconnected. Attempting to reconnect in {self.reconnect_delay} seconds...")
+                # time.sleep() 중 SIGINT/SIGTERM을 받을 수 있도록 루프 사용
+                for _ in range(self.reconnect_delay):
+                    if not self.running:
+                        break
+                    time.sleep(1)
+            if not self.running:
+                print("Exiting run_forever loop as client is stopped.")
+                break
+        print("WebSocket client run_forever loop finished.")
 
 """
 WebSocket 기반 Raw Data
@@ -252,4 +286,4 @@ class SewioWebSocketClient:
 
                     self.data_map[tag_id] = []  # Reset the list after calculating the average
 
-        self.start_scheduler()  # Reschedule the timer
+        self.start_scheduler()
