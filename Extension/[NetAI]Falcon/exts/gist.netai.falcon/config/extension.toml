@@ -38,7 +38,11 @@ icon = "data/icon.png"
 
 # Main python module this extension provides, it will be publicly available as "import company.hello.world".
 [[python.module]]
-name = "company.hello.world"
+name = "gist.netai.falcon"
+
+[python.pipapi]
+requirements = ['requests', 'httpx', 'aiokafka', 'psycopg2-binary']
+use_online_index = true
 
 [[test]]
 # Extra dependencies only to be used during test run

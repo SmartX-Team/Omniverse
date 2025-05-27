@@ -138,7 +138,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 
-# <<<--- 여기에 kafka-python 등 필요한 라이브러리들 있으면 설치
+# <<<--- 여기부터 kafka-python 등 필요한 라이브러리들 있으면 설치
 RUN pip3 install kafka-python requests
 
 # --- IsaacSim-ros_workspaces 관련 부분 ---
