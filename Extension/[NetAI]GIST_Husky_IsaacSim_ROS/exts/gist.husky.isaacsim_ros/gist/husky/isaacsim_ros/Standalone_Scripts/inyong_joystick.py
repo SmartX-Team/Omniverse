@@ -15,8 +15,8 @@ NODE_NAME = 'virtual_joystick_twist_publisher'
 TOPIC_NAME = '/cmd_vel' # Isaac Sim OmniGraph가 구독하는 /cmd_vel 토픽
 
 # --- !!! 속도 설정 !!! ---
-TARGET_LINEAR_SPEED_LOW = 0.5   # 예시: 저속 선속도 (m/s)
-TARGET_LINEAR_SPEED_MEDIUM = 3.0 # 예시: 중속 선속도 (m/s)
+TARGET_LINEAR_SPEED_LOW = 0.3   # 예시: 저속 선속도 (m/s)
+TARGET_LINEAR_SPEED_MEDIUM = 0.5 # 예시: 중속 선속도 (m/s)
 TARGET_LINEAR_SPEED_HIGH = 5.0  # 예시: 고속 선속도 (m/s)
 
 TARGET_ANGULAR_SPEED_LOW = 0.5  # 예시: 저속 각속도 (rad/s)

@@ -3,7 +3,7 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 from sensor_msgs.msg import CompressedImage, Image # 두 타입 모두 임포트
-from cv_bridge import CvBridge # Image 메시지를 OpenCV 형식으로 변환 시 (압축 사용해야 실제 이미지 데이터 사용 가능능)
+from cv_bridge import CvBridge # Image 메시지를 OpenCV 형식으로 변환 시 (압축 사용해야 실제 이미지 데이터 사용 가능)
 import cv2 # JPEG 압축 시 필요
 
 from kafka import KafkaProducer
@@ -187,7 +187,6 @@ class ROS2CameraToKafkaAgent(Node):
             self.get_logger().warn(f"{self.log_prefix}Kafka Producer not available. Cannot send message.")
             return
 
-
         # Kafka 전송 속도 제어 로직
         current_time = time.time()
         if (current_time - self.last_kafka_send_time) < self.desired_kafka_send_interval:
@@ -220,7 +219,6 @@ class ROS2CameraToKafkaAgent(Node):
                 try:
                     # ROS Image 메시지를 OpenCV 이미지로 변환
                     # Isaac Sim의 /camera/color/image_raw는 보통 'rgb8' 또는 'bgr8'
-                    # desired_encoding을 'bgr8'로 하면 대부분의 경우 잘 맞음
                     cv_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
                     
                     # OpenCV 이미지를 JPEG 형식으로 압축

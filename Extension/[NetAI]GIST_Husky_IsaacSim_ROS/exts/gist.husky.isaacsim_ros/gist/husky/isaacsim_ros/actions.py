@@ -238,7 +238,7 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
                 stiffness_attr.Set(stiffness)
 
                 # Set Damping (optional, often useful for stability)
-                damping = 100.0 # Example damping value, tune as needed
+                damping = 1000.0 # Example damping value, tune as needed
                 damping_attr = drive_api.CreateDampingAttr()
                 damping_attr.Set(damping)
 
@@ -248,7 +248,7 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
 
                 # Set Max Force (optional, prevents extreme forces)
                 max_force_attr = drive_api.CreateMaxForceAttr()
-                max_force_attr.Set(10000.0) # Example max force
+                max_force_attr.Set(100000.0) # Example max force
 
                 wheels_set_count += 1
                 # print(f"[DEBUG] Applied drive to {joint_path}")

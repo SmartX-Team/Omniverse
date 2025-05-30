@@ -11,6 +11,16 @@ import weakref
 import threading
 from typing import Optional, List, Dict, Any
 
+
+import time
+
+
+# --- 타임아웃 설정 ---
+PERSON_VISIBILITY_TIMEOUT = 3.0  # 3초간 데이터가 없으면 invisible
+MESSAGE_TIMEOUT = 5.0  # 10초간 메시지가 없으면 모든 prim invisible
+VISIBILITY_CHECK_INTERVAL = 1.0  # 1초마다 타임아웃 체크
+CONFIDENCE_THRESHOLD = 0.5  # confidence가 이 값 미만이면 무시
+
 # --- Configuration ---
 KAFKA_BROKER = '10.79.1.1:9094'
 KAFKA_TOPIC = 'inference_results'
@@ -40,7 +50,7 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
     def on_startup(self, ext_id: str):
         logger.info(f"FalconHumanVisualizerExtension startup. Ext ID: {ext_id}")
         
-        # 초기화 시 모든 속성을 None으로 설정
+        # 기존 초기화 코드...
         self._ext_id: Optional[str] = ext_id
         self._consumer_task: Optional[asyncio.Task] = None
         self._consumer: Optional[AIOKafkaConsumer] = None
@@ -50,30 +60,27 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
         self._status_label: Optional[ui.Label] = None
         self._is_shutting_down: bool = False
         self._shutdown_event = threading.Event()
-        
-        # WeakSet으로 생성된 task들 추적
         self._background_tasks: weakref.WeakSet = weakref.WeakSet()
-
+        
+        # 타임아웃 관리를 위한 새로운 속성들
+        self._last_message_time: float = 0.0
+        self._visibility_checker_task: Optional[asyncio.Task] = None
+        self._person_last_seen_times: Dict[int, float] = {}  # prim_index -> last_seen_time
+        
+        # 기존 초기화 코드 계속...
         try:
-            # Stage 이벤트 구독
             usd_context = get_context()
             if usd_context:
                 self._stage_event_sub = usd_context.get_stage_event_stream().create_subscription_to_pop(
                     self._on_stage_event, name="FalconHumanVisualizer Stage Event"
                 )
-            else:
-                logger.error("Failed to get USD context during startup")
-
-            # UI 창 생성
+            
             self._create_ui()
-
-            # Stage 초기화
             self._initialize_stage()
             
             logger.info("FalconHumanVisualizerExtension startup complete.")
         except Exception as e:
             logger.error(f"Error during startup: {e}", exc_info=True)
-            # 시작 실패 시 정리
             self._cleanup_resources(force=True)
 
     def _create_ui(self):
@@ -217,7 +224,7 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
                 self._status_label.text = f"Status: Error - {str(e)}"
 
     def _on_start_clicked(self):
-        """Start 버튼 클릭 이벤트를 처리합니다."""
+        """Start 버튼 클릭 이벤트를 처리합니다. (개선된 버전)"""
         if self._is_shutting_down:
             return
             
@@ -231,14 +238,21 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
                         self._status_label.text = "Status: Error - Stage not ready"
                     return
 
+                # Prim 상태 확인 및 초기화
                 if not self._person_prim_objects:
                     logger.warning("Person prims not initialized. Attempting to initialize now.")
                     task = asyncio.ensure_future(self._initialize_person_prims())
                     self._background_tasks.add(task)
-
+                    return
+                
+                # 현재 prim 상태 로깅 (디버깅용)
+                self._log_prim_status()
+                
+                # Consumer 시작
                 logger.info("Starting Kafka consumer task.")
                 self._consumer_task = asyncio.ensure_future(self._consume_kafka_messages())
                 self._background_tasks.add(self._consumer_task)
+                
             else:
                 logger.info("Consumer task is already running.")
                 if self._status_label:
@@ -299,19 +313,17 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
             
             await consumer.start()
             logger.info("AIOKafkaConsumer started successfully.")
+
+            # 타임아웃 체커 시작
+            self._visibility_checker_task = asyncio.create_task(self._visibility_timeout_checker())
+            self._background_tasks.add(self._visibility_checker_task)
+
             if self._status_label and not self._is_shutting_down:
                 self._status_label.text = f"Status: Consuming from {KAFKA_TOPIC}"
 
-            # 모든 Prim을 초기에 보이지 않도록 설정
-            for p_info in self._person_prim_objects:
-                if self._is_shutting_down:
-                    break
-                if p_info["prim"] and p_info["prim"].IsValid():
-                    try:
-                        UsdGeom.Imageable(p_info["prim"]).MakeInvisible()
-                        p_info["is_currently_visible"] = False
-                    except Exception as e:
-                        logger.error(f"Error making prim invisible: {e}")
+            # 초기 상태 설정
+            self._last_message_time = time.time()
+            await self._hide_all_prims()
 
             # 메시지 소비 루프
             async for msg in consumer:
@@ -341,12 +353,106 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
             if self._status_label and not self._is_shutting_down:
                 self._status_label.text = f"Status: Error - {str(e)}"
         finally:
-            # Consumer 정리
-            await self._cleanup_consumer(consumer)
+            # 타임아웃 체커 정지
+            if self._visibility_checker_task and not self._visibility_checker_task.done():
+                self._visibility_checker_task.cancel()
+                try:
+                    await self._visibility_checker_task
+                except asyncio.CancelledError:
+                    pass
             
+            await self._cleanup_consumer(consumer)
             logger.info("Kafka consumer cleanup completed.")
-            if hasattr(self, '_status_label') and self._status_label and not self._is_shutting_down:
-                self._status_label.text = "Status: Consumer stopped"
+
+    async def _visibility_timeout_checker(self):
+        """주기적으로 타임아웃을 체크하여 visibility를 관리합니다."""
+        logger.info("Visibility timeout checker started")
+        
+        try:
+            while not self._is_shutting_down:
+                current_time = time.time()
+                
+                # 1. 전체 메시지 타임아웃 체크
+                time_since_last_message = current_time - self._last_message_time
+                
+                if time_since_last_message > MESSAGE_TIMEOUT:
+                    # 메시지가 오지 않은 시간이 타임아웃을 초과하면 모든 prim 숨김
+                    await self._hide_all_prims_due_to_timeout("No messages received")
+                    
+                    # 상태 업데이트
+                    if self._status_label and not self._is_shutting_down:
+                        self._status_label.text = f"Status: No data (timeout {time_since_last_message:.1f}s)"
+                
+                else:
+                    # 2. 개별 person 타임아웃 체크
+                    await self._check_individual_person_timeouts(current_time)
+                
+                # 주기적으로 체크
+                await asyncio.sleep(VISIBILITY_CHECK_INTERVAL)
+                
+        except asyncio.CancelledError:
+            logger.info("Visibility timeout checker cancelled")
+            raise
+        except Exception as e:
+            logger.error(f"Error in visibility timeout checker: {e}", exc_info=True)
+
+    async def _check_individual_person_timeouts(self, current_time: float):
+        """개별 person들의 타임아웃을 체크합니다."""
+        try:
+            for prim_index, prim_info in enumerate(self._person_prim_objects):
+                if self._is_shutting_down:
+                    break
+                
+                prim = prim_info.get("prim")
+                if not (prim and prim.IsValid()):
+                    continue
+                
+                is_currently_visible = prim_info.get("is_currently_visible", False)
+                last_seen_time = self._person_last_seen_times.get(prim_index, 0.0)
+                
+                # 마지막으로 보인 시간으로부터 타임아웃 체크
+                time_since_last_seen = current_time - last_seen_time
+                
+                if is_currently_visible and time_since_last_seen > PERSON_VISIBILITY_TIMEOUT:
+                    # 타임아웃 초과 시 숨김
+                    try:
+                        imageable = UsdGeom.Imageable(prim)
+                        if imageable:
+                            imageable.MakeInvisible()
+                            prim_info["is_currently_visible"] = False
+                            
+                            prim_path = prim_info.get("path", f"prim_{prim_index}")
+                            logger.info(f"Made prim {prim_path} invisible due to timeout ({time_since_last_seen:.1f}s)")
+                            
+                    except Exception as e:
+                        logger.error(f"Error hiding prim due to timeout: {e}")
+                        
+        except Exception as e:
+            logger.error(f"Error checking individual timeouts: {e}")
+
+    async def _hide_all_prims_due_to_timeout(self, reason: str):
+        """타임아웃으로 인해 모든 prim을 숨깁니다."""
+        try:
+            hidden_count = 0
+            for prim_info in self._person_prim_objects:
+                if prim_info.get("is_currently_visible", False):
+                    prim = prim_info.get("prim")
+                    if prim and prim.IsValid():
+                        try:
+                            UsdGeom.Imageable(prim).MakeInvisible()
+                            prim_info["is_currently_visible"] = False
+                            hidden_count += 1
+                        except Exception as e:
+                            logger.error(f"Error hiding prim on timeout: {e}")
+            
+            if hidden_count > 0:
+                logger.info(f"Hidden {hidden_count} prims due to timeout: {reason}")
+                
+            # 타임아웃 기록 초기화
+            self._person_last_seen_times.clear()
+            
+        except Exception as e:
+            logger.error(f"Error hiding prims due to timeout: {e}")
 
     async def _cleanup_consumer(self, consumer):
         """Consumer 정리를 안전하게 수행합니다."""
@@ -368,7 +474,7 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
             self._consumer_task = None
 
     async def _process_falcon_message(self, data: dict):
-        """Falcon 메시지를 처리하여 Prim 위치를 업데이트합니다."""
+        """Falcon 메시지를 처리하여 Prim 위치를 업데이트합니다. (개선된 버전)"""
         if self._is_shutting_down:
             return
             
@@ -383,81 +489,176 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
             return
 
         try:
+            current_time = time.time()
             person_locations = data.get("person_locations_estimated", [])
-            num_persons_in_message = len(person_locations)
 
+            self._last_message_time = current_time
+            
+            # 로깅을 위한 정보
+            logger.debug(f"Processing message with {len(person_locations)} person locations")
+            
             UWB_ANCHOR_X = 5.4  # UWB 좌표계에서 Omniverse Z=0에 해당하는 X 값
             UWB_ANCHOR_Y = 7.29 # UWB 좌표계에서 Omniverse X=0에 해당하는 Y 값
             
-            for i in range(min(MAX_PERSONS_TO_DISPLAY, len(self._person_prim_objects))):
+            # 1. 메시지에서 유효한 사람 데이터 추출 및 매핑
+            valid_persons = []
+            filtered_count = 0
+
+
+            for i, person_data in enumerate(person_locations):
+                est_x_falcon = person_data.get("estimated_world_x")
+                est_y_falcon = person_data.get("estimated_world_y")
+                confidence = person_data.get("confidence", 0.0)
+                person_id = person_data.get("person_id", f"person_{i}")
+
+                # 데이터 유효성 검사
+                if est_x_falcon is not None and est_y_falcon is not None:
+                    # person_id가 있다면 사용, 없으면 인덱스 사용
+                    person_id = person_data.get("person_id", i)
+
+                # 2. Confidence threshold 검사
+                if confidence < CONFIDENCE_THRESHOLD:
+                    logger.debug(f"{person_id}: Low confidence {confidence:.3f} < {CONFIDENCE_THRESHOLD}, filtering out")
+                    filtered_count += 1
+                    continue
+
+                valid_persons.append({
+                        "index": i,
+                        "person_id": person_id,
+                        "x": est_x_falcon,
+                        "y": est_y_falcon,
+                        "data": person_data
+                    })
+            
+            logger.debug(f"Found {len(valid_persons)} valid person locations")
+            
+            # 2. 각 prim에 대해 처리
+            for prim_index, prim_info in enumerate(self._person_prim_objects):
                 if self._is_shutting_down:
                     break
                     
-                prim_info = self._person_prim_objects[i]
                 prim = prim_info.get("prim")
+                prim_path = prim_info.get("path", f"prim_{prim_index}")
 
                 if not (prim and prim.IsValid()):
+                    logger.warning(f"Invalid prim at index {prim_index}: {prim_path}")
                     continue
 
-                if i < num_persons_in_message:
-                    person_data = person_locations[i]
-                    
-                    est_x_falcon = person_data.get("estimated_world_x")
-                    est_y_falcon = person_data.get("estimated_world_y")
+                # 3. 해당 prim에 매칭되는 사람 데이터 찾기
+                matched_person = None
+                if prim_index < len(valid_persons):
+                    matched_person = valid_persons[prim_index]
+                
+                # 4. Prim 상태 업데이트
+                current_visibility = prim_info.get("is_currently_visible", False)
+                
+                if matched_person:
 
-                    if est_x_falcon is None or est_y_falcon is None:
-                        # 데이터가 없으면 숨김
-                        if prim_info.get("is_currently_visible", False):
-                            try:
-                                UsdGeom.Imageable(prim).MakeInvisible()
-                                prim_info["is_currently_visible"] = False
-                            except Exception as e:
-                                logger.error(f"Error hiding prim {prim.GetPath()}: {e}")
-                        continue
-
-                    # UWB RTLS 서버 원점이 0,0 이 아니기에 오프셋 기준으로 변환해줘야함
-                    relative_uwb_x = est_x_falcon - UWB_ANCHOR_X
-                    relative_uwb_y = est_y_falcon + UWB_ANCHOR_Y                 
-                    # 좌표 변환
-                    ov_x = relative_uwb_y * PERSON_PRIM_SCALE
-                    ov_y = PERSON_PRIM_FIXED_Y_HEIGHT
-                    ov_z = relative_uwb_x * PERSON_PRIM_SCALE
-                    
+                    self._person_last_seen_times[prim_index] = current_time
+                    # 사람 데이터가 있는 경우 - 위치 업데이트 및 표시
                     try:
-                        # Prim 위치 업데이트
+                        # UWB RTLS 서버 원점이 0,0 이 아니기에 오프셋 기준으로 변환
+                        relative_uwb_x = matched_person["x"] - UWB_ANCHOR_X
+                        relative_uwb_y = matched_person["y"] + UWB_ANCHOR_Y
+                        
+                        # 좌표 변환
+                        ov_x = relative_uwb_y * PERSON_PRIM_SCALE
+                        ov_y = PERSON_PRIM_FIXED_Y_HEIGHT
+                        ov_z = relative_uwb_x * PERSON_PRIM_SCALE
+                        
+                        # 위치 업데이트
                         xform_api = UsdGeom.XformCommonAPI(prim)
                         if xform_api:
-                            xform_api.SetTranslate(Gf.Vec3d(ov_x, ov_y, ov_z))
+                            new_position = Gf.Vec3d(ov_x, ov_y, ov_z)
+                            xform_api.SetTranslate(new_position)
+                            
+                            logger.debug(f"Updated prim {prim_path} position to ({ov_x:.2f}, {ov_y:.2f}, {ov_z:.2f})")
+                        else:
+                            logger.error(f"Could not get XformCommonAPI for prim {prim_path}")
+                            continue
                         
-                        # Prim 보이기
-                        imageable = UsdGeom.Imageable(prim)
-                        if imageable:
-                            if not prim_info.get("is_currently_visible", False):
-                                logger.info(f"Making prim {prim.GetPath()} visible")
-                            imageable.MakeVisible()
-                            prim_info["is_currently_visible"] = True
-
+                        # Visibility 업데이트 (상태가 변경될 때만)
+                        if not current_visibility:
+                            imageable = UsdGeom.Imageable(prim)
+                            if imageable:
+                                imageable.MakeVisible()
+                                prim_info["is_currently_visible"] = True
+                                logger.info(f"Made prim {prim_path} visible (person_id: {matched_person.get('person_id', 'N/A')})")
+                            else:
+                                logger.error(f"Could not get Imageable for prim {prim_path}")
+                    
                     except Exception as e:
-                        logger.error(f"Error updating prim {prim.GetPath()}: {e}")
+                        logger.error(f"Error updating prim {prim_path}: {e}", exc_info=True)
                 
                 else:
-                    # 메시지에 해당 인덱스의 사람 데이터가 없으면 숨김
-                    if prim_info.get("is_currently_visible", False):
+                    # 사람 데이터가 없는 경우 - 숨김 (상태가 변경될 때만)
+                    if current_visibility:
                         try:
-                            UsdGeom.Imageable(prim).MakeInvisible()
-                            prim_info["is_currently_visible"] = False
+                            imageable = UsdGeom.Imageable(prim)
+                            if imageable:
+                                imageable.MakeInvisible()
+                                prim_info["is_currently_visible"] = False
+                                logger.info(f"Made prim {prim_path} invisible (no matching person data)")
+                                self._person_last_seen_times.pop(prim_index, None)
+                            else:
+                                logger.error(f"Could not get Imageable for prim {prim_path}")
                         except Exception as e:
-                            logger.error(f"Error hiding prim {prim.GetPath()}: {e}")
-                            
+                            logger.error(f"Error hiding prim {prim_path}: {e}", exc_info=True)
+            
+            # 5. 처리 결과 로깅
+            visible_count = sum(1 for p in self._person_prim_objects if p.get("is_currently_visible", False))
+            logger.debug(f"Message processing complete. {visible_count}/{len(self._person_prim_objects)} prims visible")
+                                
         except Exception as e:
             logger.error(f"Error in message processing: {e}", exc_info=True)
+
+    # 추가: 상태 검증을 위한 헬퍼 메서드
+    def _log_prim_status(self):
+        """현재 모든 prim의 상태를 로깅합니다. (디버깅용)"""
+        try:
+            logger.info("=== Current Prim Status ===")
+            for i, prim_info in enumerate(self._person_prim_objects):
+                prim = prim_info.get("prim")
+                path = prim_info.get("path", f"prim_{i}")
+                is_visible = prim_info.get("is_currently_visible", False)
+                is_valid = prim and prim.IsValid() if prim else False
+                
+                # USD에서 실제 visibility 상태 확인
+                actual_visibility = "Unknown"
+                if is_valid:
+                    try:
+                        imageable = UsdGeom.Imageable(prim)
+                        if imageable:
+                            visibility_attr = imageable.GetVisibilityAttr()
+                            if visibility_attr:
+                                actual_visibility = visibility_attr.Get()
+                    except Exception as e:
+                        actual_visibility = f"Error: {e}"
+                
+                logger.info(f"  Prim {i}: {path}")
+                logger.info(f"    Valid: {is_valid}")
+                logger.info(f"    Tracked Visible: {is_visible}")
+                logger.info(f"    USD Visibility: {actual_visibility}")
+            logger.info("=== End Prim Status ===")
+        except Exception as e:
+            logger.error(f"Error logging prim status: {e}")
 
     async def _stop_kafka_consumer(self):
         """Kafka consumer를 중지합니다."""
         logger.info("Stopping Kafka consumer.")
         
         try:
-            # 1. Consumer task 취소
+
+            # 1. 타임아웃 체커 중지
+            if self._visibility_checker_task and not self._visibility_checker_task.done():
+                logger.info("Stopping visibility timeout checker...")
+                self._visibility_checker_task.cancel()
+                try:
+                    await asyncio.wait_for(self._visibility_checker_task, timeout=2.0)
+                except (asyncio.TimeoutError, asyncio.CancelledError):
+                    logger.info("Visibility timeout checker stopped.")
+
+            # 2. Consumer task 취소
             if self._consumer_task and not self._consumer_task.done():
                 logger.info("Cancelling consumer task...")
                 self._consumer_task.cancel()
@@ -472,11 +673,15 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
                 except Exception as e:
                     logger.error(f"Error waiting for consumer task cancellation: {e}")
 
-            # 2. Consumer 정리
+            # 3. Consumer 정리
             await self._cleanup_consumer(self._consumer)
 
-            # 3. 모든 Prim 숨기기
+            # 4. 모든 Prim 숨기기
             await self._hide_all_prims()
+
+            # 5. 타임아웃 데이터 정리
+            self._person_last_seen_times.clear()
+            self._last_message_time = 0.0
 
             logger.info("Kafka consumer stopped successfully.")
             if hasattr(self, '_status_label') and self._status_label and not self._is_shutting_down:
@@ -508,7 +713,16 @@ class FalconHumanVisualizerExtension(omni.ext.IExt):
             # 1. 종료 플래그 설정
             self._is_shutting_down = True
             self._shutdown_event.set()
+
+             # 타임아웃 체커 강제 정리
+            if self._visibility_checker_task and not self._visibility_checker_task.done():
+                self._visibility_checker_task.cancel()
+                self._visibility_checker_task = None
             
+            # 타임아웃 데이터 정리
+            self._person_last_seen_times.clear()
+            self._last_message_time = 0.0      
+
             # 2. Consumer 강제 정리
             if self._consumer:
                 try:
