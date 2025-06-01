@@ -6,7 +6,7 @@
 # Used to create a graph node
 # Creates graph based node systems in Isaac Sim for the purpose of listening to ROS2 Topics
 # and moving husky in accordance with those.
-# This version uses /cmd_vel (geometry_msgs/Twist) for tank control.
+# This version uses /cmd_vel (geometry_msgs/Twist) for tank control. 진짜 엔비디아 좀 속성 명좀 통일좀 해라 통일좀
 
 import omni
 import omni.graph.core as og
@@ -42,6 +42,13 @@ def create_tank_controll_listener(prim_path_of_husky):
     DEPTH_CAMERA_RESOLUTION_WIDTH = 640 # 해상도는 실제 해상도에 맞춰서 수정 
     DEPTH_CAMERA_RESOLUTION_HEIGHT = 480 # 해상도는 실제 해상도에 맞춰서 수정 
 
+    IMU_SENSOR_PRIM_PATH = prim_path_of_husky + "/lidar_link/imu_sensor"
+    IMU_FRAME_ID = "lidar_link" # 실제 IMU의 frame_id와 일치시킴
+    IMU_TOPIC_NAME = "/imu/virtual"
+    
+    ODOM_TOPIC_NAME = "/odom/virtual"
+    ODOM_FRAME_ID = "odom" # 가상 Odometry 좌표계
+    BASE_FRAME_ID = "base_link" # 로봇의 기준 좌표계
     graph_path = "/husky_ros_graph" # 그래프 경로 일관성 유지
 
     stage = omni.usd.get_context().get_stage()
@@ -124,7 +131,13 @@ def create_tank_controll_listener(prim_path_of_husky):
     else:
         carb.log_error("Warning: RGB_CAMERA_SENSOR_PRIM_PATH is not defined. RGB publishing will be disabled.")
 
-
+    # IMU Sensor Validation ---
+    imu_sensor_valid = False
+    if stage.GetPrimAtPath(IMU_SENSOR_PRIM_PATH).IsValid():
+        print(f"  [OK] IMU Sensor Prim Path Valid: {IMU_SENSOR_PRIM_PATH}")
+        imu_sensor_valid = True
+    else:
+        carb.log_error(f"Error: IMU Sensor Prim not found at {IMU_SENSOR_PRIM_PATH}. IMU publishing will be disabled.")
 
     # --- Depth Camera Sensor Validation ---
     depth_camera_sensor_valid = False # 먼저 False로 초기화
@@ -179,6 +192,12 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("insert_val_at_idx2", "omni.graph.nodes.ArrayInsertValue"),
             ("insert_val_at_idx3", "omni.graph.nodes.ArrayInsertValue"),
 
+            *([
+            ("imu_sensor_reader", "isaacsim.sensors.physics.IsaacReadIMU"),  # imu updated 
+            ("imu_pub", "isaacsim.ros2.bridge.ROS2PublishImu")
+            ] if imu_sensor_valid else []),
+            ("compute_odom", "isaacsim.core.nodes.IsaacComputeOdometry"),
+            ("odom_pub", "isaacsim.ros2.bridge.ROS2PublishOdometry"),
 
             ("controller", "isaacsim.core.nodes.IsaacArticulationController"),
             ("sim_time", "isaacsim.core.nodes.IsaacReadSimulationTime"),
@@ -233,6 +252,17 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("insert_val_at_idx1.inputs:index", 1),
             ("insert_val_at_idx2.inputs:index", 2),
             ("insert_val_at_idx3.inputs:index", 3),
+
+            *([
+                ("imu_sensor_reader.inputs:imuPrim", IMU_SENSOR_PRIM_PATH),
+                ("imu_pub.inputs:topicName", IMU_TOPIC_NAME),
+                ("imu_pub.inputs:frameId", IMU_FRAME_ID),
+                ] if imu_sensor_valid else []),
+
+            ("compute_odom.inputs:chassisPrim", controller_target_path),
+            ("odom_pub.inputs:topicName", ODOM_TOPIC_NAME),
+            ("odom_pub.inputs:odomFrameId", ODOM_FRAME_ID),
+            ("odom_pub.inputs:chassisFrameId", BASE_FRAME_ID),
 
             ("controller.inputs:robotPath", controller_target_path),
             ("controller.inputs:jointNames", husky_joint_names),
@@ -318,6 +348,28 @@ def create_tank_controll_listener(prim_path_of_husky):
             # 4. 네 번째 요소 (v_left)를 인덱스 3에 삽입
             ("insert_val_at_idx2.outputs:array", "insert_val_at_idx3.inputs:array"),
             ("get_v_left.outputs:value", "insert_val_at_idx3.inputs:value"),
+
+            # --- IMU 및 Odometry 연결 ---
+            *([
+                ("phys_step.outputs:step", "imu_sensor_reader.inputs:execIn"),
+                ("imu_sensor_reader.outputs:execOut", "imu_pub.inputs:execIn"),
+                
+                ("imu_sensor_reader.outputs:angVel", "imu_pub.inputs:angularVelocity"),
+                ("imu_sensor_reader.outputs:linAcc", "imu_pub.inputs:linearAcceleration"),
+                ("imu_sensor_reader.outputs:orientation", "imu_pub.inputs:orientation"),
+
+                ("imu_sensor_reader.outputs:sensorTime", "imu_pub.inputs:timeStamp"),
+                ] if imu_sensor_valid else []),
+      
+            ("phys_step.outputs:step", "compute_odom.inputs:execIn"),
+            
+            ("compute_odom.outputs:execOut", "odom_pub.inputs:execIn"),
+            ("sim_time.outputs:simulationTime", "odom_pub.inputs:timeStamp"),
+            ("compute_odom.outputs:position", "odom_pub.inputs:position"),
+            ("compute_odom.outputs:orientation", "odom_pub.inputs:orientation"),
+            ("compute_odom.outputs:linearVelocity", "odom_pub.inputs:linearVelocity"),
+            ("compute_odom.outputs:angularVelocity", "odom_pub.inputs:angularVelocity"),
+             # --- IMU 및 Odometry 연결 끄읏 ---
 
             # === 최종 배열을 controller에 연결 ===
             ("insert_val_at_idx3.outputs:array", "controller.inputs:velocityCommand"),

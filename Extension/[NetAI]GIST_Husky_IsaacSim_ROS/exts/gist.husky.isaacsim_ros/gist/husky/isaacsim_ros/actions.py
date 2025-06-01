@@ -53,15 +53,14 @@ def initialize_husky(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, 
     # --- 1. IMU Initialization ---
     imu_sensor_path = lidar_path + "/imu_sensor"
     try:
-        create_imu_sensor(stage, lidar_path) # Assumes this function handles prim creation
-        imu_prim = stage.GetPrimAtPath(imu_sensor_path)
-        if not imu_prim or not imu_prim.IsValid():
-             raise Exception(f"IMU prim '{imu_sensor_path}' not valid after creation call.")
-        initialization_steps.append("IMU Prim: Created")
-    except ImportError as e:
-        error_msg = f"IMU Failed (Import Error: {e}. Is 'isaacsim.sensors.physics' enabled?)"
-        print(f"[ERROR] {error_msg}")
-        initialization_steps.append(error_msg)
+        # 이전 버전의 함수가 아닌, 반환 값이 있는 안전한 함수를 호출
+        if create_imu_sensor(stage, lidar_path):
+            initialization_steps.append("IMU Prim: OK")
+            print("[Info] create_imu_sensor reported success.")
+        else:
+            # 함수 내부에서 이미 상세한 에러 로그를 남겼을 것이므로 여기서는 실패 처리만 godigo
+            raise Exception("create_imu_sensor function returned False, indicating failure.")
+            
     except Exception as e:
         error_msg = f"IMU Failed ({type(e).__name__}: {e})"
         print(f"[ERROR] {error_msg}")
@@ -238,7 +237,11 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
                 stiffness_attr.Set(stiffness)
 
                 # Set Damping (optional, often useful for stability)
-                damping = 1000.0 # Example damping value, tune as needed
+                # NOTE: Counter-intuitively, increasing this value increases rotational speed. Why is this??? - Inyong
+                # For our model, a value around 1800-2000 produces a rotational speed
+                # similar to the real Husky.
+                # TODO: Update with a precise value after accurate measurement.
+                damping = 3000.0 # Example damping value, tune as needed
                 damping_attr = drive_api.CreateDampingAttr()
                 damping_attr.Set(damping)
 

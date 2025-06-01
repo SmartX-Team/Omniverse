@@ -86,7 +86,6 @@ RUN apt-get update && \
         ros-humble-cv-bridge \
         python3-opencv \
     && \
-
     # --- Intel RealSense 저장소 추가 및 SDK 설치 ---
         echo "Setting up Intel RealSense APT repository..." && \
         mkdir -p /etc/apt/keyrings && \
@@ -99,7 +98,6 @@ RUN apt-get update && \
             librealsense2-dev \
             librealsense2-gl-dev \
         && \
-
     # Clearpath Robotics APT 저장소 설정 시작
     echo "Setting up Clearpath Robotics APT repository..." && \
     mkdir -p /usr/share/keyrings && \
@@ -156,6 +154,7 @@ COPY pointcloud_to_kafka.py /root/pointcloud_to_kafka.py
 COPY fastdds_force_udp.xml /etc/fastdds/fastdds_force_udp.xml
 COPY ros2_camera_to_kafka_agent.py /root/ros2_camera_to_kafka_agent.py
 COPY robot_bringup.launch.py /root/robot_bringup.launch.py
+COPY sync_mode_kafka.py /root/sync_mode_kafka.py
 WORKDIR /root
 
 # ============================================================================ #

@@ -81,47 +81,57 @@ def create_depth_camera(stage: Usd.Stage, prim_path: str) -> Camera: # Return ty
 
     return depth_camera
 
-def create_imu_sensor(stage: Usd.Stage, path_to_parent: str): # Renamed arg for clarity
+def create_imu_sensor(stage: Usd.Stage, path_to_parent: str) -> bool:
     """
-    Creates an IMU sensor prim using the IsaacSensorCreateImuSensor command.
-    Data reading is handled externally (e.g., in extension.py using IMUSensor object).
+    Ensures the IsaacImuSensor prim exists using the corresponding command.
+    Applies robust checks and error handling similar to the lidar function.
+    Returns True if the sensor prim exists or was successfully created, False otherwise.
     """
+    # 1. LiDAR 함수처럼 Stage 유효성 먼저 확인
+    if not stage:
+        carb.log_error("[sensors.py] Could not get USD stage for IMU creation.")
+        return False
+
     imu_sensor_path = path_to_parent + "/imu_sensor"
     imu_sensor_prim = stage.GetPrimAtPath(imu_sensor_path)
 
-    if not imu_sensor_prim.IsValid():
-        print(f"IMU sensor not found at {imu_sensor_path}, attempting creation...")
+    # 2. 이미 프리즘이 존재하면 성공으로 간주하고 즉시 True 반환
+    if imu_sensor_prim.IsValid():
+        carb.log_info(f"[sensors.py] IMU sensor prim already exists at {imu_sensor_path}")
+        return True
+
+    # 3. LiDAR 함수처럼 try...except 구문으로 안정성 확보
+    carb.log_info(f"[sensors.py] IMU sensor prim not found at {imu_sensor_path}. Attempting creation...")
+    try:
         success, _ = omni.kit.commands.execute(
             "IsaacSensorCreateImuSensor",
-            path="imu_sensor", # Relative path for the new prim
-            parent=path_to_parent, # Parent prim path where the IMU will be attached
-            # sensor_period=1, # Period might be controlled by simulation time or physics settings now. Check API.
-            # linear_acceleration_filter_size=10, # Filter sizes might be properties now
-            # angular_velocity_filter_size=10,
-            # orientation_filter_size=10,
-            translation = Gf.Vec3d(0, 0, 0), # Relative position
-            orientation = Gf.Quatd(1, 0, 0, 0), # Relative orientation (W, X, Y, Z - identity)
-            # visualizer_enable=True # Optional: visualize sensor in viewport
+            path="imu_sensor",
+            parent=path_to_parent,
+            translation=Gf.Vec3d(0, 0, 0),
+            orientation=Gf.Quatd(1, 0, 0, 0),
         )
 
+        # 4. 명령 실행 결과(success)에 따라 분기
         if success:
-            print(f"IMU sensor created successfully at {imu_sensor_path}")
-            # Re-verify prim creation
-            imu_sensor_prim = stage.GetPrimAtPath(imu_sensor_path)
-            if not imu_sensor_prim.IsValid():
-                 print(f"Error: IMU prim still not valid after creation command at {imu_sensor_path}")
+            # 5. (중요) LiDAR 함수처럼 생성 후 프리즘 유효성 재확인
+            imu_prim_check = stage.GetPrimAtPath(imu_sensor_path)
+            if imu_prim_check.IsValid():
+                carb.log_info(f"[sensors.py] IMU prim created successfully at: {imu_sensor_path}")
+                # 생성 후 명시적으로 활성화 (추가적인 안정성)
+                enabled_attr = imu_prim_check.GetAttribute("enabled")
+                if enabled_attr:
+                    enabled_attr.Set(True)
+                return True
+            else:
+                carb.log_error(f"[sensors.py] IMU prim creation command succeeded but prim is still invalid at {imu_sensor_path}")
+                return False
         else:
-            print(f"Error: Failed to execute IsaacSensorCreateImuSensor command at {path_to_parent}")
-
-        # --- Removed Deprecated Code ---
-        # The following block used the old _sensor interface for reading data,
-        # which is now handled in extension.py using the IMUSensor object.
-        # if success:
-        #     _imu_sensor_interface = _sensor.acquire_imu_sensor_interface()
-        #     _imu_sensor_interface.get_sensor_reading(path_to_parent + "/imu_sensor", use_latest_data = True, read_gravity = True)
-        # --- End of Removed Code ---
-    else:
-        print(f"IMU sensor already exists at {imu_sensor_path}")
+            carb.log_error(f"[sensors.py] IsaacSensorCreateImuSensor command failed for parent '{path_to_parent}'.")
+            return False
+            
+    except Exception as e:
+        carb.log_error(f"[sensors.py] Exception during IMU prim creation: {e}")
+        return False
 
     # This function now primarily ensures the IMU prim exists.
     # It doesn't return anything explicitly but modifies the stage.

@@ -12,6 +12,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 def generate_launch_description():
@@ -41,5 +42,8 @@ def generate_launch_description():
     # 3. Execute the launch description
     return LaunchDescription([
         ouster_launch,
-        realsense_launch
+        TimerAction(
+            period=5.0, # <--- You can adjust the delay time by changing this value (unit: seconds).
+            actions=[realsense_launch]
+        )
     ])
