@@ -155,6 +155,7 @@ COPY simple_subscriber.py /root/simple_subscriber.py
 COPY pointcloud_to_kafka.py /root/pointcloud_to_kafka.py
 COPY fastdds_force_udp.xml /etc/fastdds/fastdds_force_udp.xml
 COPY ros2_camera_to_kafka_agent.py /root/ros2_camera_to_kafka_agent.py
+COPY robot_bringup.launch.py /root/robot_bringup.launch.py
 WORKDIR /root
 
 # ============================================================================ #
