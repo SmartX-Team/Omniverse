@@ -2,7 +2,10 @@
 
 <div align="center">
 
-
+![Isaac Sim](https://img.shields.io/badge/Isaac%20Sim-4.5-green?style=for-the-badge&logo=nvidia)
+![ROS2](https://img.shields.io/badge/ROS2-Humble-blue?style=for-the-badge&logo=ros)
+![Docker](https://img.shields.io/badge/Docker-Container-blue?style=for-the-badge&logo=docker)
+![Python](https://img.shields.io/badge/Python-3.9+-yellow?style=for-the-badge&logo=python)
 
 *Seamless simulation-to-reality robot control for Clearpath Husky UGV*
 
@@ -40,8 +43,8 @@ This extension encompasses a complete ecosystem for Husky robot simulation and c
 
 | Period | Developer | Contribution |
 |--------|-----------|-------------|
-| **2024** | **Niki C. Zils** (German Intern) | Initial development and core framework for GIST |
-| **2025~** | **Inyong Song** | Major refactoring for Isaac Sim 4.5, enhanced real-world synchronization |
+| **~2024.09** | **Niki C. Zils** (German Intern) | Initial development and core framework for GIST |
+| **2024.12~** | **Inyong Song** | Major refactoring for Isaac Sim 4.5, enhanced real-world synchronization |
 
 ## 📋 Prerequisites
 
@@ -65,29 +68,32 @@ docker run -it --gpus all \
   gist-netai/isaac-sim-ros2:4.5-humble
 ```
 
-Isaac-sim Conatiner :
+**Available Containers:**
+- **Isaac Sim Container**: [DT-containerized](https://github.com/SmartX-Team/DT-containerized)
+- **ROS2 Container**: [ros2-container](https://github.com/SmartX-Team/Omniverse/tree/main/ROS2/ros2-container)
+- **Pre-built Images**: [Docker Hub - ttyy441](https://hub.docker.com/repositories/ttyy441)
 
-https://github.com/SmartX-Team/DT-containerized
+```bash
+# Pull the pre-built container
+docker pull ttyy441/isaac-sim-ros2:4.5-humble
 
-
-ROS2 container :
-
-https://github.com/SmartX-Team/Omniverse/tree/main/ROS2/ros2-container
-
-build docker images:
-
-
+# Run the container
+docker run -it --gpus all \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  ttyy441/isaac-sim-ros2:4.5-humble
+```
 
 ### 🔧 Manual Installation (Alternative)
 
 If you prefer or need to install manually in your environment:
 
 **System Requirements**
-- **Isaac Sim**: 4.5 or later
+- **Isaac Sim**: 4.5 
 - **ROS2**: Humble distribution  
-- **Python**: 3.8 or later
-- **CUDA**: Compatible GPU with CUDA support
-- **Docker**: Optional but recommended
+- **Python**: 3.9 or later
+- **CUDA & Nvidia Driver**: Compatible GPU with CUDA support
+- **Docker & Nvidia Docker**: Optional but recommended for initial env setting
 
 **Dependencies**
 ```bash
@@ -163,16 +169,11 @@ sudo apt install ros-humble-ackermann-msgs \
 4. **Control Options**
    - **Extension UI**: Use built-in control buttons
    - **ROS2 Commands**: Publish to `/ackermann_cmd` topic
-   - **COSMO Mode**: Tank-style controller interface
-   - **Virtual Joystick**: 4-wheel velocity control
+   - **COSMO Mode**: 변경해
 
-### 🕹️ Control Modes
+### 🕹️ Control Modes Example
 
-#### Manual Control (Extension UI)
-- **Pilot Forward/Backward**: Basic movement controls
-- **Steering**: Left/right turn commands  
-- **Emergency Stop**: Immediate cessation of movement
-- **Reset Position**: Return robot to origin
+*[Screenshots will be added here by Inyong Song]*
 
 #### ROS2 Topic Control
 ```bash
@@ -183,7 +184,7 @@ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist '{
 }'
 ```
 
-> **Note**: The original `ackermann_cmd` interface from Niki's implementation has been deprecated. Current version uses `cmd_vel` for all robot control. For legacy ackermann functionality, refer to the archived original implementation in the deprecated section.
+> **Note**: The original `ackermann_cmd` interface from Niki's implementation has been deprecated. Current version uses `cmd_vel` for all robot control. For legacy  ackermann functionality, refer to the archived original implementation in the deprecated section.
 
 #### inyong joystick
 - Activate **"Start COSMO Mode"** for cme_vel
@@ -241,10 +242,10 @@ Extension/
                     └── isaacsim_ros/
                         ├── __pycache__/         # Python cache
                         ├── Standalone_Scripts/  # Independent control scripts
-                        │   ├── inyong_joystick_to_kafka.py
-                        │   ├── inyong_joystick.py
-                        │   ├── kafka_data_saver.py
-                        │   └── kafka_data_reader.py
+                        │   ├── inyong_joystick_to_kafka.py # pub to kafka topic ; If you want sub in the omniverse please note to ROS2 container's doc 
+                        │   ├── inyong_joystick.py # default joystick -> pub ros2 cmd_vel topic
+                        │   ├── ros2_kafka_producer.py # Kafka data persistence
+                        │   └── ros2_kafka_reader.py
                         ├── __init__.py          # Package initialization
                         ├── actions.py           # Action implementations
                         ├── camera_publishers.py # Camera data publishing
@@ -258,7 +259,7 @@ Extension/
 
 | Directory/File | Description |
 |----------------|-------------|
-| `config/` | Extension metadata for Isaac Sim recognition |
+| `config/` | Extension metadata for Isaac Sim recognition Adding soon.. |
 | `data/` | System architecture diagrams and assets |
 | `docs/` | README files and development changelog |
 | `Standalone_Scripts/` | Independent utilities (COSMO, joystick, Kafka) |
@@ -271,7 +272,8 @@ Extension/
 
 ## 🔧 Configuration
 
-Edit `config.py` to customize:
+Configuration system for supporting Swarm Mode *(Coming soon)*
+
 
 ```python
 # Robot configuration
@@ -318,12 +320,6 @@ This extension supports seamless control of both simulated and physical Husky ro
    - Activate **"Real Robot Sync"** mode in extension
    - Commands sent in Isaac Sim automatically mirror to physical robot
    - Real-time sensor data flows bidirectionally
-
-### Safety Features
-- **Emergency Stop**: Immediate halt for both sim and real robot
-- **Latency Monitoring**: Real-time communication delay tracking  
-- **Failsafe Modes**: Automatic fallback if connection lost
-- **Collision Avoidance**: Shared safety protocols between environments
 
 ## 🤝 Contributing
 

@@ -1,3 +1,7 @@
+# this Doc is Deprecated ;; 
+# I'll be update new manual 
+
+
 # Standalone Scripts
 These are scripts that are not necerally needed to run the extension, but can be used to extend the capabilities of it.
 They are also not activated automatically by the program, due to them
