@@ -96,7 +96,7 @@ docker run -it --rm \
     --network host \
     --ipc=host \
     --privileged \
-ttyy441/ros2-container:0.2 \
+ttyy441/ros2-container:0.4.4 \
 isaac_sim
 
 # Launch robot bringup directly
@@ -108,7 +108,7 @@ docker run -it --rm \
     -e ROS_DOMAIN_ID=20 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device=/dev:/dev \
-    ttyy441/ros2-container:0.4.3 \
+    ttyy441/ros2-container:0.4.4 \
     real_robot ros2 launch /root/robot_bringup.launch.py
 
 
@@ -121,9 +121,9 @@ docker run -it --rm \
     -e ROS_DOMAIN_ID=20 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device=/dev:/dev \
-    ttyy441/ros2-container:0.4.3 \
+    ttyy441/ros2-container:0.4.4 \
     real_robot <here>
-
+```
 
 6. Testing Commands Inside Container
 Test Isaac Sim integration with these commands:
