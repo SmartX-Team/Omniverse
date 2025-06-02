@@ -18,7 +18,7 @@ This extension provides a comprehensive interface for controlling Clearpath's Hu
 
 I've started uploading videos of the actual operations and demonstrations.
 
-[![YouTube Channel](https://img.shields.io/badge/YouTube-Channel-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/channel/UC9yTYYfVTsa8XLwhFPn7n2Q)
+[![YouTube Channel](https://img.shields.io/badge/YouTube-Channel-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/channel/UC9yTYYfVTsa8XLwhFPn7n2Q) <- Click Here 
 
 I'll be sharing tutorials and development guides soon.
 
@@ -44,14 +44,27 @@ This extension encompasses a complete ecosystem for Husky robot simulation and c
 - **Enterprise Data Pipeline**: Integration with K8S-based datalake for scalable data management
 - **Ecosystem Connectivity**: Seamless connections between simulation, real robots, and cloud infrastructure
 
-![System Architecture](docs/Extension_System.png)
+![System Architecture 다음에 이걸로 대체](docs/Extension_System.png)
+![System Architecture](https://github.com/user-attachments/assets/acaad509-8132-400e-869e-b4ba9592f89e)
+
+**ROS2 Container** : Single ros2-container provides an identical interface to control both real and virtual UGVs, ensuring seamless operation and testing.
+
+**Pre-configured Simulator** : 
+- Native ROS2 Integration: ROS2 is integrated by default, simplifying the setup and communication between the simulator and the control logic.
+- Automatic Nucleus Connectivity: The simulator automatically connects to the Nucleus Server, enabling streamlined asset management and collaboration.
+
+**K8S based Data Flow** :  The entire data pipeline is orchestrated on a Kubernetes cluster, handling high-throughput data ingestion, storage, and processing from the UGVs.
+
+- Private Cloud Deployment: It is deployed as a private cloud on our internal research cluster(MobileX Cluster).
+-  Managed Configurations: All deployment manifests (Kubernetes YAML files, etc.) are version-controlled and managed in a separate repository for simplified setup and maintenance.
+
 
 ## 🏗️ Development History
 
 | Period | Developer | Contribution |
 |--------|-----------|-------------|
-| **~2024.09** | **Niki C. Zils** (German Intern) | Initial development and core framework for GIST |
-| **2025.01~** | **Inyong Song** | Major refactoring for Isaac Sim 4.5, enhanced real-world synchronization |
+| **~2024.09** | **Niki C. Zils** (German Intern) | Initial development simulation Extension for GIST |
+| **2025.01~** | **Inyong Song** | Major refactoring this extension code for Isaac Sim 4.5, and Containerzed overall system for enhanced real-world synchronization |
 
 ## 📋 Prerequisites
 
