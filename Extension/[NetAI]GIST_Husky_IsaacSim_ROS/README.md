@@ -77,31 +77,49 @@ We provide a pre-configured Docker container with Isaac Sim 4.5 and ROS2 Humble 
 - ✅ Optimized for Husky simulation-to-reality control
 - ✅ Ready-to-use development environment
 
-```bash
-# Pull the pre-built container (coming soon)
-docker pull gist-netai/isaac-sim-ros2:4.5-humble
-
-# Run the container
-docker run -it --gpus all \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  gist-netai/isaac-sim-ros2:4.5-humble
-```
-
 **Available Containers:**
-- **Isaac Sim Container**: [DT-containerized](https://github.com/SmartX-Team/DT-containerized)
-- **ROS2 Container**: [ros2-container](https://github.com/SmartX-Team/Omniverse/tree/main/ROS2/ros2-container)
+- **Isaac Sim Container (Pre built ROS2)**: [DT-containerized](https://github.com/SmartX-Team/DT-containerized)
+- **ROS2 Container (Provides the same interface as a real UGV)**: [ros2-container](https://github.com/SmartX-Team/Omniverse/tree/main/ROS2/ros2-container)
 - **Pre-built Images**: [Docker Hub - ttyy441](https://hub.docker.com/repositories/ttyy441)
 
 ```bash
-# Pull the pre-built container
-docker pull ttyy441/isaac-sim-ros2:4.5-humble
 
-# Run the container
-docker run -it --gpus all \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix \
-  ttyy441/isaac-sim-ros2:4.5-humble
+# Caution: For actual container usage, please check the Docker run commands on each repository; this README might not reflect the latest Docker RUN commands.
+# Isaac-sim Mode ROS2 robot control Container;
+
+# Isaac-sim Mode ROS2 robot control Container ;
+docker run -it --rm \
+    --network host \
+    --ipc=host \
+    --privileged \
+ttyy441/ros2-container:0.4.4 \
+isaac_sim
+
+# Run the Pre-built ROS2 Isaac sim 4.5 Container
+# If your machine has no RT Core GPU (A10, A100), please remove your Docker run command.
+
+sudo docker run --name isaac-sim \
+--detach \
+--restart unless-stopped \
+--runtime=nvidia --gpus all \
+-e "ACCEPT_EULA=Y" \
+-e "PRIVACY_CONSENT=Y" \
+-e "OMNI_SERVER=omniverse://YOUR_NUCLEUS_SERVER/NVIDIA/Assets/Isaac/4.5" \
+-e "OMNI_USER=your_username" \
+-e "OMNI_PASS=your_password" \
+-e "OMNI_KIT_ALLOW_ROOT=1" \
+--network=host \
+-v ~/docker/isaac-sim/cache/kit:/isaac-sim/kit/cache:rw \
+-v ~/docker/isaac-sim/cache/ov:/root/.cache/ov:rw \
+-v ~/docker/isaac-sim/cache/pip:/root/.cache/pip:rw \
+-v ~/docker/isaac-sim/cache/glcache:/root/.cache/nvidia/GLCache:rw \
+-v ~/docker/isaac-sim/cache/computecache:/root/.nv/ComputeCache:rw \
+-v ~/docker/isaac-sim/logs:/root/.nvidia-omniverse/logs:rw \
+-v ~/docker/isaac-sim/data:/root/.local/share/ov/data:rw \
+-v ~/docker/isaac-sim/documents:/root/Documents:rw \
+-v /path/to/your/extensions:/isaac-sim/Extension:rw \
+ttyy441/issac-sim:0.4.5.1
+
 ```
 
 ### 🔧 Manual Installation (Alternative)
@@ -183,9 +201,16 @@ sudo apt install ros-humble-ackermann-msgs \
    - Extension UI will appear in the main window
 
 3. **Initialize Husky Robot**
-   - Click **"Initialize Husky"** button in the extension panel
-   - Robot model loads with all sensors (Camera, LiDAR, IMU) attached
-   - ! And click your Isaac-sim App's Play button 
+   - Add your UGV USD Path
+ <img width="681" alt="image" src="https://github.com/user-attachments/assets/894b9502-59da-4ae4-bb75-541651e7489a" />
+ 
+   - Click **"Init"** button in the extension panel
+<img width="613" alt="image" src="https://github.com/user-attachments/assets/0695f203-af58-41ff-b551-149ef50f8bf1" />
+
+
+   - then Robot model loads with all sensors (Camera, LiDAR, IMU) attached
+   - ! Check your App's click your Isaac-sim App's Play button 
+
 
 4. **Control Options**
    - **Extension UI**: Use built-in control buttons
