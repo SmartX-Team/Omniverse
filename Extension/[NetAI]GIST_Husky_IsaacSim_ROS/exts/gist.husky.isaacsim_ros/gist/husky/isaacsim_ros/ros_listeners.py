@@ -1,12 +1,26 @@
-# Creates graph based node systems in Isaac Sim for the purpose of listening to ROS2 Topics
-# and moving husky in accordance with those.
-# It's important to note that *ONLY ONE* of the two should be active and *NOT BOTH* at once!
-# The options are: Joystick or Tank Controll
+# Isaac Sim ROS2 Graph Generator for Husky Robot Control
+# 
+# Current Version: Complete ROS2 graph generation code with integrated IMU, LiDAR, RGB Camera, and Depth Camera
+# Implements identical dynamics to physical Husky A200 to ensure simulation-to-real consistency
+# 
+# Future Plans: Refactoring to support multi-robot coordination (swarm control)
+# with independent ROS2 graph generation for multiple robots
+#
+# Author: Inyong Song
 
-# Used to create a graph node
-# Creates graph based node systems in Isaac Sim for the purpose of listening to ROS2 Topics
-# and moving husky in accordance with those.
-# This version uses /cmd_vel (geometry_msgs/Twist) for tank control. 진짜 엔비디아 좀 속성 명좀 통일좀 해라 통일좀
+# Complete Integrated ROS2 Graph Generator for Husky A200 Robot in Isaac Sim
+# 
+# Features:
+# - Differential drive control via /cmd_vel (geometry_msgs/Twist) topic
+# - IMU sensor data publishing (/imu/virtual)
+# - LiDAR point cloud publishing (/pointcloud)  
+# - RGB camera image & camera info publishing (/camera/color/*)
+# - Depth camera image & camera info publishing (/depth_camera/*)
+# - Virtual odometry publishing (/odom/virtual)
+# - Dynamic TF transform publishing (all link coordinate frames)
+# 
+# Physics engine-based implementation with identical dynamics to real Husky A200
+# Precise wheel velocity control using DifferentialController  진짜 엔비디아 좀 속성 명좀 통일좀 해라 통일좀
 
 import omni
 import omni.graph.core as og
@@ -19,6 +33,8 @@ import omni.kit.commands
 import carb
 
 # --- Function to check and create Tank Control Listener ---
+# --- 메인 함수: Husky 로봇용 완전한 ROS2 그래프 생성 ---
+# 센서 검증(USD 존재하는지 경로등) 이후 노드 생성 → 초기 value 설정 → 연결 설정의 3단계 프로세스로 구성
 def create_tank_controll_listener(prim_path_of_husky):
     LIDAR_SENSOR_PRIM_PATH = prim_path_of_husky + "/lidar_link/lidar_sensor"
     LIDAR_FRAME_ID = "lidar_link"
@@ -84,7 +100,7 @@ def create_tank_controll_listener(prim_path_of_husky):
         validation_passed = False
 
     lidar_link_path = f"{prim_path_of_husky}/lidar_link"
-    front_bumper_link_path = f"{prim_path_of_husky}/front_bumper_link" # 예시, 실제 경로 확인 필요
+    front_bumper_link_path = f"{prim_path_of_husky}/front_bumper_link" # 예시, 다른 환경에서 사용시 실제 경로 확인 필요
     imu_sensor_path = f"{lidar_link_path}/imu_sensor" # imu_link 하위 또는 base_link 하위일 수 있음, 경로 확인
 
     paths_to_check_for_dynamic_tf = {
@@ -151,9 +167,6 @@ def create_tank_controll_listener(prim_path_of_husky):
     else:
         carb.log_error("Warning: DEPTH_CAMERA_SENSOR_PRIM_PATH is not defined. Depth publishing will be disabled.")
 
-    # --- DEBUG 메시지 업데이트 ---
-    # 기존: print(f"--- DEBUG: Preparing to create graph. Including LiDAR nodes: {lidar_sensor_valid} ---")
-    # 변경:
     print(f"--- DEBUG: Preparing to create graph. LiDAR: {lidar_sensor_valid}, RGB Cam: {rgb_camera_sensor_valid}, Depth Cam: {depth_camera_sensor_valid} ---")
 
 

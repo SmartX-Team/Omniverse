@@ -13,7 +13,7 @@ gist/husky/isaacsim_ros/
 ├── actions.py          # Implementation of actual action logic triggered by UI button clicks
 ├── utils.py            # Collection of utility functions commonly used across multiple modules
 ├── sensors.py          # Logic for creating and managing Husky robot sensors (Camera, LiDAR, IMU)
-├── ros_listeners.py    # Logic for creating/managing OmniGraph for ROS 2 topic subscription (e.g., Tank Control)
+├── ros_listeners.py    # Logic for creating/managing OmniGraph for ROS 2 topic subscription (ros2 graph)
 ├── camera_publishers.py # Logic for creating/managing OmniGraph for publishing camera data to ROS 2 topics
 ├── config.py           # (Optional Improvement) Definition of main configuration values (Prim paths, topic names, etc.)
 └── Standalone_Scripts/ # Scripts runnable independently of the extension (e.g., external controllers)
