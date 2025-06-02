@@ -94,6 +94,7 @@ def update_scaling_orientation(prim: Usd.Prim, stage: Usd.Stage, translation: Gf
 
     return 0.0
 
+# Niki's ASCII Art Function <- 송인용 작성
 def print_fox() -> None:
     # https://www.asciiart.eu/image-to-ascii - website used to create the picture
     print("""....................................................................................................

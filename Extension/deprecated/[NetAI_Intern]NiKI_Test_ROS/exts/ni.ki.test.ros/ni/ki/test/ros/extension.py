@@ -1,15 +1,26 @@
+
 # =======================================================================================
-#  |  _   _  ___         _  __ ___   _____  _____  ____   _____   ____    ___   ____   |
-#  | | \ | ||_ _|       | |/ /|_ _| |_   _|| ____|/ ___| |_   _| |  _ \  / _ \ / ___|  |
-#  | |  \| | | |  _____ | ' /  | |    | |  |  _|  \___ \   | |   | |_) || | | |\___ \  |
-#  | | |\  | | | |_____|| . \  | |    | |  | |___  ___) |  | |   |  _ < | |_| | ___) | |
-#  | |_| \_||___|       |_|\_\|___|   |_|  |_____||____/   |_|   |_| \_\ \___/ |____/  |
-#  |                                                                                   |
-#  |  Written by Niki C. Zils for the Gwangju Institute of Science and Technology (1)  |
-#  | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - |
-#  | This extension is exclusivly written for Clearpath's UGV Husky (2) with the       |
-#  | intention of it being used in combination with Nvidia's Isaac Sim (3) and ROS2    |
-#  | Humble (4).                                                                       |
+#  |  _   _        _            _     ___   ____    ___   ____                        |
+#  | | \ | |  ___ | |_         / \   |_ _| |  _ \  / _ \ / ___|                       |
+#  | |  \| | / _ \| __|  ___  / _ \   | |  | |_) || | | |\___ \                       |
+#  | | |\  ||  __/| |_  |___| / ___ \  | |  |  _ < | |_| | ___) |                     |
+#  | |_| \_| \___| \__|      /_/   \_\|___| |_| \_\ \___/ |____/                      |
+#  |                                                                                  |
+#  |  GIST Husky Isaac Sim Net-AI ROS Extension - Development History                 |
+#  | - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -|
+#  |                                                                                  |
+#  | Target Platform: Nvidia Isaac Sim 4.5 + ROS2 Humble + Clearpath Husky UGV        |
+#  | Purpose: Seamless simulation-to-reality robot control and testing environment    |
+#  | Major Refactoring & Enhancement: Inyong Song (2024.12 ~)                         |
+#  | - Complete code restructuring for Isaac Sim 4.5 compatibility                    |
+#  | - Enhanced real-world Husky robot control synchronization                        |
+#  | - Improved extension architecture and modularity                                 |
+#  | - Advanced ROS2 integration and sensor management                                |
+#  |                                                                                  |
+#  | Original Author: Niki C. Zils (German Intern, ~2024.09)                          |
+#  | - Initial development for Gwangju Institute of Science and Technology (GIST)     |
+#  | - First version targeting Clearpath's UGV Husky robot simulation                 |
+#  | - Thanks Niki                                                                    |
 # =======================================================================================
 
 # Links:
