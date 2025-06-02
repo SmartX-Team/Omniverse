@@ -8,12 +8,19 @@
 ![Python](https://img.shields.io/badge/Python-3.9+-yellow?style=for-the-badge&logo=python)
 
 *Seamless simulation-to-reality robot control for Clearpath Husky UGV*
+![Github-ezgif com-optimize](https://github.com/user-attachments/assets/0609b9e2-939e-4199-8763-ff4a5a838cac)
 
 </div>
 
 ## 🚀 Overview
 
-This extension provides a comprehensive interface for controlling Clearpath's Husky UGV robot within Nvidia Isaac Sim 4.5, enabling seamless simulation-to-reality transfer. Originally developed by Niki C. Zils in 2024, the extension has been extensively refactored and enhanced by Inyong Song for Isaac Sim 4.5 compatibility and real-world synchronization.
+This extension provides a comprehensive interface for controlling Clearpath's Husky UGV robot within Nvidia Isaac Sim 4.5, enabling seamless simulation-to-reality transfer.
+
+I've started uploading videos of the actual operations and demonstrations.
+
+(https://www.youtube.com/channel/UC9yTYYfVTsa8XLwhFPn7n2Q)
+
+I'll be sharing tutorials and development guides soon.
 
 ### ✨ Key Features
 
@@ -44,7 +51,7 @@ This extension encompasses a complete ecosystem for Husky robot simulation and c
 | Period | Developer | Contribution |
 |--------|-----------|-------------|
 | **~2024.09** | **Niki C. Zils** (German Intern) | Initial development and core framework for GIST |
-| **2024.12~** | **Inyong Song** | Major refactoring for Isaac Sim 4.5, enhanced real-world synchronization |
+| **2025.01~** | **Inyong Song** | Major refactoring for Isaac Sim 4.5, enhanced real-world synchronization |
 
 ## 📋 Prerequisites
 
@@ -151,29 +158,42 @@ sudo apt install ros-humble-ackermann-msgs \
 
 ### Quick Start
 
-1. **Launch Extension**
+1. **Enable ROS2 Communication**
+   - Click **"Start ROS2 Bridge"** 
+   - Extension establishes ROS2 topic connections
+   - Verify topics with: `ros2 topic list`
+   - If the ROS2 Bridge does not start, please check your ROS2 installation status first.
+
+2. **Launch Extension**
    - Open Isaac Sim 4.5 with ROS2 Bridge enabled
    - Ensure the extension is enabled in Extension Manager
    - Extension UI will appear in the main window
 
-2. **Initialize Husky Robot**
+3. **Initialize Husky Robot**
    - Click **"Initialize Husky"** button in the extension panel
    - Robot model loads with all sensors (Camera, LiDAR, IMU) attached
-   - Physics simulation begins automatically
-
-3. **Enable ROS2 Communication**
-   - Click **"Start ROS2 Bridge"** 
-   - Extension establishes ROS2 topic connections
-   - Verify topics with: `ros2 topic list`
+   - ! And click your Isaac-sim App's Play button 
 
 4. **Control Options**
    - **Extension UI**: Use built-in control buttons
    - **ROS2 Commands**: Publish to `/ackermann_cmd` topic
-   - **COSMO Mode**: 변경해
+   - **COSMO Mode**: Clicking this button generates the following omni_Graph
+
+If the code executes successfully, an omni_graph like the one below will be generated. The robot simulation will now begin:
+
+<img width="752" alt="image" src="https://github.com/user-attachments/assets/6d78bc3f-0387-47c0-932e-512befad757b" />
+
 
 ### 🕹️ Control Modes Example
 
-*[Screenshots will be added here by Inyong Song]*
+The joystick code, similar in form to a console gaming controller, is included in Standalone_Scripts.
+
+If you're in a simulation, you can control it normally.
+
+And you can adjust the maximum speed as needed in the code
+
+<img width="163" alt="image" src="https://github.com/user-attachments/assets/2d938c0e-7ac2-4aac-be91-276ee01c9a28" />
+
 
 #### ROS2 Topic Control
 ```bash
