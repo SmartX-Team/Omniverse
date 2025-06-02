@@ -18,7 +18,7 @@ This extension provides a comprehensive interface for controlling Clearpath's Hu
 
 I've started uploading videos of the actual operations and demonstrations.
 
-(https://www.youtube.com/channel/UC9yTYYfVTsa8XLwhFPn7n2Q)
+[![YouTube Channel](https://img.shields.io/badge/YouTube-Channel-red?style=for-the-badge&logo=youtube)](https://www.youtube.com/channel/UC9yTYYfVTsa8XLwhFPn7n2Q)
 
 I'll be sharing tutorials and development guides soon.
 

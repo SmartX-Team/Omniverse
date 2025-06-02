@@ -1,53 +1,50 @@
-# Test Ros [ni.ki.test.ros]
+# GIST Husky Isaac Sim ROS Extension - 코드 구조 설명
 
-This extension was orignally created to be used as a test project in order to gain a deeper understanding of omniverse 
-and its capiabilties. Furthermore it was deployed as a playground to prove concepts or test for error messages.
-Later on it changed into a full-fleged extension, but due to keepsake the name was not changed.
+# GIST Husky Isaac Sim ROS Extension - Code Structure Explanation
 
-As of now, it boots a variety of diffrent features that make it appeling for using it in combination with clearpath's
-UAV Husky. These mentioned features are:
+This document describes the internal code structure of the `gist.husky.isaacsim_ros` Python package.
 
-- Setting up Husky in Isaac Sim (Adjusting 3D Model Issues, etc.)
-- Generating realistic Sensors (Camera, LiDAR, etc.)
-- Handeling the data of these discuessed Sensors and publishing it to ROS2 topics
-- Enabling multiple ways of driving the robot, mainly:
-
-    * Controll via the /ackermann_cmd topic and message protocol
-    * Controll via a linear Joystick
-    * Controll via Tank Controller Cosmo - with two drive trains
-
-Additonly, it also owns a few slice of life features for creating an easier working enviroment with Isaac Sim.
-
-In the case you want to run this extension on your server or localhost there needs to be a few prerequists. For most of
-them you will find an easy way to install them online or via popular installers as "pip".
-
-## Basic Requirements:
-- Isaac Sim 2023.1 or later (https://docs.omniverse.nvidia.com/isaacsim/latest/installation/install_workstation.html)
-- ROS 2 Bridge extension needs to be enabled before launch of the app
-- ROS 2 Humble (https://docs.ros.org/en/humble/index.html)
-- Ackermann_Msgs (`sudo apt install ros-humble-ackermann-msgs` - only available on linux)
-- numpy (`pip install numpy`)
-
-## Further Requirements to use the entirty of the implemented code
-- PyGame (for visulisation of the Cosmo Tank Controller and Joystick; `pip install pygame==2.6.0`)
-- Kafka (`pip3 uninstall kafka && pip3 install kafka-python`)
-
-## If you are using windows, please refer to the WSL2 installation guide for ROS2 Humble
-https://docs.omniverse.nvidia.com/isaacsim/latest/installation/install_ros.html#running-native-ros
+## Directory Structure (Expected)
 
 
-#### Please note that this is list might be incomplet and that there might be more packages required to be installed, before you can use it.
+gist/husky/isaacsim_ros/
+├── init.py         # Package initialization and main class exposure
+├── extension.py        # Omniverse extension lifecycle (startup/shutdown), UI window creation and management
+├── actions.py          # Implementation of actual action logic triggered by UI button clicks
+├── utils.py            # Collection of utility functions commonly used across multiple modules
+├── sensors.py          # Logic for creating and managing Husky robot sensors (Camera, LiDAR, IMU)
+├── ros_listeners.py    # Logic for creating/managing OmniGraph for ROS 2 topic subscription (ros2 graph)
+├── camera_publishers.py # Logic for creating/managing OmniGraph for publishing camera data to ROS 2 topics
+├── config.py           # (Optional Improvement) Definition of main configuration values (Prim paths, topic names, etc.)
+└── Standalone_Scripts/ # Scripts runnable independently of the extension (e.g., external controllers)
+└── ...
 
-## Separate Standalone Scripts:
-This extension includes a total of 4 separate Scripts that can be used in combination with or without this extension.
-Two of them, "tank_controller_cosmo.py" and "virtual_joystick_2.py", enable you to drive Husky in Isaac Sim via
-Ackermann Messages on the "/ackermann_cmd" topic.
 
-The other two, "ros2_kafka_producer.py" and "ros2_kafka_reader.py", are used to save (produce) LiDAR PointClouds
-from the ROS 2 topic "/point_cloud_hydra" to Kafka and read them out from Kafka to ROS 2 respectivly.
+## Main Module Descriptions
 
-In the README.md (in the same folder "Standalone_Scripts"), you will be able to find a more indepth explanation of each of the mentioned scripts.
+* **`__init__.py`**:
+    * Initializes the package and exposes the main extension class (`NiKiTestRosExtension`) so Omniverse can recognize it.
+    * Avoids importing other modules directly to prevent circular references.
 
-## Husky USD File
-Under the folder "Husky_USD" you will be able to find the required USD file of Husky,  which has been tested to work with this extension.
-To use it, just drag the file into the viewport of Isaac Sim at the location you want Husky to be.
+* **`extension.py`**:
+    * Contains the main class (`NiKiTestRosExtension`) implementing the `omni.ext.IExt` interface.
+    * `on_startup`: Called when the extension starts. Creates the UI window (`omni.ui`), loads necessary modules (actions, utils), and connects button clicks to functions in `actions.py`.
+    * `on_shutdown`: Called when the extension shuts down. Cleans up created UI resources.
+
+* **`actions.py`**:
+    * Implements the actual functionalities linked to the UI buttons defined in `extension.py` as functions (e.g., `initialize_husky`, `start_cosmo_mode`, `pilot_forward`, `cease_movement`).
+    * Calls functions from other modules like `sensors.py`, `ros_listeners.py`, `utils.py`, `config.py` as needed to perform tasks.
+    * Receives necessary information like the USD Stage object and UI Label widget as arguments from `extension.py`.
+
+* **`utils.py`**:
+    * Contains functions that are not specific to a particular feature and can be reused across multiple modules (e.g., `get_footprint_path`, `print_info`, `print_instructions_for_tank_controll`).
+
+* **`sensors.py`**:
+    * Includes functions for creating and configuring sensor primitives (Camera, LiDAR, IMU) to be attached to the Husky robot.
+    * May also include logic for setting up OmniGraph nodes required for sensor operation.
+
+* **`ros_listeners.py`**:
+    * Contains functions to create and manage OmniGraphs for subscribing to ROS 2 topics to control the robot within Isaac Sim (e.g., a graph that takes `/ackermann_cmd` topic and controls the Articulation Controller).
+
+* **`camera_publishers.py`**:
+    * Contains functions to create and manage OmniGraphs for publishing camera sensor data from within Isaac Sim to ROS 2 topics.
