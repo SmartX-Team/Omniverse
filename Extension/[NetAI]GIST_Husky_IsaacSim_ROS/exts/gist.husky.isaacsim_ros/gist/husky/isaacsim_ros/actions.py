@@ -53,12 +53,11 @@ def initialize_husky(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, 
     # --- 1. IMU Initialization ---
     imu_sensor_path = lidar_path + "/imu_sensor"
     try:
-        # 이전 버전의 함수가 아닌, 반환 값이 있는 안전한 함수를 호출
+
         if create_imu_sensor(stage, lidar_path):
             initialization_steps.append("IMU Prim: OK")
             print("[Info] create_imu_sensor reported success.")
         else:
-            # 함수 내부에서 이미 상세한 에러 로그를 남겼을 것이므로 여기서는 실패 처리만 godigo
             raise Exception("create_imu_sensor function returned False, indicating failure.")
             
     except Exception as e:
@@ -236,12 +235,10 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
                 stiffness_attr = drive_api.CreateStiffnessAttr() # Creates if doesn't exist
                 stiffness_attr.Set(stiffness)
 
-                # Set Damping (optional, often useful for stability)
-                # NOTE: Counter-intuitively, increasing this value increases rotational speed. Why is this??? - Inyong
-                # For our model, a value around 1800-2000 produces a rotational speed
-                # similar to the real Husky.
-                # TODO: Update with a precise value after accurate measurement.
-                damping = 3000.0 # Example damping value, tune as needed
+                # Husky 모터 사양에 맞춘 damping 값은 120~200 정도라고 하는데데
+                # 실제 Husky PM45L-048 모터의 최대 토크(49.3 Nm)를 고려한 값
+                #However, it seems there is an issue between the models, as the force values must be set significantly higher than in reality to achieve smooth operation.
+                damping = 6000  #  지속적으로 교정 작업 진행중중
                 damping_attr = drive_api.CreateDampingAttr()
                 damping_attr.Set(damping)
 
@@ -249,9 +246,11 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
                 target_vel_attr = drive_api.CreateTargetVelocityAttr()
                 target_vel_attr.Set(target_velocity_float)
 
-                # Set Max Force (optional, prevents extreme forces)
+                # Set Max Force - This is crucial for the drive to work properly
+                # Husky PM45L-048 모터의 최대 토크: 49.3 N·m 이나 지금 여러 문제로 값을 상당히 많이 높여야함
+                #However, it seems there is an issue between the models, as the force values must be set significantly higher than in reality to achieve smooth operation.
                 max_force_attr = drive_api.CreateMaxForceAttr()
-                max_force_attr.Set(100000.0) # Example max force
+                max_force_attr.Set(100000)  
 
                 wheels_set_count += 1
                 # print(f"[DEBUG] Applied drive to {joint_path}")
@@ -284,12 +283,16 @@ def pilot_forward(stage: Usd.Stage, label_widget: ui.Label, husky_path: str):
         print(f"[Info] Deleting existing OmniGraph '{GRAPH_PATH}' before entering Pilot mode.")
         try:
             omni.kit.commands.execute("DeletePrims", paths=[GRAPH_PATH])
-            # 그래프 삭제 후 반영될 시간을 잠시 줍니다 (선택적)
+            # 그래프 삭제 후 안정적으로 반영될 시간 추가
             # time.sleep(0.1)
         except Exception as e:
             print(f"[Error] Failed to delete graph '{GRAPH_PATH}': {e}")
 
-    target_velocity = 40.0 # Target angular velocity (e.g., rad/s - check Isaac Sim docs/units)
+    # 문서에 따른 현실적 목표 속도
+    # Husky 최대 선속도 1.0 m/s, 바퀴 반지름 0.165m
+    # 최대 각속도: 1.0 / 0.165 ≈ 6.06 rad/s
+    # 테스트를 위해 절반 정도의 속도 사용
+    target_velocity = 6.06
     stiffness = 0     # Low stiffness for velocity control
     label_widget.text = f"Engaging Pilot Mode (Target Vel: {target_velocity:.1f})"
 
@@ -329,7 +332,7 @@ def cease_movement(stage: Usd.Stage, label_widget: ui.Label, husky_path: str, up
         print(f"[Info] Deleting existing OmniGraph '{GRAPH_PATH}' before entering Pilot mode.")
         try:
             omni.kit.commands.execute("DeletePrims", paths=[GRAPH_PATH])
-            # 그래프 삭제 후 반영될 시간을 잠시 줍니다 (선택적)
+            # 그래프 삭제 후 안정적으로 반영될 시간 추가
             # time.sleep(0.1)
         except Exception as e:
             print(f"[Error] Failed to delete graph '{GRAPH_PATH}': {e}")

@@ -64,6 +64,9 @@ COPY robot.yaml /etc/clearpath/robot.yaml
 
 # Ouster LiDAR용 driver_params.yaml 파일 복사
 COPY driver_params.yaml /configs/ouster_driver_params.yaml
+
+# Test 용 driver_params.yaml
+COPY ouster_param.yaml /configs/ouster_param.yaml
 # --- 여기까지 설정 파일 복사 ---
 
 # 런타임에 필요한 패키지 설치 및 Clearpath 저장소 설정
@@ -150,11 +153,16 @@ COPY --from=builder ${OUSTER_WS_ROOT} ${OUSTER_WS_ROOT}
 
 # --- 그 외 필요한 테스트나 ROS2 용 코드들 있으면 여기서 복사사 키보드 왜 이래ㅔㅅ .ㅇ ---
 COPY simple_subscriber.py /root/simple_subscriber.py
-COPY pointcloud_to_kafka.py /root/pointcloud_to_kafka.py
 COPY fastdds_force_udp.xml /etc/fastdds/fastdds_force_udp.xml
-COPY ros2_camera_to_kafka_agent.py /root/ros2_camera_to_kafka_agent.py
 COPY robot_bringup.launch.py /root/robot_bringup.launch.py
-COPY sync_mode_kafka.py /root/sync_mode_kafka.py
+
+# --- data 수집 및 전송 관련 스크립트들 ---
+COPY scripts/data/pointcloud_to_kafka.py /root/pointcloud_to_kafka.py
+COPY scripts/data/ros2_camera_to_kafka_agent.py /root/ros2_camera_to_kafka_agent.py
+COPY scripts/data/bag_collector_to_kafka.py /root/bag_collector_to_kafka.py
+
+# --- Controller 관련 스크립트들 ---
+COPY scripts/controller/sync_mode_kafka.py /root/sync_mode_kafka.py
 WORKDIR /root
 
 # ============================================================================ #

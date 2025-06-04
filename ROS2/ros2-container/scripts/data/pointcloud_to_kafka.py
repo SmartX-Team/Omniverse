@@ -2,6 +2,7 @@
 # 아이작심에서 생성되는 Lidar 데이터 카프카 기반으로 전송하는 코드
 # 데이터 크기가 기본적으로 크기때문에, 필요할때만 활성화시켜서 실행하도록
 # ROS2 통신 방법 참고용 코드로 남겨둠
+
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, PointField

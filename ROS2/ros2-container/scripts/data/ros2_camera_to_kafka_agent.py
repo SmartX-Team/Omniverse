@@ -1,10 +1,43 @@
 #!/usr/bin/env python3
+"""
+ROS2 Camera to Kafka Agent
+
+This script creates a ROS2 node that bridges camera data from ROS2 topics to Kafka.
+It subscribes to ROS2 image topics (either compressed or raw images), processes the 
+image data, and publishes it to a Kafka topic for downstream consumption.
+
+Key Features:
+- Supports both CompressedImage and raw Image message types from ROS2
+- Converts raw images to JPEG format with configurable quality
+- Rate-limited transmission to Kafka (configurable FPS)
+- Registers with a visibility server for monitoring and management
+- Periodic status updates to the visibility server
+- Dynamic transmission control via ROS2 parameters
+
+Environment Variables:
+- ROS2_IMAGE_TOPIC: Source ROS2 topic (default: /camera/color/image_raw)
+- ROS2_IMAGE_MESSAGE_TYPE: 'image' or 'compressedimage' (default: image)
+- KAFKA_BROKER_ADDRESS: Kafka bootstrap servers (default: 10.79.1.1:9094)
+- KAFKA_TOPIC_NAME: Target Kafka topic (default: isaacsim-husky-camera-01)
+- KAFKA_SEND_INTERVAL_SEC: Transmission rate in seconds (default: 1.0)
+- JPEG_QUALITY: JPEG compression quality 1-100 (default: 80)
+- VISIBILITY_SERVER_URL: Server for registration and status updates
+
+Usage:
+    python3 ros2_camera_to_kafka_agent.py
+    
+    # Enable/disable transmission via ROS2 parameter:
+    ros2 param set /ros2_camera_to_kafka_agent_node enable_kafka_transmission true
+
+this comment written by Claude4, yeah InYong Song
+"""
+
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from sensor_msgs.msg import CompressedImage, Image # 두 타입 모두 임포트
-from cv_bridge import CvBridge # Image 메시지를 OpenCV 형식으로 변환 시 (압축 사용해야 실제 이미지 데이터 사용 가능)
-import cv2 # JPEG 압축 시 필요
+from sensor_msgs.msg import CompressedImage, Image  # Import both message types
+from cv_bridge import CvBridge  # Convert Image messages to OpenCV format (compression needed for actual image data)
+import cv2  # Required for JPEG compression
 
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
@@ -17,7 +50,7 @@ import uuid
 from datetime import datetime
 import threading
 
-# --- 환경 변수 로드 ---
+# --- Load Environment Variables ---
 print("DEBUG: Python script started. Loading environment variables...")
 VISIBILITY_SERVER_URL = os.environ.get('VISIBILITY_SERVER_URL', 'http://10.79.1.7:5111')
 AGENT_NAME = os.environ.get('AGENT_NAME', f"ros2_kafka_cam_agent_{uuid.uuid4().hex[:6]}")
@@ -41,7 +74,7 @@ JPEG_QUALITY = int(os.environ.get('JPEG_QUALITY', 80))
 STATUS_UPDATE_INTERVAL_SEC = int(os.environ.get('STATUS_UPDATE_INTERVAL_SEC', 10))
 ENABLE_TRANSMISSION_PARAM_NAME = "enable_kafka_transmission"
 
-# Kafka 전송 간격 (초 단위, 예: 1.0은 초당 1프레임, 0.1은 초당 10프레임)
+# Kafka transmission interval (in seconds, e.g., 1.0 = 1 frame per second, 0.1 = 10 frames per second)
 KAFKA_SEND_INTERVAL_SEC = float(os.environ.get('KAFKA_SEND_INTERVAL_SEC', 1.0))
 
 print(f"DEBUG: VISIBILITY_SERVER_URL: {VISIBILITY_SERVER_URL}")
@@ -77,7 +110,7 @@ class ROS2CameraToKafkaAgent(Node):
         self.image_subscription = None
         self.cv_bridge = None
 
-        # Kafka 전송 속도 제어를 위한 변수
+        # Variables for Kafka transmission rate control
         self.last_kafka_send_time = 0.0
         self.desired_kafka_send_interval = KAFKA_SEND_INTERVAL_SEC
         self.get_logger().info(f"{self.log_prefix}Kafka send interval set to {self.desired_kafka_send_interval} seconds.")
@@ -92,7 +125,7 @@ class ROS2CameraToKafkaAgent(Node):
             elif ROS2_IMAGE_MESSAGE_TYPE == "image":
                 msg_type = Image
                 self.get_logger().info(f"{self.log_prefix}Using Image message type for subscription.")
-                if not self.cv_bridge: # 압축 사용 안 할 시 CvBridge 초기화 불필요
+                if not self.cv_bridge:  # CvBridge initialization not needed when not using compression
                     try:
                         self.cv_bridge = CvBridge()
                         self.get_logger().info(f"{self.log_prefix}CvBridge initialized for Image type.")
@@ -146,7 +179,7 @@ class ROS2CameraToKafkaAgent(Node):
     def _initialize_kafka_producer(self):
         print(f"DEBUG: Attempting to initialize KafkaProducer with brokers: {KAFKA_BROKER_ADDRESS}")
         try:
-            producer_max_request_size = int(os.environ.get('KAFKA_PRODUCER_MAX_REQUEST_SIZE', 5 * 1024 * 1024)) # 5MB 기본값
+            producer_max_request_size = int(os.environ.get('KAFKA_PRODUCER_MAX_REQUEST_SIZE', 5 * 1024 * 1024))  # 5MB default
             self.producer = KafkaProducer(
                 bootstrap_servers=KAFKA_BROKER_ADDRESS.split(','),
                 value_serializer=lambda v: json.dumps(v).encode('utf-8'),
@@ -187,12 +220,13 @@ class ROS2CameraToKafkaAgent(Node):
             self.get_logger().warn(f"{self.log_prefix}Kafka Producer not available. Cannot send message.")
             return
 
-        # Kafka 전송 속도 제어 로직
+        # Kafka transmission rate control logic
         current_time = time.time()
         if (current_time - self.last_kafka_send_time) < self.desired_kafka_send_interval:
             self.get_logger().debug(f"{self.log_prefix}Skipping frame due to Kafka send interval. Last sent: {self.last_kafka_send_time:.2f}, Current: {current_time:.2f}, Interval: {self.desired_kafka_send_interval}")
             return
-        # 모든 조건을 충족할때 전송 시작 Kafka 전송 
+        
+        # Start Kafka transmission when all conditions are met
         try:
             kafka_payload = {}
             image_data_b64 = None
@@ -217,11 +251,11 @@ class ROS2CameraToKafkaAgent(Node):
                     self.get_logger().error(f"{self.log_prefix}CvBridge not initialized. Cannot process raw Image message.")
                     return
                 try:
-                    # ROS Image 메시지를 OpenCV 이미지로 변환
-                    # Isaac Sim의 /camera/color/image_raw는 보통 'rgb8' 또는 'bgr8'
+                    # Convert ROS Image message to OpenCV image
+                    # Isaac Sim's /camera/color/image_raw is usually 'rgb8' or 'bgr8'
                     cv_image = self.cv_bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
                     
-                    # OpenCV 이미지를 JPEG 형식으로 압축
+                    # Compress OpenCV image to JPEG format
                     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY]
                     result, encoded_image_buffer = cv2.imencode('.jpg', cv_image, encode_param)
                     
@@ -230,16 +264,16 @@ class ROS2CameraToKafkaAgent(Node):
                         return
                     
                     image_data_b64 = base64.b64encode(encoded_image_buffer).decode('utf-8')
-                    image_format = "jpeg" # 압축했으므로 format을 jpeg로 명시
-                    original_data_size = len(encoded_image_buffer) # 압축 후 크기
+                    image_format = "jpeg"  # Set format to jpeg since we compressed it
+                    original_data_size = len(encoded_image_buffer)  # Size after compression
                     self.get_logger().debug(f"{self.log_prefix}Image successfully compressed to JPEG (quality: {JPEG_QUALITY}) and Base64 encoded.")
 
                     kafka_payload = {
                         'timestamp_sec': msg.header.stamp.sec,
                         'timestamp_nanosec': msg.header.stamp.nanosec,
                         'frame_id': msg.header.frame_id,
-                        'format': image_format, # "jpeg"
-                        'original_encoding': msg.encoding, # 원본 인코딩 정보 추가
+                        'format': image_format,  # "jpeg"
+                        'original_encoding': msg.encoding,  # Add original encoding info
                         'height': msg.height,
                         'width': msg.width,
                         'data_b64': image_data_b64
@@ -253,6 +287,7 @@ class ROS2CameraToKafkaAgent(Node):
 
             future = self.producer.send(KAFKA_TOPIC_NAME, value=kafka_payload)
             self.get_logger().info(f"{self.log_prefix}Image (frame: {msg.header.frame_id}, format: {image_format}, data_size: {len(msg.data)} bytes) SENT to Kafka topic '{KAFKA_TOPIC_NAME}'.")
+            self.last_kafka_send_time = current_time
 
         except KafkaError as e:
             self.get_logger().error(f"{self.log_prefix}Failed to send image to Kafka: {e}")

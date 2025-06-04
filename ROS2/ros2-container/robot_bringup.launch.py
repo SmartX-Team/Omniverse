@@ -23,7 +23,7 @@ def generate_launch_description():
             '/driver.launch.py'
         ]),
         launch_arguments={
-            'params_file': '/configs/ouster_driver_params.yaml',
+            'params_file': '/configs/ouster_param.yaml',
             'viz': 'false'
         }.items()
     )
@@ -41,9 +41,12 @@ def generate_launch_description():
 
     # 3. Execute the launch description
     return LaunchDescription([
-        ouster_launch,
         TimerAction(
-            period=5.0, # <--- You can adjust the delay time by changing this value (unit: seconds).
+            period=15.0,
+            actions=[ouster_launch]
+        ),
+        TimerAction(
+            period=20.0, # <--- You can adjust the delay time by changing this value (unit: seconds).
             actions=[realsense_launch]
         )
     ])
