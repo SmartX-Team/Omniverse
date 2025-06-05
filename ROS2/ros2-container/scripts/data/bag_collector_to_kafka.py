@@ -1,3 +1,6 @@
+
+# EX: DEPLOYMENT_MODE="real_robot" python3 bag_collector_to_kafka.py
+
 import os
 import subprocess
 import time
@@ -57,7 +60,7 @@ atexit.register(cleanup_on_exit)
 
 # --- Configuration ---
 KAFKA_BROKER = os.environ.get('KAFKA_BROKER', '10.79.1.1:9094')
-KAFKA_TOPIC = os.environ.get('KAFKA_TOPIC_BAGS', 'ros-bags-archive')
+KAFKA_TOPIC = os.environ.get('KAFKA_TOPIC_BAGS', 'ros-bags-archive-isaac')
 RECORD_DURATION_SECONDS = int(os.environ.get('RECORD_DURATION_SECONDS', 60))
 RECORD_INTERVAL_SECONDS = int(os.environ.get('RECORD_INTERVAL_SECONDS', 10))
 DEPLOYMENT_MODE = os.environ.get('DEPLOYMENT_MODE', 'isaac_sim')
@@ -67,9 +70,7 @@ DEFAULT_TOPICS = {
         '/cmd_vel', '/odom/virtual', '/imu/virtual', '/tf', '/tf_static'
     ],
     'real_robot': [
-        '/cmd_vel', '/odom', '/imu/data', '/tf', '/tf_static',
-        '/sensors/lidar_0/points', '/sensors/camera_0/color/image_raw',
-        '/platform/odom', '/platform/joint_states', '/mcu/status'
+        '/a200_0000/cmd_vel', '/a200_0000/platform/odom', '/ouster/imu', '/a200_0000/tf', '/a200_0000/tf_static'
     ]
 }
 

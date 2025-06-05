@@ -1,4 +1,4 @@
-ouster_driver:
+ouster/os_driver:
   ros__parameters:
     # --- 필수 네트워크 설정 ---
     sensor_hostname: "192.168.131.20"
