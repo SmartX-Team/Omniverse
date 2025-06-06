@@ -238,7 +238,7 @@ def _apply_wheel_drive(stage: Usd.Stage, husky_path: str, target_velocity_compon
                 # Husky 모터 사양에 맞춘 damping 값은 120~200 정도라고 하는데데
                 # 실제 Husky PM45L-048 모터의 최대 토크(49.3 Nm)를 고려한 값
                 #However, it seems there is an issue between the models, as the force values must be set significantly higher than in reality to achieve smooth operation.
-                damping = 120000  #  지속적으로 교정 작업 진행중중
+                damping = 27000  #  지속적으로 교정 작업 진행중중
                 damping_attr = drive_api.CreateDampingAttr()
                 damping_attr.Set(damping)
 
