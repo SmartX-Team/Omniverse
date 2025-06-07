@@ -193,6 +193,8 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("break_linear_velocity", "omni.graph.nodes.BreakVector3"),
             ("break_angular_velocity", "omni.graph.nodes.BreakVector3"),
 
+            ("rotation_multiplier", "omni.graph.nodes.Multiply"),
+
             #("get_linear_x", "omni.graph.nodes.ArrayIndex"),      # Twist 메시지에서 linear.x 추출
             #("get_angular_z", "omni.graph.nodes.ArrayIndex"),     # Twist 메시지에서 angular.z 추출
 
@@ -238,8 +240,11 @@ def create_tank_controll_listener(prim_path_of_husky):
         #HUSKY_WHEEL_RADIUS = 0.165  # 바퀴 반지름 (m) - 330mm 타이어
         #HUSKY_WHEEL_BASE = 0.555    # 바퀴 간 거리 (m) - 트랙 폭 (허브-허브)
         HUSKY_WHEEL_RADIUS =0.165  # 바퀴 반지름 (m) - 330mm 타이어
-        HUSKY_WHEEL_BASE = 0.555    # 바퀴 간 거리 (m) - 트랙 폭 (허브-허브)        
-        HUSKY_MAX_ANGULAR_SPEED = 3.61 # 예시: 1.5 rad/s (후에 필요에 따라 조절하삼)
+        HUSKY_WHEEL_BASE = 0.67   # 바퀴 간 거리 (m) - 트랙 폭 (허브-허브)        
+        HUSKY_MAX_ANGULAR_SPEED = 6.06 # 예시: 1.5 rad/s (후에 필요에 따라 조절하삼)
+
+        ROTATION_SCALING_FACTOR = 1.5
+
         # Articulation Controller에 사용될 조인트 이름 순서 (USD 모델과 일치해야 함)
         # 순서: [후방 우측, 후방 좌측, 전방 우측, 전방 좌측]
         # DifferentialController 출력: [v_left, v_right]

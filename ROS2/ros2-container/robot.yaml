@@ -16,7 +16,13 @@ platform:
   battery:
     model: ES20_12C
     configuration: S2P1
-  enable_ekf: false    
+  enable_ekf: false
+  ros_parameters:
+    kinematics:
+      max_linear_velocity: 1.0
+      max_angular_velocity: 0.2
+      max_linear_acceleration: 3.0
+      max_angular_acceleration: 5.0  
   attachments:
     - name: front_bumper
       type: a200.bumper
