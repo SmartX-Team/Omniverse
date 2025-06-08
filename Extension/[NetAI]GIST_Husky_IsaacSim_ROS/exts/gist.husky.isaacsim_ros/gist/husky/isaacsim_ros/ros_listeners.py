@@ -194,6 +194,7 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("break_angular_velocity", "omni.graph.nodes.BreakVector3"),
 
             ("rotation_multiplier", "omni.graph.nodes.Multiply"),
+            ("rotation_correction_factor", "omni.graph.nodes.ConstantDouble"),
 
             #("get_linear_x", "omni.graph.nodes.ArrayIndex"),      # Twist 메시지에서 linear.x 추출
             #("get_angular_z", "omni.graph.nodes.ArrayIndex"),     # Twist 메시지에서 angular.z 추출
@@ -261,6 +262,7 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("diff_ctrl.inputs:maxAngularSpeed", HUSKY_MAX_ANGULAR_SPEED),
             #("get_linear_x.inputs:index", 0),
             #("get_angular_z.inputs:index", 2),
+            ("rotation_correction_factor.inputs:value", ROTATION_SCALING_FACTOR),
 
             ("get_v_left.inputs:index", 0),  # DifferentialController 출력의 첫 번째 요소 (왼쪽 바퀴)
             ("get_v_right.inputs:index", 1), # DifferentialController 출력의 두 번째 요소 (오른쪽 바퀴)
@@ -340,13 +342,14 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("twist_sub.outputs:linearVelocity", "break_linear_velocity.inputs:tuple"),
             ("twist_sub.outputs:angularVelocity", "break_angular_velocity.inputs:tuple"),
             ("break_linear_velocity.outputs:x", "diff_ctrl.inputs:linearVelocity"),
-            ("break_angular_velocity.outputs:z", "diff_ctrl.inputs:angularVelocity"),
+           # ("break_angular_velocity.outputs:z", "diff_ctrl.inputs:angularVelocity"),
 
-            #("twist_sub.outputs:linearVelocity", "get_linear_x.inputs:array"),
-            #("twist_sub.outputs:angularVelocity", "get_angular_z.inputs:array"),
+            ("break_angular_velocity.outputs:z", "rotation_multiplier.inputs:a"),
+            # ConstantDouble 노드의 출력을 Multiply 노드의 입력 b로 연결합니다.
+            ("rotation_correction_factor.inputs:value", "rotation_multiplier.inputs:b"),
+            # Multiply 결과를 컨트롤러 입력으로 연결합니다.
+            ("rotation_multiplier.outputs:product", "diff_ctrl.inputs:angularVelocity"),
 
-            #("get_linear_x.outputs:value", "diff_ctrl.inputs:linearVelocity"),   
-            #("get_angular_z.outputs:value", "diff_ctrl.inputs:angularVelocity"),
             ("phys_step.outputs:step", "diff_ctrl.inputs:execIn"), # DifferentialController도 실행 신호 필요할 수 있음
 
             ("diff_ctrl.outputs:velocityCommand", "get_v_left.inputs:array"),
