@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ugv_nav</name>
+  <version>0.0.1</version>
+  <description>UGV Navigation Package</description>
+  <maintainer email="inyong2327@gmail.com">InYong Song</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- Python package dependencies -->
+  <buildtool_depend>ament_python</buildtool_depend>
+  
+  <!-- ROS 2 dependencies -->
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <!-- Add other ROS dependencies as needed -->
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
