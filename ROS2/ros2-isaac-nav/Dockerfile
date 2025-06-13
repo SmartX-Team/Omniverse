@@ -13,6 +13,9 @@ RUN apt-get update && \
         ros-humble-rmw-fastrtps-cpp \
     && rm -rf /var/lib/apt/lists/*
 
+RUN python3 -m pip install --no-cache-dir --upgrade "pip<24.0" "setuptools==65.5.1"
+RUN python3 -m pip install --no-cache-dir ament_index_python==1.6.0
+
 # 2. Python 강화학습(RL) 라이브러리 설치
 RUN pip3 install \
     stable-baselines3[extra] \

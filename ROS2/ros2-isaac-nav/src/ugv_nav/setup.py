@@ -17,7 +17,7 @@ setup(
         (os.path.join('share', package_name, 'config'), glob(os.path.join('config', '*.yaml'))),
         (os.path.join('lib', package_name, 'scripts'), glob(os.path.join('scripts', '*'))),
     ],
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'ament_index_python', 'rclpy'],
     zip_safe=True,
     maintainer='netai', 
     maintainer_email='inyong2327@gamil.com',
