@@ -2,7 +2,8 @@
 
 Omniverse 기반 Digital Twin 프로젝트중 Backend Code 정리 Branch 입니다.
 
-코드 정리 및 상세한 설명은 조만간 진행할 예정입니다.
+UWB_Raw : 이거 제외하고는 실질적으로 전부 Deprecated 
+
 
 * DISPLAY_Streaming : Visualization Center 의 Display Wall 모니터 화면을 스트리밍하면서 Dream-AI 가상 모델 안의 Display Wall 과 동기화 할 수 있도록 지원해주는 서버
 * Kubernetes: MobileX Station 과 같이 현재 쿠버네티스 기반으로 관리되고 있는 데이터를 수집하고 디지털 트윈으로 전달하는 서버 코드 모음

@@ -17,14 +17,14 @@ TOPIC_NAME = '/cmd_vel' # Isaac Sim OmniGraph가 구독하는 /cmd_vel 토픽
 # --- !!! 속도 설정 !!! ---
 TARGET_LINEAR_SPEED_LOW = 0.3   # 예시: 저속 선속도 (m/s)
 TARGET_LINEAR_SPEED_MEDIUM = 0.5 # 예시: 중속 선속도 (m/s)
-TARGET_LINEAR_SPEED_HIGH = 5.0  # 예시: 고속 선속도 (m/s)
+TARGET_LINEAR_SPEED_HIGH = 1.0  # 예시: 고속 선속도 (m/s)
 
 TARGET_ANGULAR_SPEED_LOW = 0.3  # 예시: 저속 각속도 (rad/s)
 TARGET_ANGULAR_SPEED_MEDIUM = 0.5 # 예시: 중속 각속도 (rad/s)
 TARGET_ANGULAR_SPEED_HIGH = 1.0 # 예시: 고속 각속도 (rad/s)
 
 # ===> 현재 적용할 최대 속도를 여기서 선택하세요! <===
-CURRENT_MAX_LINEAR_SPEED = TARGET_LINEAR_SPEED_MEDIUM
+CURRENT_MAX_LINEAR_SPEED = TARGET_LINEAR_SPEED_HIGH
 CURRENT_MAX_ANGULAR_SPEED = TARGET_ANGULAR_SPEED_MEDIUM
 # =============================================
 

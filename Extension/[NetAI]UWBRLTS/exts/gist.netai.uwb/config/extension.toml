@@ -1,0 +1,44 @@
+[package]
+version = "1.0.0"
+authors = ["NetAI Research Lab", "GIST"]
+title = "NetAI UWB Real-time Tracking"
+description = "Real-time UWB tracking system with coordinate transformation for Digital Twins in Omniverse"
+readme = "docs/README.md"
+repository = ""
+category = "Simulation"  # "NetAI" 대신 "Simulation" 사용
+keywords = ["netai", "uwb", "tracking", "realtime", "digital-twins", "gist"]
+changelog = "docs/CHANGELOG.md"
+preview_image = "data/preview.png"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.kit.uiapp" = {}
+"omni.isaac.core_nodes" = "*"
+"omni.isaac.ros2_bridge" = "*"
+"omni.graph.core" = {}        
+"omni.graph.nodes" = {}       
+"omni.graph.scriptnode" = {}
+"isaacsim.sensors.physics" = {}
+"isaacsim.sensors.rtx" = {}
+
+# 모듈 이름을 일관되게 수정
+[[python.module]]
+name = "uwbrtls"
+
+[python.pipapi]
+requirements = [
+    "requests==2.31.0",
+    "httpx==0.27.0",
+    "aiokafka==0.10.0",
+    "psycopg2-binary",
+    "numpy==1.26.4"
+]
+use_online_index = true
+
+# 문제가 되는 settings 섹션 완전 제거
+# [settings] 섹션 삭제
+
+[[test]]
+dependencies = [
+    "omni.kit.ui_test"
+]
