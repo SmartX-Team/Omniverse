@@ -147,16 +147,41 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             self._update_status(f"Error: {e}")
     
     async def _load_stage_data(self):
-        """Omniverse Stage 데이터 로드"""
+        """Omniverse Stage 데이터 로드 - 기존 Stage 사용"""
         print("Loading Omniverse stage data...")
+        
+        # 기존 Stage 가져오기 (새로 생성하지 않음)
         stage = get_context().get_stage()
         
-        # Prim 맵 구축
-        self.prim_map = {}
-        for prim in stage.Traverse():
-            self.prim_map[prim.GetName()] = prim
+        if not stage:
+            print("Warning: No stage found in context")
+            return
         
-        print(f"Loaded {len(self.prim_map)} prims from stage")
+        # Prim 맵 구축 - 전체 경로를 키로 사용
+        self.prim_map = {}
+        prim_count = 0
+        
+        for prim in stage.Traverse():
+            prim_path = str(prim.GetPath())
+            prim_name = prim.GetName()
+            
+            # 경로와 이름 둘 다 매핑에 추가
+            self.prim_map[prim_path] = prim
+            if prim_name:  # 빈 이름이 아닌 경우만
+                self.prim_map[prim_name] = prim
+            
+            prim_count += 1
+        
+        print(f"Loaded {prim_count} prims from existing stage")
+        print(f"Stage root path: {stage.GetRootLayer().identifier if stage else 'None'}")
+        
+        # 주요 오브젝트들 확인
+        sample_objects = ['/World/NUC11_08', '/World/NUC11_07', 'NUC11_08', 'NUC11_07']
+        for obj_path in sample_objects:
+            if obj_path in self.prim_map:
+                print(f"Found object: {obj_path}")
+            else:
+                print(f"Object not found: {obj_path}")
     
     async def _periodic_updates(self):
         """주기적 데이터 업데이트"""
@@ -284,18 +309,25 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
                                  uwb_coords: tuple, raw_timestamp: str):
         """위치 업데이트 콜백 - Omniverse 오브젝트 이동"""
         try:
-            if object_name not in self.prim_map:
+            # 오브젝트 찾기
+            target_prim = None
+            
+            if object_name in self.prim_map:
+                target_prim = self.prim_map[object_name]
+            elif object_name.split('/')[-1] in self.prim_map:
+                obj_name = object_name.split('/')[-1]
+                target_prim = self.prim_map[obj_name]
+            
+            if not target_prim:
                 print(f"Warning: Object '{object_name}' not found in stage")
                 return
             
-            prim = self.prim_map[object_name]
-            xformAPI = UsdGeom.XformCommonAPI(prim)
-            
-            # 위치 설정
+            # XformCommonAPI로 위치 설정
+            xformAPI = UsdGeom.XformCommonAPI(target_prim)
             omni_x, omni_y, omni_z = position
             xformAPI.SetTranslate(Gf.Vec3d(omni_x, omni_y, omni_z))
             
-            print(f"Moved {object_name} (tag {tag_id}) to position {position}")
+            print(f"Moved {object_name} (tag {tag_id}) to ({omni_x:.2f}, {omni_y:.2f}, {omni_z:.2f})")
             
         except Exception as e:
             print(f"Error moving object {object_name}: {e}")

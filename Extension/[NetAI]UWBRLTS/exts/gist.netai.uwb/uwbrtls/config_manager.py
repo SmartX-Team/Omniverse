@@ -103,8 +103,16 @@ class ConfigManager:
     
     def get_postgres_config(self) -> Dict[str, Any]:
         """PostgreSQL 설정 반환"""
-        return self.get("postgres", {})
-    
+        postgres_config = self.get("postgres", {})
+        
+        # psycopg2 표준 매개변수명으로 변환
+        return {
+            'database': postgres_config.get('db_name'),
+            'user': postgres_config.get('db_user'), 
+            'password': postgres_config.get('db_password'),
+            'host': postgres_config.get('db_host'),
+            'port': postgres_config.get('db_port')
+        }
     def get_kafka_config(self) -> Dict[str, Any]:
         """Kafka 설정 반환"""
         return self.get("kafka", {})
