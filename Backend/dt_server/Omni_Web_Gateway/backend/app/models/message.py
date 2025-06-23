@@ -1,5 +1,6 @@
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, Literal
 from pydantic import BaseModel, Field
+from .client import ClientType
 
 
 class BaseMessage(BaseModel):
@@ -8,12 +9,12 @@ class BaseMessage(BaseModel):
 
 
 class ClientRegisterMessage(BaseMessage):
-    type: str = Field(default="client_register", const=True)
+    type: Literal["client_register"] = "client_register"
     client_type: ClientType
 
 
 class CoordinateUpdateMessage(BaseMessage):
-    type: str = Field(default="coordinate_update", const=True)  
+    type: Literal["coordinate_update"] = "coordinate_update"
     prim_path: str
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180) 
@@ -22,17 +23,17 @@ class CoordinateUpdateMessage(BaseMessage):
 
 
 class SelectObjectMessage(BaseMessage):
-    type: str = Field(default="select_object", const=True)
+    type: Literal["select_object"] = "select_object"
     prim_path: str
 
 
 class ErrorMessage(BaseMessage):
-    type: str = Field(default="error", const=True)
+    type: Literal["error"] = "error"
     error_code: str
     error_message: str
 
 
 class AckMessage(BaseMessage):
-    type: str = Field(default="ack", const=True)
+    type: Literal["ack"] = "ack"
     original_type: str
     status: str = "success"
