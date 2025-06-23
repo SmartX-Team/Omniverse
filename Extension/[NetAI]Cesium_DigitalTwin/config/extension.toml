@@ -1,0 +1,138 @@
+[package]
+# Semantic Versioning is used: https://semver.org/
+version = "1.0.0"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["NetAI", "CosmoAdAstra"]
+
+# The title and description fields are primarily for displaying extension info in UI
+title = "NetAI Cesium Digital Twin"
+description = "Real-time digital twin system that synchronizes Omniverse Cesium objects with web-based 2D maps via WebSocket communication. Tracks UGV positions and enables bidirectional control between 3D simulation and web interface."
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme = "docs/README.md"
+
+# URL of the extension source repository.
+repository = "https://github.com/NetAI/Omniverse-Cesium-DigitalTwin"
+
+# One of categories for UI.
+category = "Simulation"
+
+# Keywords for the extension
+keywords = ["cesium", "digital-twin", "websocket", "real-time", "mapping", "ugv", "tracking", "web-interface", "coordinates", "gis"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog = "docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/icon.png"
+
+# Use omni.ui to build simple UI
+[dependencies]
+# Core Omniverse dependencies
+"omni.kit.uiapp" = {}
+"omni.ui" = {}
+
+# USD and scene graph dependencies
+"omni.usd" = {}
+"omni.kit.stage" = {}
+"omni.kit.selection" = {}
+
+# Cesium for Omniverse dependencies
+"cesium.omniverse" = {}
+
+# Async and networking capabilities
+"omni.kit.async_engine" = {}
+
+# UI and app framework
+"omni.kit.app" = {}
+"omni.kit.window.extensions" = {}
+
+# Utilities
+"omni.kit.commands" = {}
+"omni.kit.notification_manager" = {}
+
+# Optional: Isaac Sim dependencies (if working with Isaac Sim robots)
+# "omni.isaac.core" = {}
+# "omni.isaac.core_nodes" = {}
+
+# Graph and node system (if needed)
+# "omni.graph.core" = {}
+# "omni.graph.nodes" = {}
+
+# Main python module this extension provides
+[[python.module]]
+name = "netai.cesium.digitaltwin"
+
+# Extension configuration
+[extension]
+# Enable extension by default when Omniverse starts
+enabled = false
+
+# Extension startup order (higher numbers start later)
+order = 100
+
+# Extension category in the Extensions window
+category = "Digital Twin"
+
+# Extension subcategory
+subcategory = "Real-time Tracking"
+
+[python.pipapi]
+# Python pip packages used by the extension
+requirements = [
+    "websockets>=11.0.3",
+    "asyncio-mqtt>=0.13.0",
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.5.0"
+]
+
+# Exclude these packages from being installed
+exclude = []
+
+# Use these specific package versions
+use_online_index = true
+
+[[test]]
+# Extra dependencies only to be used during test run
+dependencies = [
+    "omni.kit.ui_test",      # UI testing extension
+    "omni.kit.test",         # General testing framework
+    "omni.kit.async_engine"  # For async testing
+]
+
+# Test configuration
+timeout = 300  # Test timeout in seconds
+
+[settings]
+# Extension settings that can be configured by users
+exts."netai.cesium.digitaltwin".websocket_url = "ws://localhost:8000/ws"
+exts."netai.cesium.digitaltwin".update_interval = 1.0
+exts."netai.cesium.digitaltwin".auto_connect = true
+exts."netai.cesium.digitaltwin".debug_mode = false
+exts."netai.cesium.digitaltwin".tracked_objects = ["/World/Husky_01", "/World/Husky_02"]
+
+# UI settings
+exts."netai.cesium.digitaltwin".show_window_on_startup = true
+exts."netai.cesium.digitaltwin".window_width = 400
+exts."netai.cesium.digitaltwin".window_height = 600
+
+# Logging settings
+exts."netai.cesium.digitaltwin".log_level = "INFO"
+exts."netai.cesium.digitaltwin".log_websocket_messages = false
+
+
+[documentation]
+# Documentation configuration
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+api_docs = "docs/API.md"
+
+# External documentation links
+user_manual = "https://github.com/NetAI/Omniverse-Cesium-DigitalTwin/wiki"
+support = "https://github.com/NetAI/Omniverse-Cesium-DigitalTwin/issues"
