@@ -1,0 +1,121 @@
+# =============================================================================
+# Omniverse Extension .gitignore
+# =============================================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Omniverse specific
+*.usd~
+*.usda~
+*.usdc~
+*.usdz~
+
+# Omniverse Cache
+.omnicache/
+omni.log*
+*.log
+
+# Extension build artifacts
+*.extension
+_build/
+.build/
+
+# Extension data (if containing sensitive info)
+# data/
+# Uncomment above if data folder contains sensitive information
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Documentation builds
+docs/_build/
+site/
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.exe
+*.msi
+*.msm
+*.msp
+
+# Linux
+*~
+
+# Temporary files
+temp/
+tmp/
+*.temp
+
+# Local configuration files (if any)
+local_config.json
+local_settings.json
+.env.local
+
+# WebSocket test files
+test_websocket.py
+debug_*.py
+
+# Performance logs
+perf_*.log
