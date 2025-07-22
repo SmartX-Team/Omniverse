@@ -96,7 +96,12 @@ docker run -it --rm \
     --network host \
     --ipc=host \
     --privileged \
-ttyy441/ros2-container:0.4.4 \
+    -e QT_X11_NO_MITSHM=1 \
+    -e DISPLAY=$DISPLAY \
+    -e SDL_VIDEODRIVER=x11 \
+    -e "ROS_DOMAIN_ID=0" \
+    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+ttyy441/ros2-container:0.5.0 \
 isaac_sim
 
 # Launch robot bringup directly
@@ -108,7 +113,7 @@ docker run -it --rm \
     -e ROS_DOMAIN_ID=20 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device=/dev:/dev \
-    ttyy441/ros2-container:0.4.4 \
+    ttyy441/ros2-container:0.5.0 \
     real_robot ros2 launch /root/robot_bringup.launch.py
 
 
@@ -121,7 +126,7 @@ docker run -it --rm \
     -e ROS_DOMAIN_ID=20 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device=/dev:/dev \
-    ttyy441/ros2-container:0.4.4 \
+    ttyy441/ros2-container:0.5.0 \
     real_robot <here>
 ```
 

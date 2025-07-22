@@ -1,5 +1,6 @@
-# 베이스 이미지: ROS 2 Humble (Ubuntu Jammy) # 빌더 스테이지
-FROM ros:humble-ros-base-jammy AS builder
+# 베이스 이미지: ROS 2 Humble (Ubuntu Jammy)
+# 빌더 스테이지 - 시스템 기본 설정
+FROM ros:humble-ros-base-jammy AS base-builder
 
 # APT 패키지 설치 시 상호작용 프롬프트 비활성화
 ARG DEBIAN_FRONTEND=noninteractive
@@ -7,109 +8,178 @@ ARG DEBIAN_FRONTEND=noninteractive
 # RUN 명령어에 사용할 기본 쉘을 bash로 설정
 SHELL ["/bin/bash", "-c"]
 
-# 시스템 업데이트 및 필수 도구 설치
-RUN apt-get update && \
-    apt-get install -y \
+# 시스템 업데이트 (별도 레이어)
+RUN apt-get update
+
+# 기본 개발 도구 설치 (별도 레이어)
+RUN apt-get install -y --no-install-recommends \
         git \
         python3-pip \
         python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# ROS 2 개발 도구 설치 (별도 레이어)
+FROM base-builder AS ros2-builder
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
         python3-colcon-common-extensions \
         ros-humble-rmw-fastrtps-cpp \
     && rm -rf /var/lib/apt/lists/*
 
-# --- IsaacSim-ros_workspaces 관련 부분 (새로 빌드한다면 경로 수정 잘할것  Dockerfile 기준 유지) ---
+# IsaacSim 워크스페이스 준비 단계
+FROM ros2-builder AS isaac-workspace
+
 ENV HOST_LIKE_WORKSPACE_ROOT=/root/isaac_sim_ros_ws
 ENV ROS2_WS_SRC=${HOST_LIKE_WORKSPACE_ROOT}/src
+
+# 워크스페이스 디렉토리 생성 및 소스 클론
 RUN mkdir -p ${ROS2_WS_SRC}
 WORKDIR ${ROS2_WS_SRC}
 RUN git clone https://github.com/NVIDIA-Omniverse/IsaacSim-ros_workspaces.git
+
+# IsaacSim 의존성 설치 단계
+FROM isaac-workspace AS isaac-deps
+
 WORKDIR ${ROS2_WS_SRC}/IsaacSim-ros_workspaces/humble_ws
+
+# rosdep 초기화 및 의존성 설치 (별도 레이어)
 RUN . /opt/ros/humble/setup.bash && \
     apt-get update && \
     rosdep init || true && \
     rosdep update && \
-    rosdep install -i --from-paths src --rosdistro humble -y --skip-keys "isaac_sim_μέρος_python_venv rviz_ogre_vendor"
+    rm -rf /var/lib/apt/lists/*
+
+RUN . /opt/ros/humble/setup.bash && \
+    apt-get update && \
+    rosdep install -i --from-paths src --rosdistro humble -y --skip-keys "isaac_sim_μέρος_python_venv rviz_ogre_vendor" && \
+    rm -rf /var/lib/apt/lists/*
+
+# IsaacSim 빌드 단계
+FROM isaac-deps AS isaac-built
+
 RUN . /opt/ros/humble/setup.bash && \
     colcon build --symlink-install
-# --- 여기까지 IsaacSim-ros_workspaces 관련 부분 ---
 
-# --- Ouster LiDAR Driver Workspace (ouster_ws) 빌드 ---
+# Ouster 워크스페이스 준비 단계
+FROM isaac-built AS ouster-workspace
+
 ENV OUSTER_WS_ROOT=/root/ouster_ws
 ENV OUSTER_WS_SRC=${OUSTER_WS_ROOT}/src
+
+# Ouster 소스 클론
 RUN mkdir -p ${OUSTER_WS_SRC}
 WORKDIR ${OUSTER_WS_SRC}
 RUN git clone --branch ros2 --recurse-submodules https://github.com/ouster-lidar/ouster-ros.git
+
+# Ouster 의존성 설치 및 빌드 단계
+FROM ouster-workspace AS ouster-built
+
 WORKDIR ${OUSTER_WS_ROOT}
+
+# Ouster 의존성 설치
 RUN . /opt/ros/humble/setup.bash && \
-    rosdep install --from-paths src --ignore-src -r -y --rosdistro humble
+    apt-get update && \
+    rosdep install --from-paths src --ignore-src -r -y --rosdistro humble && \
+    rm -rf /var/lib/apt/lists/*
+
+# Ouster 빌드
 RUN . /opt/ros/humble/setup.bash && \
     colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release
-# --- 여기까지 Ouster LiDAR Driver Workspace (ouster_ws) 빌드 ---
 
-
-# --- Runtime Stage ---
-FROM ros:humble-ros-base-jammy
+# ============================================================================
+# Runtime Stage - 기본 설정
+# ============================================================================
+FROM ros:humble-ros-base-jammy AS runtime-base
 
 ARG DEBIAN_FRONTEND=noninteractive
 SHELL ["/bin/bash", "-c"]
-# RMW 구현을 FastDDS로 명시적으로 설정(Omniverse Isaac Sim 공식 권장 사항)
+
+# 환경 변수 설정
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+ENV SDL_VIDEODRIVER=x11
 
-# --- 여기부터 설정 파일 복사 ---
+# 시스템 업데이트
+RUN apt-get update
 
-# robot.yaml 파일 복사
-RUN mkdir -p /configs /etc/clearpath
+# 기본 도구 설치 (별도 레이어)
+FROM runtime-base AS runtime-tools
 
-COPY robot.yaml /etc/clearpath/robot.yaml
-
-# Ouster LiDAR용 driver_params.yaml 파일 복사
-COPY driver_params.yaml /configs/ouster_driver_params.yaml
-
-# Test 용 driver_params.yaml
-COPY ouster_param.yaml /configs/ouster_param.yaml
-# --- 여기까지 설정 파일 복사 ---
-
-# 런타임에 필요한 패키지 설치 및 Clearpath 저장소 설정
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        # Clearpath 저장소 설정에 필요한 도구
+RUN apt-get install -y --no-install-recommends \
         curl \
         gnupg \
         lsb-release \
         apt-transport-https \
-        software-properties-common \        
-        # 기존 의존성
+        software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# 파이썬 및 기본 라이브러리 설치 (별도 레이어)
+FROM runtime-tools AS runtime-python
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
         python3-pip \
         python3-venv \
         python3-yaml \
-        libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0 libsdl2-ttf-2.0-0 \
+        python3-opencv \
+        python3-pygame \
+    && rm -rf /var/lib/apt/lists/*
+
+# SDL 및 그래픽 라이브러리 설치 (별도 레이어)
+FROM runtime-python AS runtime-graphics
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libsdl2-2.0-0 \
+        libsdl2-image-2.0-0 \
+        libsdl2-mixer-2.0-0 \
+        libsdl2-ttf-2.0-0 \
+        libgl1-mesa-glx \
+        libx11-6 \
+        libxext6 \
+        libxrandr2 \
+        libxcursor1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ROS 패키지 설치 (별도 레이어)
+FROM runtime-graphics AS runtime-ros
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
         ros-humble-rviz2 \
         ros-humble-rmw-fastrtps-cpp \
-        libpcap-dev \
         ros-humble-cv-bridge \
-        python3-opencv \
-    && \
-    # --- Intel RealSense 저장소 추가 및 SDK 설치 ---
-        echo "Setting up Intel RealSense APT repository..." && \
-        mkdir -p /etc/apt/keyrings && \
-        curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | tee /etc/apt/keyrings/librealsense.pgp > /dev/null && \
-        echo "deb [signed-by=/etc/apt/keyrings/librealsense.pgp] https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/librealsense.list && \
-        apt-get update && \
-        echo "Installing Intel RealSense SDK packages..." && \
-        apt-get install -y --no-install-recommends \
-            librealsense2-utils \
-            librealsense2-dev \
-            librealsense2-gl-dev \
-        && \
-    # Clearpath Robotics APT 저장소 설정 시작
-    echo "Setting up Clearpath Robotics APT repository..." && \
+        libpcap-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Intel RealSense 설정 및 설치
+FROM runtime-ros AS runtime-realsense
+
+RUN echo "Setting up Intel RealSense APT repository..." && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -sSf https://librealsense.intel.com/Debian/librealsense.pgp | tee /etc/apt/keyrings/librealsense.pgp > /dev/null && \
+    echo "deb [signed-by=/etc/apt/keyrings/librealsense.pgp] https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/librealsense.list
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        librealsense2-utils \
+        librealsense2-dev \
+        librealsense2-gl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Clearpath 저장소 설정 (별도 레이어)
+FROM runtime-realsense AS runtime-clearpath-setup
+
+RUN echo "Setting up Clearpath Robotics APT repository..." && \
     mkdir -p /usr/share/keyrings && \
     curl -fsSL https://packages.clearpathrobotics.com/public.key | gpg --dearmor -o /usr/share/keyrings/clearpath-archive-keyring.gpg && \
     echo "deb [arch=amd64 signed-by=/usr/share/keyrings/clearpath-archive-keyring.gpg] \
-    https://packages.clearpathrobotics.com/stable/ubuntu jammy main" > /etc/apt/sources.list.d/clearpath-robotics.list && \
-    apt-get update && \
-    # --- Clearpath Husky A200 패키지 설치 ---    
-    echo "Installing Clearpath Husky A200 packages..." && \
+    https://packages.clearpathrobotics.com/stable/ubuntu jammy main" > /etc/apt/sources.list.d/clearpath-robotics.list
+
+# Clearpath 패키지 설치 (별도 레이어)
+FROM runtime-clearpath-setup AS runtime-clearpath
+
+RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         ros-humble-clearpath-robot \
         ros-humble-clearpath-simulator \
@@ -117,57 +187,70 @@ RUN apt-get update && \
         ros-humble-clearpath-generator-common \
         ros-humble-robot-upstart \
         ros-humble-xacro \
+    && rm -rf /var/lib/apt/lists/*
+
+# RealSense ROS 패키지 설치 (별도 레이어)
+FROM runtime-clearpath AS runtime-realsense-ros
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
         ros-humble-realsense2-camera \
-        ros-humble-realsense2-description \        
-    && \
-    echo "Attempting to generate Clearpath platform scripts and configurations using ros2 run..." && \
+        ros-humble-realsense2-description \
+    && rm -rf /var/lib/apt/lists/*
+
+# 설정 파일 복사 단계
+FROM runtime-realsense-ros AS runtime-configs
+
+# 디렉토리 생성 및 설정 파일 복사
+RUN mkdir -p /configs /etc/clearpath
+
+COPY robot.yaml /etc/clearpath/robot.yaml
+COPY driver_params.yaml /configs/ouster_driver_params.yaml
+COPY ouster_param.yaml /configs/ouster_param.yaml
+
+# Clearpath 설정 생성 단계
+FROM runtime-configs AS runtime-clearpath-gen
+
+RUN echo "Generating Clearpath platform scripts and configurations..." && \
     . /opt/ros/humble/setup.bash && \
-    # generate_bash: /etc/clearpath/setup.bash 생성
-    echo "Executing ros2 run clearpath_generator_common generate_bash..." && \
+    echo "Executing generate_bash..." && \
     ros2 run clearpath_generator_common generate_bash --setup_path /etc/clearpath && \
-    # generate_description: /etc/clearpath/robot.urdf.xacro 등 생성
-    echo "Executing ros2 run clearpath_generator_common generate_description..." && \
+    echo "Executing generate_description..." && \
     ros2 run clearpath_generator_common generate_description --setup_path /etc/clearpath && \
-    # generate_param: YAML 파라미터 파일들 생성 (예: /etc/clearpath/platform/config/control.yaml)
-    echo "Executing ros2 run clearpath_generator_robot generate_param --setup_path /etc/clearpath..." && \
+    echo "Executing generate_param..." && \
     ros2 run clearpath_generator_robot generate_param --setup_path /etc/clearpath && \
-    # generate_launch: /etc/clearpath/launch/ 디렉토리 및 launch 파일들 생성
-    echo "Executing ros2 run clearpath_generator_robot generate_launch --setup_path /etc/clearpath..." && \
+    echo "Executing generate_launch..." && \
     ros2 run clearpath_generator_robot generate_launch --setup_path /etc/clearpath && \
-    echo "Clearpath generation scripts executed via ros2 run. Check /etc/clearpath/ for generated files." && \
-    # APT 캐시 정리
-    rm -rf /var/lib/apt/lists/*
+    echo "Clearpath generation completed."
 
+# Python 라이브러리 설치 (별도 레이어)
+FROM runtime-clearpath-gen AS runtime-python-libs
 
-# <<<--- 여기부터 kafka-python 등 필요한 라이브러리들 있으면 설치
-RUN pip3 install kafka-python requests
+RUN pip3 install --no-cache-dir kafka-python requests
 
-# --- IsaacSim-ros_workspaces 관련 부분 ---
+# 빌드된 워크스페이스 복사 단계
+FROM runtime-python-libs AS runtime-workspaces
+
+# IsaacSim 워크스페이스 복사
 ENV HOST_LIKE_WORKSPACE_ROOT=/root/isaac_sim_ros_ws
-COPY --from=builder ${HOST_LIKE_WORKSPACE_ROOT} ${HOST_LIKE_WORKSPACE_ROOT}
-# --- 여기까지 IsaacSim-ros_workspaces 관련 부분 ---
+COPY --from=isaac-built ${HOST_LIKE_WORKSPACE_ROOT} ${HOST_LIKE_WORKSPACE_ROOT}
 
-# --- Ouster LiDAR Driver Workspace (ouster_ws) 복사 ---
+# Ouster 워크스페이스 복사
 ENV OUSTER_WS_ROOT=/root/ouster_ws
-COPY --from=builder ${OUSTER_WS_ROOT} ${OUSTER_WS_ROOT}
+COPY --from=ouster-built ${OUSTER_WS_ROOT} ${OUSTER_WS_ROOT}
 
-# --- 그 외 필요한 테스트나 ROS2 용 코드들 있으면 여기서 복사사 키보드 왜 이래ㅔㅅ .ㅇ ---
+# 최종 단계 - 애플리케이션 파일 복사
+FROM runtime-workspaces AS final
+
+# 애플리케이션 파일들 복사
 COPY simple_subscriber.py /root/simple_subscriber.py
 COPY fastdds_force_udp.xml /etc/fastdds/fastdds_force_udp.xml
 COPY robot_bringup.launch.py /root/robot_bringup.launch.py
+COPY scripts/ /root/scripts/
 
-# --- data 수집 및 전송 관련 스크립트들 ---
-COPY scripts/data/pointcloud_to_kafka.py /root/pointcloud_to_kafka.py
-COPY scripts/data/ros2_camera_to_kafka_agent.py /root/ros2_camera_to_kafka_agent.py
-COPY scripts/data/bag_collector_to_kafka.py /root/bag_collector_to_kafka.py
-
-# --- Controller 관련 스크립트들 ---
-COPY scripts/controller/sync_mode_kafka.py /root/sync_mode_kafka.py
 WORKDIR /root
 
-# ============================================================================ #
-# =================== bash 접속 시 ROS Humble 환경 자동 source =================== #
-# ============================================================================ #
+# bash 접속 시 ROS Humble 환경 자동 source
 RUN echo 'source /opt/ros/humble/setup.bash' >> /root/.bashrc
 
 COPY entrypoint.sh /ros_entrypoint.sh
