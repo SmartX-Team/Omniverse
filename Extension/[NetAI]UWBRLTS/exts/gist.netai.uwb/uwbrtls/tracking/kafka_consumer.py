@@ -2,9 +2,9 @@ import asyncio
 import json
 from typing import Dict, Callable, Optional, Any
 from aiokafka import AIOKafkaConsumer
-from .config_manager import get_config_manager
-from .db_manager import get_db_manager
-from .coordinate_transformer import get_coordinate_transformer
+from ..core.config_manager import get_config_manager
+from ..core.db_manager import get_db_manager
+from ..core.coordinate_transformer import get_coordinate_transformer
 
 class KafkaMessageProcessor:
     """Kafka 메시지 처리 클래스 v2 - DB 쿼리 중앙화"""

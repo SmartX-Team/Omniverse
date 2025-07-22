@@ -5,138 +5,103 @@ from pxr import Usd, UsdGeom, Gf
 import asyncio
 from typing import Dict, Any
 
-from .config_manager import get_config_manager
-from .db_manager import get_db_manager
-from .coordinate_transformer import get_coordinate_transformer
-from .kafka_consumer import get_kafka_processor
+from .core.config_manager import get_config_manager
+from .core.db_manager import get_db_manager
+from .core.coordinate_transformer import get_coordinate_transformer
+from .tracking.kafka_consumer import get_kafka_processor
+from .ui.main_window import MainWindow
 
 class NetAIUWBTrackingExtension(omni.ext.IExt):
-    """NetAI UWB 추적 Extension 메인 클래스"""
+    """NetAI UWB Tracking Extension with tab-based UI"""
     
     def __init__(self):
         super().__init__()
         
-        # 모듈 인스턴스들
+        # Core modules
         self.config_manager = get_config_manager()
         self.db_manager = get_db_manager()
         self.coordinate_transformer = get_coordinate_transformer()
         self.kafka_processor = get_kafka_processor()
         
-        # UI 및 상태 관리
-        self._window = None
-        self._status_label = None
-        self._info_label = None
+        # UI components - only MainWindow needed
+        self._main_window = None
         
-        # Omniverse 관련
+        # Omniverse related
         self.prim_map = {}
         self._map_update_task = None
         
-        print("NetAI UWB Tracking Extension initialized")
+        # Publishing related (placeholder for future implementation)
+        self._publishing_manager = None
+        self._is_publishing = False
+        
+        print("NetAI UWB Tracking Extension initialized with tab-based UI")
     
     def on_startup(self, ext_id):
-        """Extension 시작 시 호출"""
+        """Extension startup with UI initialization"""
         print(f"[gist.netai.uwb] startup - Extension ID: {ext_id}")
         
-        # UI 생성
-        self._create_ui()
+        # Initialize UI components
+        self._initialize_ui()
         
-        # 초기화 태스크 시작
+        # Start initialization task
         asyncio.ensure_future(self._initialize_extension())
     
     def on_shutdown(self):
-        """Extension 종료 시 호출"""
+        """Extension shutdown with proper cleanup"""
         print("[gist.netai.uwb] Extension shutdown initiated")
         
-        # Kafka 소비 중지
+        # Stop Kafka consumption
         if self.kafka_processor:
             asyncio.ensure_future(self.kafka_processor.stop_consuming())
         
-        # 주기적 업데이트 태스크 취소
+        # Cancel periodic tasks
         if self._map_update_task:
             self._map_update_task.cancel()
         
-        # DB 연결 종료
+        # Close database connections
         if self.db_manager:
             self.db_manager.close()
         
-        # UI 정리
-        if self._window:
-            self._window.destroy()
-            self._window = None
+        # Cleanup UI
+        self._cleanup_ui()
         
         print("NetAI UWB Tracking Extension shutdown completed")
     
-    def _create_ui(self):
-        """UI 생성"""
-        self._window = ui.Window("NetAI UWB Tracking", width=600, height=400)
-        
-        with self._window.frame:
-            with ui.VStack(spacing=10):
-                # 제목
-                ui.Label("NetAI UWB Real-time Tracking System", 
-                        style={"font_size": 18, "color": 0xFF00AAFF})
-                
-                ui.Separator()
-                
-                # 상태 표시
-                with ui.HStack():
-                    ui.Label("Status: ", width=80)
-                    self._status_label = ui.Label("Initializing...", 
-                                                 style={"color": 0xFFFFAA00})
-                
-                # 정보 표시
-                with ui.VStack():
-                    ui.Label("System Information:", style={"font_size": 14})
-                    self._info_label = ui.Label("Loading...", 
-                                              style={"font_size": 12, "color": 0xFFAAAAAA})
-                
-                ui.Separator()
-                
-                # 제어 버튼들
-                with ui.HStack(spacing=10):
-                    ui.Button("Start Tracking", 
-                             clicked_fn=lambda: asyncio.ensure_future(self._start_tracking()),
-                             width=120, height=40)
-                    
-                    ui.Button("Stop Tracking", 
-                             clicked_fn=lambda: asyncio.ensure_future(self._stop_tracking()),
-                             width=120, height=40)
-                    
-                    ui.Button("Refresh Data", 
-                             clicked_fn=lambda: asyncio.ensure_future(self._refresh_data()),
-                             width=120, height=40)
-                
-                ui.Separator()
-                
-                # 좌표계 정보
-                with ui.VStack():
-                    ui.Label("Coordinate System Info:", style={"font_size": 14})
-                    with ui.HStack():
-                        ui.Button("Reload Mappings", 
-                                 clicked_fn=lambda: asyncio.ensure_future(self._reload_mappings()),
-                                 width=150)
-                        ui.Button("Show Transform Info", 
-                                 clicked_fn=self._show_transform_info,
-                                 width=150)
+    def _initialize_ui(self):
+        """Initialize UI components - only MainWindow with tabs"""
+        # Create main window with callbacks - it contains everything
+        self._main_window = MainWindow(
+            on_start_tracking=self._start_tracking,
+            on_stop_tracking=self._stop_tracking,
+            on_refresh_data=self._refresh_data,
+            on_reload_mappings=self._reload_mappings,
+            on_show_transform_info=self._show_transform_info
+        )
+    
+    def _cleanup_ui(self):
+        """Cleanup UI components"""
+        if self._main_window:
+            self._main_window.destroy()
+            self._main_window = None
     
     async def _initialize_extension(self):
-        """Extension 초기화"""
+        """Initialize extension core functionality"""
         try:
             self._update_status("Initializing system...")
             
-            # Stage 데이터 로딩
+            # Load stage data
             await self._load_stage_data()
             
-            # Kafka 프로세서 초기화
+            # Initialize Kafka processor
             await self.kafka_processor.initialize()
             
-            # 메시지 콜백 설정
+            # Set message callback
             self.kafka_processor.set_message_callback(self._on_position_update)
             
-            # 주기적 업데이트 시작
+            # Start periodic updates
             self._map_update_task = asyncio.create_task(self._periodic_updates())
             
-            # UI 정보 업데이트
+            # Update UI information
             await self._update_info_display()
             
             self._update_status("Ready")
@@ -147,17 +112,16 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             self._update_status(f"Error: {e}")
     
     async def _load_stage_data(self):
-        """Omniverse Stage 데이터 로드 - 기존 Stage 사용"""
+        """Load Omniverse Stage data"""
         print("Loading Omniverse stage data...")
         
-        # 기존 Stage 가져오기 (새로 생성하지 않음)
         stage = get_context().get_stage()
         
         if not stage:
             print("Warning: No stage found in context")
             return
         
-        # Prim 맵 구축 - 전체 경로를 키로 사용
+        # Build prim map
         self.prim_map = {}
         prim_count = 0
         
@@ -165,26 +129,16 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             prim_path = str(prim.GetPath())
             prim_name = prim.GetName()
             
-            # 경로와 이름 둘 다 매핑에 추가
             self.prim_map[prim_path] = prim
-            if prim_name:  # 빈 이름이 아닌 경우만
+            if prim_name:
                 self.prim_map[prim_name] = prim
             
             prim_count += 1
         
         print(f"Loaded {prim_count} prims from existing stage")
-        print(f"Stage root path: {stage.GetRootLayer().identifier if stage else 'None'}")
-        
-        # 주요 오브젝트들 확인
-        sample_objects = ['/World/NUC11_08', '/World/NUC11_07', 'NUC11_08', 'NUC11_07']
-        for obj_path in sample_objects:
-            if obj_path in self.prim_map:
-                print(f"Found object: {obj_path}")
-            else:
-                print(f"Object not found: {obj_path}")
     
     async def _periodic_updates(self):
-        """주기적 데이터 업데이트"""
+        """Periodic data updates"""
         update_interval = self.config_manager.get('uwb.update_interval', 300)
         
         while True:
@@ -192,10 +146,10 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
                 await asyncio.sleep(update_interval)
                 print("Performing periodic data update...")
                 
-                # 태그 매핑 업데이트
+                # Update tag mappings
                 await self.kafka_processor.update_tag_mappings()
                 
-                # UI 정보 업데이트
+                # Update UI
                 await self._update_info_display()
                 
             except asyncio.CancelledError:
@@ -203,43 +157,90 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             except Exception as e:
                 print(f"Error in periodic update: {e}")
     
+    # Tracking related methods
     async def _start_tracking(self):
-        """추적 시작"""
+        """Start UWB tracking"""
         try:
             self._update_status("Starting tracking...")
             await self.kafka_processor.start_consuming()
             self._update_status("Tracking active")
+            
+            # Update main window tracking status
+            if self._main_window:
+                self._main_window.update_tracking_status(True)
+            
             print("UWB tracking started")
         except Exception as e:
             print(f"Error starting tracking: {e}")
             self._update_status(f"Error: {e}")
     
     async def _stop_tracking(self):
-        """추적 중지"""
+        """Stop UWB tracking"""
         try:
             self._update_status("Stopping tracking...")
             await self.kafka_processor.stop_consuming()
             self._update_status("Tracking stopped")
+            
+            # Update main window tracking status
+            if self._main_window:
+                self._main_window.update_tracking_status(False)
+            
             print("UWB tracking stopped")
         except Exception as e:
             print(f"Error stopping tracking: {e}")
             self._update_status(f"Error: {e}")
     
+    async def _update_tracking_mappings(self):
+        """Update tracking mappings"""
+        try:
+            await self.kafka_processor.update_tag_mappings()
+            print("Tracking mappings updated")
+        except Exception as e:
+            print(f"Error updating tracking mappings: {e}")
+    
+    # Publishing related methods (placeholders for future implementation)
+    async def _start_publishing(self):
+        """Start position publishing - placeholder"""
+        print("Start publishing - not implemented yet")
+        
+        if self._main_window:
+            self._main_window.update_publishing_status(False)
+    
+    async def _stop_publishing(self):
+        """Stop position publishing - placeholder"""
+        print("Stop publishing - not implemented yet")
+        
+        if self._main_window:
+            self._main_window.update_publishing_status(False)
+        
+    async def _add_object_to_publish(self):
+        """Add object to publishing list - placeholder"""
+        print("Add object to publish - not implemented yet")
+        
+    async def _remove_object_from_publish(self):
+        """Remove object from publishing list - placeholder"""
+        print("Remove object from publish - not implemented yet")
+        
+    async def _configure_publishing(self, publish_rate: float):
+        """Configure publishing settings - placeholder"""
+        print(f"Configure publishing rate: {publish_rate} Hz - not implemented yet")
+    
+    # General methods
     async def _refresh_data(self):
-        """데이터 새로고침"""
+        """Refresh all data"""
         try:
             self._update_status("Refreshing data...")
             
-            # Stage 데이터 다시 로드
+            # Reload stage data
             await self._load_stage_data()
             
-            # 태그 매핑 업데이트
+            # Update tag mappings
             await self.kafka_processor.update_tag_mappings()
             
-            # 좌표 매핑 다시 로드
+            # Reload coordinate mapping
             await self.kafka_processor.reload_coordinate_mapping()
             
-            # UI 정보 업데이트
+            # Update UI
             await self._update_info_display()
             
             self._update_status("Data refreshed")
@@ -250,7 +251,7 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             self._update_status(f"Error: {e}")
     
     async def _reload_mappings(self):
-        """매핑 정보 다시 로드"""
+        """Reload coordinate mappings"""
         try:
             await self.kafka_processor.reload_coordinate_mapping()
             await self._update_info_display()
@@ -259,7 +260,7 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             print(f"Error reloading mappings: {e}")
     
     def _show_transform_info(self):
-        """좌표 변환 정보 표시"""
+        """Show coordinate transform information"""
         transform_info = self.coordinate_transformer.get_transform_info()
         
         info_text = "Coordinate Transform Information:\n"
@@ -280,7 +281,7 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
         print(info_text)
     
     async def _update_info_display(self):
-        """정보 표시 업데이트"""
+        """Update information display in UI"""
         try:
             status = self.kafka_processor.get_status()
             tag_mappings = self.kafka_processor.get_tag_mappings()
@@ -293,23 +294,42 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             transform_info = status.get('coordinate_transform_info', {})
             info_text += f"Coordinate mapping: {transform_info.get('mapping_name', 'None')}"
             
-            if self._info_label:
-                self._info_label.text = info_text
+            # Update main window info
+            if self._main_window:
+                self._main_window.update_info(info_text)
+            
+            # Update main window tracking statistics
+            if self._main_window:
+                tracking_stats = {
+                    "tag_count": len(tag_mappings),
+                    "message_count": status.get('message_count', 0),
+                    "last_update": status.get('last_update', 'Never')
+                }
+                self._main_window.update_tracking_statistics(tracking_stats)
+            
+            # Update main window publishing statistics
+            if self._main_window:
+                publishing_stats = {
+                    "actual_rate": 0.0,
+                    "object_count": 0,
+                    "messages_sent": 0
+                }
+                self._main_window.update_publishing_statistics(publishing_stats)
                 
         except Exception as e:
             print(f"Error updating info display: {e}")
     
     def _update_status(self, status: str):
-        """상태 레이블 업데이트"""
-        if self._status_label:
-            self._status_label.text = status
+        """Update status in UI"""
+        if self._main_window:
+            self._main_window.update_status(status)
         print(f"Status: {status}")
     
     async def _on_position_update(self, object_name: str, tag_id: str, position: tuple, 
                                  uwb_coords: tuple, raw_timestamp: str):
-        """위치 업데이트 콜백 - Omniverse 오브젝트 이동"""
+        """Position update callback for object movement"""
         try:
-            # 오브젝트 찾기
+            # Find target prim
             target_prim = None
             
             if object_name in self.prim_map:
@@ -322,12 +342,21 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
                 print(f"Warning: Object '{object_name}' not found in stage")
                 return
             
-            # XformCommonAPI로 위치 설정
+            # Set position using XformCommonAPI
             xformAPI = UsdGeom.XformCommonAPI(target_prim)
             omni_x, omni_y, omni_z = position
             xformAPI.SetTranslate(Gf.Vec3d(omni_x, omni_y, omni_z))
             
             print(f"Moved {object_name} (tag {tag_id}) to ({omni_x:.2f}, {omni_y:.2f}, {omni_z:.2f})")
+            
+            # Update main window with latest activity
+            if self._main_window:
+                import datetime
+                current_time = datetime.datetime.now().strftime("%H:%M:%S")
+                tracking_stats = {
+                    "last_update": current_time
+                }
+                self._main_window.update_tracking_statistics(tracking_stats)
             
         except Exception as e:
             print(f"Error moving object {object_name}: {e}")

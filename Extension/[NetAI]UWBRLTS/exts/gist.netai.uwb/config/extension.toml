@@ -13,13 +13,10 @@ icon = "data/icon.png"
 
 [dependencies]
 "omni.kit.uiapp" = {}
-"omni.isaac.core_nodes" = "*"
-"omni.isaac.ros2_bridge" = "*"
 "omni.graph.core" = {}        
 "omni.graph.nodes" = {}       
 "omni.graph.scriptnode" = {}
-"isaacsim.sensors.physics" = {}
-"isaacsim.sensors.rtx" = {}
+
 
 # 모듈 이름을 일관되게 수정
 [[python.module]]
