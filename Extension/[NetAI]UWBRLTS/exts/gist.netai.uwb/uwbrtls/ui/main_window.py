@@ -10,7 +10,13 @@ class MainWindow:
                  on_stop_tracking: Optional[Callable] = None,
                  on_refresh_data: Optional[Callable] = None,
                  on_reload_mappings: Optional[Callable] = None,
-                 on_show_transform_info: Optional[Callable] = None):
+                 on_show_transform_info: Optional[Callable] = None,
+                 # Publishing callbacks 추가
+                 on_start_publishing: Optional[Callable] = None,
+                 on_stop_publishing: Optional[Callable] = None,
+                 on_add_object: Optional[Callable] = None,
+                 on_remove_object: Optional[Callable] = None,
+                 on_configure_publishing: Optional[Callable] = None):
         
         self._window = None
         self._status_label = None
@@ -25,6 +31,13 @@ class MainWindow:
         self._on_reload_mappings = on_reload_mappings
         self._on_show_transform_info = on_show_transform_info
         
+        # Publishing callbacks
+        self._on_start_publishing = on_start_publishing
+        self._on_stop_publishing = on_stop_publishing
+        self._on_add_object = on_add_object
+        self._on_remove_object = on_remove_object
+        self._on_configure_publishing = on_configure_publishing
+        
         # Tab management
         self._tracking_panel = None
         self._publishing_panel = None
@@ -34,10 +47,10 @@ class MainWindow:
     
     def _create_window(self):
         """Create main window with tab layout"""
-        self._window = ui.Window("NetAI UWB Tracking", width=650, height=500)
+        self._window = ui.Window("NetAI UWB Tracking", width=500, height=800)
         
         with self._window.frame:
-            with ui.VStack(spacing=5):
+            with ui.VStack(spacing=2):
                 self._create_header()
                 ui.Separator()
                 self._create_global_status_section()
@@ -48,12 +61,13 @@ class MainWindow:
     
     def _create_header(self):
         """Create header with title"""
-        ui.Label("NetAI UWB Real-time Tracking System", 
-                style={"font_size": 18, "color": 0xFF00AAFF})
+        with ui.HStack(height=12):
+            ui.Label("NetAI UWB Real-time Tracking System", 
+                    style={"font_size": 18, "color": 0xFF00AAFF})
     
     def _create_global_status_section(self):
         """Create global status display section"""
-        with ui.HStack():
+        with ui.HStack(height=16):
             ui.Label("System Status: ", width=100)
             self._status_label = ui.Label("Initializing...", 
                                          style={"color": 0xFFFFAA00})
@@ -85,9 +99,9 @@ class MainWindow:
     
     def _create_tracking_tab(self):
         """Create tracking tab content"""
-        with ui.VStack(spacing=8):
+        with ui.VStack(spacing=4, style={"margin_height": 0}):
             # Tracking Status
-            with ui.VStack(spacing=4):
+            with ui.VStack(spacing=2):
                 ui.Label("Tracking Status:", style={"font_weight": "bold"})
                 with ui.HStack():
                     ui.Label("Current Status: ", width=100)
@@ -150,6 +164,10 @@ class MainWindow:
                 with ui.HStack():
                     ui.Label("Objects: ", width=100)
                     self._object_count_label = ui.Label("0")
+                
+                with ui.HStack():
+                    ui.Label("Messages Sent: ", width=100)
+                    self._messages_sent_label = ui.Label("0")
             
             ui.Separator()
             
@@ -174,8 +192,9 @@ class MainWindow:
                 
                 with ui.HStack():
                     with ui.VStack():
-                        self._object_list_label = ui.Label("No objects selected", 
-                                                          style={"color": 0xFFAAAAAA})
+                        with ui.ScrollingFrame(height=100):
+                            self._object_list_label = ui.Label("No objects selected", 
+                                                              style={"color": 0xFFAAAAAA, "font_size": 12})
                     
                     with ui.VStack(width=80, spacing=4):
                         ui.Button("Add Object", 
@@ -192,13 +211,14 @@ class MainWindow:
                 ui.Label("Controls:", style={"font_weight": "bold"})
                 
                 with ui.HStack(spacing=10):
-                    ui.Button("Start Publishing", 
-                             clicked_fn=self._handle_start_publishing,
-                             width=120, height=30)
+                    self._start_publishing_button = ui.Button("Start Publishing", 
+                                                            clicked_fn=self._handle_start_publishing,
+                                                            width=120, height=30)
                     
-                    ui.Button("Stop Publishing", 
-                             clicked_fn=self._handle_stop_publishing,
-                             width=120, height=30)
+                    self._stop_publishing_button = ui.Button("Stop Publishing", 
+                                                           clicked_fn=self._handle_stop_publishing,
+                                                           width=120, height=30,
+                                                           enabled=False)
     
     def _create_global_controls(self):
         """Create global control buttons"""
@@ -254,10 +274,16 @@ class MainWindow:
             self._publish_rate_label = None
         if hasattr(self, '_object_count_label'):
             self._object_count_label = None
+        if hasattr(self, '_messages_sent_label'):
+            self._messages_sent_label = None
         if hasattr(self, '_publish_rate_field'):
             self._publish_rate_field = None
         if hasattr(self, '_object_list_label'):
             self._object_list_label = None
+        if hasattr(self, '_start_publishing_button'):
+            self._start_publishing_button = None
+        if hasattr(self, '_stop_publishing_button'):
+            self._stop_publishing_button = None
     
     # Tab-specific handlers for tracking
     def _handle_start_tracking(self):
@@ -275,28 +301,42 @@ class MainWindow:
         if self._on_reload_mappings:
             asyncio.ensure_future(self._on_reload_mappings())
     
-    # Tab-specific handlers for publishing
+    # Tab-specific handlers for publishing (실제 콜백 연결)
     def _handle_start_publishing(self):
-        """Handle start publishing button click - placeholder"""
-        print("Start publishing - not implemented yet")
+        """Handle start publishing button click"""
+        if self._on_start_publishing:
+            asyncio.ensure_future(self._on_start_publishing())
+        else:
+            print("Start publishing callback not set")
     
     def _handle_stop_publishing(self):
-        """Handle stop publishing button click - placeholder"""
-        print("Stop publishing - not implemented yet")
+        """Handle stop publishing button click"""
+        if self._on_stop_publishing:
+            asyncio.ensure_future(self._on_stop_publishing())
+        else:
+            print("Stop publishing callback not set")
     
     def _handle_add_object(self):
-        """Handle add object button click - placeholder"""
-        print("Add object - not implemented yet")
+        """Handle add object button click"""
+        if self._on_add_object:
+            asyncio.ensure_future(self._on_add_object())
+        else:
+            print("Add object callback not set")
     
     def _handle_remove_object(self):
-        """Handle remove object button click - placeholder"""
-        print("Remove object - not implemented yet")
+        """Handle remove object button click"""
+        if self._on_remove_object:
+            asyncio.ensure_future(self._on_remove_object())
+        else:
+            print("Remove object callback not set")
     
     def _handle_configure_publishing(self):
-        """Handle configure publishing button click - placeholder"""
-        if hasattr(self, '_publish_rate_field'):
+        """Handle configure publishing button click"""
+        if self._on_configure_publishing and hasattr(self, '_publish_rate_field') and self._publish_rate_field:
             rate = self._publish_rate_field.model.get_value_as_float()
-            print(f"Configure publishing rate: {rate} Hz - not implemented yet")
+            asyncio.ensure_future(self._on_configure_publishing(rate))
+        else:
+            print("Configure publishing callback not set or field not available")
     
     # Global handlers
     def _handle_refresh_data(self):
@@ -327,7 +367,7 @@ class MainWindow:
     
     def update_tracking_status(self, is_tracking: bool):
         """Update tracking status in tracking tab"""
-        if hasattr(self, '_tracking_status_label'):
+        if hasattr(self, '_tracking_status_label') and self._tracking_status_label:
             if is_tracking:
                 self._tracking_status_label.text = "Active"
                 self._tracking_status_label.style = {"color": 0xFF66FF66}
@@ -337,32 +377,46 @@ class MainWindow:
     
     def update_tracking_statistics(self, stats: dict):
         """Update tracking statistics"""
-        if hasattr(self, '_tag_count_label') and "tag_count" in stats:
+        if hasattr(self, '_tag_count_label') and self._tag_count_label and "tag_count" in stats:
             self._tag_count_label.text = str(stats["tag_count"])
         
-        if hasattr(self, '_message_count_label') and "message_count" in stats:
+        if hasattr(self, '_message_count_label') and self._message_count_label and "message_count" in stats:
             self._message_count_label.text = str(stats["message_count"])
         
-        if hasattr(self, '_last_update_label') and "last_update" in stats:
+        if hasattr(self, '_last_update_label') and self._last_update_label and "last_update" in stats:
             self._last_update_label.text = str(stats["last_update"])
     
     def update_publishing_status(self, is_publishing: bool):
         """Update publishing status in publishing tab"""
-        if hasattr(self, '_publishing_status_label'):
+        if hasattr(self, '_publishing_status_label') and self._publishing_status_label:
             if is_publishing:
                 self._publishing_status_label.text = "Active"
                 self._publishing_status_label.style = {"color": 0xFF66FF66}
             else:
                 self._publishing_status_label.text = "Stopped"
                 self._publishing_status_label.style = {"color": 0xFFFF6666}
+        
+        # Update button states
+        if hasattr(self, '_start_publishing_button') and self._start_publishing_button:
+            self._start_publishing_button.enabled = not is_publishing
+        if hasattr(self, '_stop_publishing_button') and self._stop_publishing_button:
+            self._stop_publishing_button.enabled = is_publishing
     
     def update_publishing_statistics(self, stats: dict):
         """Update publishing statistics"""
-        if hasattr(self, '_publish_rate_label') and "actual_rate" in stats:
+        if hasattr(self, '_publish_rate_label') and self._publish_rate_label and "actual_rate" in stats:
             self._publish_rate_label.text = f"{stats['actual_rate']:.1f} Hz"
         
-        if hasattr(self, '_object_count_label') and "object_count" in stats:
+        if hasattr(self, '_object_count_label') and self._object_count_label and "object_count" in stats:
             self._object_count_label.text = str(stats["object_count"])
+        
+        if hasattr(self, '_messages_sent_label') and self._messages_sent_label and "messages_sent" in stats:
+            self._messages_sent_label.text = str(stats["messages_sent"])
+    
+    def update_object_list(self, object_text: str):
+        """Update monitored objects list display"""
+        if hasattr(self, '_object_list_label') and self._object_list_label:
+            self._object_list_label.text = object_text
     
     def destroy(self):
         """Destroy window and cleanup"""

@@ -40,19 +40,25 @@ class ConfigManager:
             return False
     
     def _create_default_config(self):
-        """기본 설정 파일 생성"""
+        """기본 설정 파일 생성 - Consumer/Producer 토픽 분리"""
         default_config = {
             "postgres": {
-                "db_name": "uwb_tracking",
-                "db_user": "postgres",
-                "db_password": "password",
-                "db_host": "localhost",
+                "db_name": "uwb",
+                "db_user": "myuser",
+                "db_password": "netAi007!",
+                "db_host": "10.79.1.13",
                 "db_port": 5432
             },
             "kafka": {
-                "bootstrap_servers": "210.125.85.62:9094",
-                "topic_name": "omniverse-uwb",
-                "group_id": "netai-uwb-group"
+                "bootstrap_servers": "10.79.1.1:9094",
+                "consumer": {
+                    "topic_name": "omniverse-uwb",
+                    "group_id": "netai-uwb-group"
+                },
+                "producer": {
+                    "topic_name": "uwb-omniverse",
+                    "client_id": "netai-omniverse-producer"
+                }
             },
             "uwb": {
                 "default_space_id": 1,
@@ -64,6 +70,13 @@ class ConfigManager:
                 "special_heights": {
                     "15": 105.0
                 }
+            },
+            "publishing": {
+                "default_publish_rate": 10.0,
+                "max_objects": 50,
+                "virtual_tag_prefix": "OMNI_",
+                "enable_position_smoothing": "false",
+                "position_change_threshold": 0.01
             }
         }
         
@@ -113,9 +126,42 @@ class ConfigManager:
             'host': postgres_config.get('db_host'),
             'port': postgres_config.get('db_port')
         }
+    
     def get_kafka_config(self) -> Dict[str, Any]:
-        """Kafka 설정 반환"""
-        return self.get("kafka", {})
+        """Kafka 설정 반환 - 하위 호환성 유지"""
+        kafka_base = self.get("kafka", {})
+        consumer_config = self.get("kafka.consumer", {})
+        
+        # 기존 코드 호환성을 위해 consumer 설정을 최상위로 올림
+        result = {
+            "bootstrap_servers": kafka_base.get("bootstrap_servers", "localhost:9092"),
+            "topic_name": consumer_config.get("topic_name", "omniverse-uwb"),
+            "group_id": consumer_config.get("group_id", "netai-uwb-group")
+        }
+        
+        return result
+    
+    def get_kafka_consumer_config(self) -> Dict[str, Any]:
+        """Kafka Consumer 전용 설정 반환"""
+        kafka_base = self.get("kafka", {})
+        consumer_config = self.get("kafka.consumer", {})
+        
+        return {
+            "bootstrap_servers": kafka_base.get("bootstrap_servers", "localhost:9092"),
+            "topic_name": consumer_config.get("topic_name", "omniverse-uwb"),
+            "group_id": consumer_config.get("group_id", "netai-uwb-group")
+        }
+    
+    def get_kafka_producer_config(self) -> Dict[str, Any]:
+        """Kafka Producer 전용 설정 반환"""
+        kafka_base = self.get("kafka", {})
+        producer_config = self.get("kafka.producer", {})
+        
+        return {
+            "bootstrap_servers": kafka_base.get("bootstrap_servers", "localhost:9092"),
+            "topic_name": producer_config.get("topic_name", "uwb-omniverse"),
+            "client_id": producer_config.get("client_id", "netai-omniverse-producer")
+        }
     
     def get_uwb_config(self) -> Dict[str, Any]:
         """UWB 관련 설정 반환"""
@@ -124,6 +170,31 @@ class ConfigManager:
     def get_omniverse_config(self) -> Dict[str, Any]:
         """Omniverse 관련 설정 반환"""
         return self.get("omniverse", {})
+    
+    def get_publishing_config(self) -> Dict[str, Any]:
+        """Publishing 관련 설정 반환"""
+        # 기본값: 주기적 발행
+        # 변화량 기반 발행용 임계값
+        # 기본 발행 주기 (Hz)
+        # 위치 스무딩 활성화
+        # 메시지에 precision 포함
+        # 메시지에 space_id 포함
+        # 가상 태그 ID 접두사
+        default_publishing_config = {
+            "always_publish": True,
+            "position_change_threshold": 0.01,
+            "default_publish_rate": 10.0,
+            "enable_position_smoothing": False,
+            "include_precision": True,
+            "include_space_id": True,
+            "virtual_tag_prefix": "OMNI_"
+        }
+        
+        # 설정 파일의 값과 기본값 병합
+        config_values = self.get("publishing", {})
+        default_publishing_config.update(config_values)
+        
+        return default_publishing_config
     
     def set(self, key_path: str, value: Any) -> bool:
         """

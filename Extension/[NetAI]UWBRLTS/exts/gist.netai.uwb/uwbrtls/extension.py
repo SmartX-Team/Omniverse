@@ -9,10 +9,11 @@ from .core.config_manager import get_config_manager
 from .core.db_manager import get_db_manager
 from .core.coordinate_transformer import get_coordinate_transformer
 from .tracking.kafka_consumer import get_kafka_processor
+from .publishing.publishing_manager import get_publishing_manager
 from .ui.main_window import MainWindow
 
 class NetAIUWBTrackingExtension(omni.ext.IExt):
-    """NetAI UWB Tracking Extension with tab-based UI"""
+    """NetAI UWB Tracking Extension with tab-based UI and Publishing functionality"""
     
     def __init__(self):
         super().__init__()
@@ -23,6 +24,9 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
         self.coordinate_transformer = get_coordinate_transformer()
         self.kafka_processor = get_kafka_processor()
         
+        # Publishing manager (new)
+        self.publishing_manager = get_publishing_manager()
+        
         # UI components - only MainWindow needed
         self._main_window = None
         
@@ -30,11 +34,7 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
         self.prim_map = {}
         self._map_update_task = None
         
-        # Publishing related (placeholder for future implementation)
-        self._publishing_manager = None
-        self._is_publishing = False
-        
-        print("NetAI UWB Tracking Extension initialized with tab-based UI")
+        print("NetAI UWB Tracking Extension initialized with Publishing functionality")
     
     def on_startup(self, ext_id):
         """Extension startup with UI initialization"""
@@ -49,6 +49,10 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
     def on_shutdown(self):
         """Extension shutdown with proper cleanup"""
         print("[gist.netai.uwb] Extension shutdown initiated")
+        
+        # Stop publishing
+        if self.publishing_manager:
+            asyncio.ensure_future(self.publishing_manager.stop_publishing())
         
         # Stop Kafka consumption
         if self.kafka_processor:
@@ -68,14 +72,20 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
         print("NetAI UWB Tracking Extension shutdown completed")
     
     def _initialize_ui(self):
-        """Initialize UI components - only MainWindow with tabs"""
-        # Create main window with callbacks - it contains everything
+        """Initialize UI components - MainWindow with all callbacks"""
+        # Create main window with all callbacks including publishing
         self._main_window = MainWindow(
             on_start_tracking=self._start_tracking,
             on_stop_tracking=self._stop_tracking,
             on_refresh_data=self._refresh_data,
             on_reload_mappings=self._reload_mappings,
-            on_show_transform_info=self._show_transform_info
+            on_show_transform_info=self._show_transform_info,
+            # Publishing callbacks (new)
+            on_start_publishing=self._start_publishing,
+            on_stop_publishing=self._stop_publishing,
+            on_add_object=self._add_object_to_publish,
+            on_remove_object=self._remove_object_from_publish,
+            on_configure_publishing=self._configure_publishing
         )
     
     def _cleanup_ui(self):
@@ -97,6 +107,9 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             
             # Set message callback
             self.kafka_processor.set_message_callback(self._on_position_update)
+            
+            # Initialize publishing manager
+            await self.publishing_manager.initialize()
             
             # Start periodic updates
             self._map_update_task = asyncio.create_task(self._periodic_updates())
@@ -190,40 +203,89 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             print(f"Error stopping tracking: {e}")
             self._update_status(f"Error: {e}")
     
-    async def _update_tracking_mappings(self):
-        """Update tracking mappings"""
-        try:
-            await self.kafka_processor.update_tag_mappings()
-            print("Tracking mappings updated")
-        except Exception as e:
-            print(f"Error updating tracking mappings: {e}")
-    
-    # Publishing related methods (placeholders for future implementation)
+    # Publishing related methods (실제 구현)
     async def _start_publishing(self):
-        """Start position publishing - placeholder"""
-        print("Start publishing - not implemented yet")
-        
-        if self._main_window:
-            self._main_window.update_publishing_status(False)
+        """Start position publishing"""
+        try:
+            self._update_status("Starting publishing...")
+            success = await self.publishing_manager.start_publishing()
+            
+            if success:
+                await self._update_publishing_display()
+                await self._update_info_display()
+
+                self._update_status("Publishing active")
+                if self._main_window:
+                    self._main_window.update_publishing_status(True)
+                print("Position publishing started")
+            else:
+                self._update_status("Failed to start publishing")
+                print("Failed to start publishing")
+                
+        except Exception as e:
+            print(f"Error starting publishing: {e}")
+            self._update_status(f"Publishing error: {e}")
     
     async def _stop_publishing(self):
-        """Stop position publishing - placeholder"""
-        print("Stop publishing - not implemented yet")
-        
-        if self._main_window:
-            self._main_window.update_publishing_status(False)
-        
+        """Stop position publishing"""
+        try:
+            self._update_status("Stopping publishing...")
+            await self.publishing_manager.stop_publishing()
+            self._update_status("Publishing stopped")
+            
+            if self._main_window:
+                self._main_window.update_publishing_status(False)
+                
+            print("Position publishing stopped")
+        except Exception as e:
+            print(f"Error stopping publishing: {e}")
+            self._update_status(f"Error: {e}")
     async def _add_object_to_publish(self):
-        """Add object to publishing list - placeholder"""
-        print("Add object to publish - not implemented yet")
-        
+        """Add object to publishing list - Manual only"""
+        print("Object addition disabled - please add objects manually via DB")
+        return False
+
     async def _remove_object_from_publish(self):
-        """Remove object from publishing list - placeholder"""
-        print("Remove object from publish - not implemented yet")
-        
+        """Remove object from publishing list"""
+        try:
+            # 현재 발행 중인 오브젝트 목록 가져오기
+            objects = self.publishing_manager.get_publishing_objects()
+            
+            if not objects:
+                print("No objects to remove")
+                return
+            
+            # 첫 번째 오브젝트 제거 (예시)
+            first_object = objects[0]
+            object_path = first_object['object_path']
+            
+            success = await self.publishing_manager.remove_object(object_path)
+            
+            if success:
+                print(f"Removed object from publishing: {object_path}")
+                await self._update_publishing_display()
+            else:
+                print(f"Failed to remove object: {object_path}")
+                
+        except Exception as e:
+            print(f"Error removing object from publish: {e}")
+    
     async def _configure_publishing(self, publish_rate: float):
-        """Configure publishing settings - placeholder"""
-        print(f"Configure publishing rate: {publish_rate} Hz - not implemented yet")
+        """Configure publishing settings"""
+        try:
+            # 모든 오브젝트의 발행 주기 업데이트
+            objects = self.publishing_manager.get_publishing_objects()
+            
+            for obj in objects:
+                object_path = obj['object_path']
+                success = await self.publishing_manager.update_object_rate(object_path, publish_rate)
+                if success:
+                    print(f"Updated publish rate for {object_path}: {publish_rate} Hz")
+            
+            await self._update_publishing_display()
+            
+        except Exception as e:
+            print(f"Error configuring publishing: {e}")
     
     # General methods
     async def _refresh_data(self):
@@ -240,8 +302,12 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
             # Reload coordinate mapping
             await self.kafka_processor.reload_coordinate_mapping()
             
+            # Reload publishing objects
+            await self.publishing_manager.reload_objects()
+            
             # Update UI
             await self._update_info_display()
+            await self._update_publishing_display()
             
             self._update_status("Data refreshed")
             print("Data refresh completed")
@@ -306,18 +372,56 @@ class NetAIUWBTrackingExtension(omni.ext.IExt):
                     "last_update": status.get('last_update', 'Never')
                 }
                 self._main_window.update_tracking_statistics(tracking_stats)
-            
-            # Update main window publishing statistics
-            if self._main_window:
-                publishing_stats = {
-                    "actual_rate": 0.0,
-                    "object_count": 0,
-                    "messages_sent": 0
-                }
-                self._main_window.update_publishing_statistics(publishing_stats)
                 
         except Exception as e:
             print(f"Error updating info display: {e}")
+    
+    async def _update_publishing_display(self):
+        """Update publishing display in UI - None 체크 강화"""
+        try:
+            if not self._main_window:
+                return
+            
+            # Publishing 통계 가져오기 - None 체크 추가
+            pub_stats = self.publishing_manager.get_statistics()
+            if not pub_stats:
+                print("Warning: Publishing stats is None")
+                pub_stats = {}
+            
+            # 발행 중인 오브젝트 목록 가져오기 - None 체크 추가
+            objects = self.publishing_manager.get_publishing_objects()
+            if not objects:
+                objects = []
+            
+            # 통계 업데이트 - 안전한 get() 사용
+            publishing_stats = {
+                "actual_rate": pub_stats.get('average_publish_rate', 0.0),
+                "object_count": len(objects),
+                "messages_sent": pub_stats.get('total_published', 0)
+            }
+            self._main_window.update_publishing_statistics(publishing_stats)
+            
+            # 오브젝트 목록 업데이트
+            if objects:
+                object_list = []
+                for obj in objects[:5]:  # 최대 5개만 표시
+                    object_path = obj.get('object_path', 'Unknown') if obj else 'Unknown'
+                    virtual_tag_id = obj.get('virtual_tag_id', 'Unknown') if obj else 'Unknown'
+                    object_list.append(f"{object_path} ({virtual_tag_id})")
+                object_text = "\n".join(object_list)
+                if len(objects) > 5:
+                    object_text += f"\n... and {len(objects) - 5} more"
+            else:
+                object_text = "No objects selected"
+            
+            self._main_window.update_object_list(object_text)
+            
+            print(f"UI Updated: {len(objects)} objects, {pub_stats.get('total_published', 0)} messages sent")
+            
+        except Exception as e:
+            print(f"Error updating publishing display: {e}")
+            import traceback
+            traceback.print_exc()
     
     def _update_status(self, status: str):
         """Update status in UI"""

@@ -5,7 +5,7 @@ from .db_manager import get_db_manager
 from .config_manager import get_config_manager
 
 class CoordinateTransformer:
-    """좌표 변환 처리 클래스 v2"""
+    """좌표 변환 처리 클래스 v3 - 역변환 메서드 추가"""
     
     def __init__(self):
         self.db_manager = get_db_manager()
@@ -54,6 +54,22 @@ class CoordinateTransformer:
         
         return min_x <= x <= max_x and min_y <= y <= max_y
     
+    def is_valid_omniverse_coordinate(self, omni_x: float, omni_y: float, omni_z: float) -> bool:
+        """Omniverse 좌표가 유효한 범위 내에 있는지 확인"""
+        # 기본적인 범위 체크 (설정 가능)
+        publishing_config = self.config_manager.get_publishing_config()
+        
+        # Omniverse 좌표 범위 설정 (config에서 가져오거나 기본값 사용)
+        min_x = publishing_config.get('omniverse_min_x', -10000.0)
+        max_x = publishing_config.get('omniverse_max_x', 10000.0)
+        min_z = publishing_config.get('omniverse_min_z', -10000.0)
+        max_z = publishing_config.get('omniverse_max_z', 10000.0)
+        min_y = publishing_config.get('omniverse_min_y', 0.0)
+        max_y = publishing_config.get('omniverse_max_y', 1000.0)
+        
+        return (min_x <= omni_x <= max_x and 
+                min_y <= omni_y <= max_y and 
+                min_z <= omni_z <= max_z)
 
     def transform_uwb_to_omniverse_simple(self, uwb_x: float, uwb_y: float, input_height: Optional[float] = None) -> Tuple[float, float, float]:
         """간단한 변환 - coordinate_mapping 파라미터 사용"""
@@ -155,6 +171,108 @@ class CoordinateTransformer:
             return self.transform_uwb_to_omniverse_advanced(uwb_x, uwb_y, tag_id, input_height)
         else:
             return self.transform_uwb_to_omniverse_simple(uwb_x, uwb_y, input_height)
+    
+    # === 새로 추가된 역변환 메서드들 ===
+    
+    def transform_omniverse_to_uwb_simple(self, omni_x: float, omni_y: float, omni_z: float) -> Tuple[float, float]:
+        """간단한 역변환 - coordinate_mapping 파라미터 사용"""
+        precision = self.uwb_config.get('coordinate_precision', 2)
+        
+        # coordinate_mapping에서 변환 파라미터 가져오기 (없으면 기존 하드코딩 값)
+        if self._coordinate_mapping:
+            scale_x = self._coordinate_mapping.get('scale_x', -100.0)    
+            scale_y = self._coordinate_mapping.get('scale_y', 100.0)     
+            translate_x = self._coordinate_mapping.get('translate_x', 0.0)
+            translate_y = self._coordinate_mapping.get('translate_y', 0.0)
+            rotation_z = self._coordinate_mapping.get('rotation_z', 0.0)
+            print(f"Using coordinate_mapping params for reverse transform: scale_x={scale_x}, scale_y={scale_y}")
+        else:
+            # 매핑 정보가 없으면 기존 하드코딩된 값 사용
+            scale_x = -100.0
+            scale_y = 100.0
+            translate_x = 0.0
+            translate_y = 0.0
+            rotation_z = 0.0
+            print("No coordinate_mapping found, using hardcoded values for reverse transform")
+        
+        # Division by zero check
+        if scale_x == 0 or scale_y == 0:
+            print("Error: Scale factor is zero, cannot perform inverse transform")
+            return 0.0, 0.0
+        
+        # 역변환 공식
+        # omni_x = uwb_y * scale_x + translate_x  =>  uwb_y = (omni_x - translate_x) / scale_x
+        # omni_z = uwb_x * scale_y + translate_y  =>  uwb_x = (omni_z - translate_y) / scale_y
+        
+        uwb_x = (omni_z - translate_y) / scale_y  # Omni Z → UWB X
+        uwb_y = (omni_x - translate_x) / scale_x  # Omni X → UWB Y
+        
+        # 회전 역변환 적용 (필요한 경우)
+        if rotation_z != 0:
+            cos_r = math.cos(-rotation_z)  # 음수로 역회전
+            sin_r = math.sin(-rotation_z)
+            rotated_x = uwb_x * cos_r - uwb_y * sin_r
+            rotated_y = uwb_x * sin_r + uwb_y * cos_r
+            uwb_x, uwb_y = rotated_x, rotated_y
+            print(f"Applied reverse rotation {-rotation_z} rad: ({uwb_x:.2f}, {uwb_y:.2f})")
+        
+        result_x = round(uwb_x, precision)
+        result_y = round(uwb_y, precision)
+        
+        print(f"Simple reverse transform: Omni({omni_x}, {omni_y}, {omni_z}) → UWB({result_x}, {result_y})")
+        return result_x, result_y
+    
+    def transform_omniverse_to_uwb_advanced(self, omni_x: float, omni_y: float, omni_z: float) -> Tuple[float, float]:
+        """고급 역변환 - DB 매핑 정보 사용"""
+        print("Using advanced reverse transform with coordinate mapping")
+        if not self._coordinate_mapping:
+            print("Warning: No coordinate mapping available, using simple reverse transform")
+            return self.transform_omniverse_to_uwb_simple(omni_x, omni_y, omni_z)
+        
+        # 매핑 파라미터 가져오기
+        scale_x = self._coordinate_mapping.get('scale_x', 1.0)
+        scale_y = self._coordinate_mapping.get('scale_y', 1.0)
+        translate_x = self._coordinate_mapping.get('translate_x', 0.0)
+        translate_y = self._coordinate_mapping.get('translate_y', 0.0)
+        rotation_z = self._coordinate_mapping.get('rotation_z', 0.0)
+        
+        # Division by zero check
+        if scale_x == 0 or scale_y == 0:
+            print("Error: Scale factor is zero, cannot perform inverse transform")
+            return 0.0, 0.0
+        
+        # 역변환: 평행이동 먼저 취소, 그 다음 스케일링 취소
+        uwb_x = (omni_z - translate_y) / scale_y
+        uwb_y = (omni_x - translate_x) / scale_x
+        
+        # 회전 역변환 적용
+        if rotation_z != 0:
+            cos_r = math.cos(-rotation_z)
+            sin_r = math.sin(-rotation_z)
+            rotated_x = uwb_x * cos_r - uwb_y * sin_r
+            rotated_y = uwb_x * sin_r + uwb_y * cos_r
+            uwb_x, uwb_y = rotated_x, rotated_y
+        
+        precision = self.uwb_config.get('coordinate_precision', 2)
+        result_x = round(uwb_x, precision)
+        result_y = round(uwb_y, precision)
+        
+        print(f"Advanced reverse transform: Omni({omni_x}, {omni_y}, {omni_z}) → UWB({result_x}, {result_y})")
+        return result_x, result_y
+    
+    def transform_omniverse_to_uwb(self, omni_x: float, omni_y: float, omni_z: float) -> Tuple[float, float]:
+        """Omniverse 좌표를 UWB 좌표로 역변환"""
+        # 좌표 유효성 검사
+        if not self.is_valid_omniverse_coordinate(omni_x, omni_y, omni_z):
+            print(f"Warning: Omniverse coordinate ({omni_x}, {omni_y}, {omni_z}) is outside valid range")
+        
+        # 매핑 정보가 있으면 고급 변환, 없으면 간단한 변환 사용
+        if self._coordinate_mapping:
+            return self.transform_omniverse_to_uwb_advanced(omni_x, omni_y, omni_z)
+        else:
+            return self.transform_omniverse_to_uwb_simple(omni_x, omni_y, omni_z)
+    
+    # === 기존 메서드들 유지 ===
     
     def transform_uwb_to_gps(self, uwb_x: float, uwb_y: float) -> Optional[Tuple[float, float]]:
         """UWB 좌표를 GPS 좌표로 변환"""

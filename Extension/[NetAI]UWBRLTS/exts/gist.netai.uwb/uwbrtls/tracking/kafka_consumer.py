@@ -15,11 +15,12 @@ class KafkaMessageProcessor:
         self.coordinate_transformer = get_coordinate_transformer()
         
         # Kafka 설정
-        kafka_config = self.config_manager.get_kafka_config()
-        self.bootstrap_servers = kafka_config.get('bootstrap_servers', '210.125.85.62:9094')
-        self.topic_name = kafka_config.get('topic_name', 'omniverse-uwb')
-        self.group_id = kafka_config.get('group_id', 'netai-uwb-group')
-        
+        kafka_base_config  = self.config_manager.get_kafka_config()
+        kafka_consumer_config = self.config_manager.get("kafka.consumer", {})
+
+        self.bootstrap_servers = kafka_base_config.get('bootstrap_servers', '10.79.1.1:9094')
+        self.topic_name = kafka_consumer_config.get('topic_name', 'omniverse-uwb')
+        self.group_id = kafka_consumer_config.get('group_id', 'netai-uwb-group')
         # 상태 관리
         self._consumer = None
         self._consuming_task = None

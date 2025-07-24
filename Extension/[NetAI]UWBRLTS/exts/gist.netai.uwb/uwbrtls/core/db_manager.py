@@ -448,6 +448,290 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error shutting down thread pool: {e}")
 
+
+    def fetch_publishing_objects_sync(self, space_id: int) -> List[Dict[str, Any]]:
+        """발행 대상 오브젝트 목록 조회 (동기) - 커서 타입 수정"""
+        conn = self.get_connection()
+        if not conn:
+            print("No database connection available - using empty publishing objects")
+            return []
+        
+        try:
+            # 테이블 존재 확인은 일반 커서 사용
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_name = 'publishing_objects'
+                )
+            """)
+            table_exists = cursor.fetchone()[0]
+            print(f"publishing_objects table exists: {table_exists}")
+            
+            if not table_exists:
+                print("publishing_objects table does not exist - returning empty list")
+                return []
+            
+            # 전체 데이터 개수 확인 (일반 커서)
+            cursor.execute("SELECT COUNT(*) FROM publishing_objects")
+            total_count = cursor.fetchone()[0]
+            print(f"Total records in publishing_objects: {total_count}")
+            
+            # space_id별 데이터 개수 확인 (일반 커서)
+            cursor.execute("SELECT COUNT(*) FROM publishing_objects WHERE space_id = %s", (space_id,))
+            space_count = cursor.fetchone()[0]
+            print(f"Records for space_id {space_id}: {space_count}")
+            
+            # 활성화된 데이터 개수 확인 (일반 커서)
+            cursor.execute("SELECT COUNT(*) FROM publishing_objects WHERE space_id = %s AND is_active = true", (space_id,))
+            active_count = cursor.fetchone()[0]
+            print(f"Active records for space_id {space_id}: {active_count}")
+            
+            # 실제 데이터 조회는 RealDictCursor 사용
+            dict_cursor = conn.cursor(cursor_factory=RealDictCursor)
+            query = """
+                SELECT * FROM publishing_objects 
+                WHERE space_id = %s AND is_active = true
+                ORDER BY created_at DESC
+            """
+            print(f"Executing query: {query} with space_id={space_id}")
+            dict_cursor.execute(query, (space_id,))
+            results = dict_cursor.fetchall()
+            
+            objects_list = [dict(row) for row in results]
+            print(f"Successfully fetched {len(objects_list)} publishing objects for space_id {space_id}")
+            
+            # 첫 번째 결과 출력 (있는 경우)
+            if objects_list:
+                print(f"First object: {objects_list[0]}")
+            
+            return objects_list
+            
+        except Exception as e:
+            print(f"Failed to fetch publishing objects: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+        finally:
+            self.return_connection(conn)
+    
+    def add_publishing_object_sync(self, space_id: int, object_path: str, 
+                                  object_name: str = None, virtual_tag_id: str = None,
+                                  publish_rate_hz: float = 10.0) -> bool:
+        """발행 오브젝트 추가 (동기) - 디버깅 강화"""
+        conn = self.get_connection()
+        if not conn:
+            print("No database connection available")
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            
+            # 테이블 존재 여부 확인
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_name = 'publishing_objects'
+                )
+            """)
+            table_exists = cursor.fetchone()[0]
+            print(f"publishing_objects table exists: {table_exists}")
+            
+            if not table_exists:
+                print("publishing_objects table does not exist - cannot add object")
+                return False
+            
+            # 테이블 구조 확인 (PostgreSQL 방식)
+            cursor.execute("""
+                SELECT column_name, data_type, is_nullable, column_default
+                FROM information_schema.columns 
+                WHERE table_name = 'publishing_objects'
+                ORDER BY ordinal_position
+            """)
+            columns = cursor.fetchall()
+            print("Table structure:")
+            for col in columns:
+                print(f"  {col[0]}: {col[1]}")
+            
+            # 중복 체크
+            cursor.execute("""
+                SELECT COUNT(*) FROM publishing_objects 
+                WHERE space_id = %s AND object_path = %s AND is_active = true
+            """, (space_id, object_path))
+            
+            duplicate_count = cursor.fetchone()[0]
+            print(f"Duplicate check for {object_path}: {duplicate_count} existing records")
+            
+            if duplicate_count > 0:
+                print(f"Object {object_path} already exists in publishing_objects for space_id {space_id}")
+                return False
+            
+            # virtual_tag_id 자동 생성 (없는 경우)
+            if not virtual_tag_id:
+                publishing_config = self.config_manager.get_publishing_config()
+                prefix = publishing_config.get('virtual_tag_prefix', 'OMNI_')
+                # object_path에서 마지막 부분 추출하여 태그 ID 생성
+                object_suffix = object_path.split('/')[-1] if '/' in object_path else object_path
+                virtual_tag_id = f"{prefix}{object_suffix}"
+                print(f"Generated virtual_tag_id: {virtual_tag_id}")
+            
+            # 데이터 삽입
+            insert_query = """
+                INSERT INTO publishing_objects 
+                (space_id, object_path, object_name, virtual_tag_id, publish_rate_hz)
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            values = (space_id, object_path, object_name, virtual_tag_id, publish_rate_hz)
+            print(f"Inserting: {values}")
+            
+            cursor.execute(insert_query, values)
+            conn.commit()
+            
+            print(f"Successfully added publishing object: {object_path} (tag: {virtual_tag_id})")
+            return True
+            
+        except Exception as e:
+            print(f"Error adding publishing object: {e}")
+            import traceback
+            traceback.print_exc()
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            return False
+        finally:
+            self.return_connection(conn)
+
+    async def fetch_publishing_objects(self, space_id: int) -> List[Dict[str, Any]]:
+        """발행 대상 오브젝트 목록 조회 (비동기)"""
+        return await self.run_in_thread(self.fetch_publishing_objects_sync, space_id)
+
+    async def add_publishing_object(self, space_id: int, object_path: str, 
+                                object_name: str = None, virtual_tag_id: str = None,
+                                publish_rate_hz: float = 10.0) -> bool:
+        """발행 오브젝트 추가 (비동기)"""
+        return await self.run_in_thread(
+            self.add_publishing_object_sync, 
+            space_id, object_path, object_name, virtual_tag_id, publish_rate_hz
+        )
+
+    def remove_publishing_object_sync(self, object_id: int) -> bool:
+        """발행 오브젝트 제거 (동기) - is_active를 false로 설정"""
+        conn = self.get_connection()
+        if not conn:
+            print("No database connection available")
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            # 테이블 존재 여부 확인
+            cursor.execute("""
+                SELECT EXISTS (
+                    SELECT 1 FROM information_schema.tables 
+                    WHERE table_name = 'publishing_objects'
+                )
+            """)
+            if not cursor.fetchone()[0]:
+                print("publishing_objects table does not exist - cannot remove object")
+                return False
+            
+            # 오브젝트 존재 여부 확인
+            cursor.execute("""
+                SELECT object_path FROM publishing_objects 
+                WHERE id = %s AND is_active = true
+            """, (object_id,))
+            
+            result = cursor.fetchone()
+            if not result:
+                print(f"Publishing object with id {object_id} not found or already inactive")
+                return False
+            
+            object_path = result[0]
+            
+            # is_active를 false로 설정 (soft delete)
+            update_query = """
+                UPDATE publishing_objects 
+                SET is_active = false, updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """
+            cursor.execute(update_query, (object_id,))
+            conn.commit()
+            print(f"Successfully removed publishing object: {object_path} (id: {object_id})")
+            return True
+            
+        except Exception as e:
+            print(f"Error removing publishing object: {e}")
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            return False
+        finally:
+            self.return_connection(conn)
+
+    async def remove_publishing_object(self, object_id: int) -> bool:
+        """발행 오브젝트 제거 (비동기)"""
+        return await self.run_in_thread(self.remove_publishing_object_sync, object_id)
+
+    def update_publishing_object_sync(self, object_id: int, **kwargs) -> bool:
+        """발행 오브젝트 정보 업데이트 (동기)"""
+        conn = self.get_connection()
+        if not conn:
+            print("No database connection available")
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            # 업데이트 가능한 필드들
+            allowed_fields = ['object_name', 'virtual_tag_id', 'publish_rate_hz', 'is_active']
+            update_fields = []
+            update_values = []
+            
+            for field, value in kwargs.items():
+                if field in allowed_fields:
+                    update_fields.append(f"{field} = %s")
+                    update_values.append(value)
+            
+            if not update_fields:
+                print("No valid fields to update")
+                return False
+            
+            # updated_at 자동 추가
+            update_fields.append("updated_at = CURRENT_TIMESTAMP")
+            update_values.append(object_id)
+            
+            update_query = f"""
+                UPDATE publishing_objects 
+                SET {', '.join(update_fields)}
+                WHERE id = %s
+            """
+            
+            cursor.execute(update_query, update_values)
+            
+            if cursor.rowcount == 0:
+                print(f"Publishing object with id {object_id} not found")
+                return False
+            
+            conn.commit()
+            print(f"Successfully updated publishing object id {object_id}")
+            return True
+            
+        except Exception as e:
+            print(f"Error updating publishing object: {e}")
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            return False
+        finally:
+            self.return_connection(conn)
+
+    async def update_publishing_object(self, object_id: int, **kwargs) -> bool:
+        """발행 오브젝트 정보 업데이트 (비동기)"""
+        return await self.run_in_thread(self.update_publishing_object_sync, object_id, **kwargs)            
 # 전역 데이터베이스 매니저 인스턴스
 _db_manager = None
 
