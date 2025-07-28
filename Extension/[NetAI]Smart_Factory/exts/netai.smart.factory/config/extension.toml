@@ -1,0 +1,64 @@
+[package]
+# Semantic Versioning is used: https://semver.org/
+version = "1.0.0"
+
+# Lists people or organizations that are considered the "authors" of the package.
+authors = ["NetAI Team", "NVIDIA"]
+
+# The title and description fields are primarily for displaying extension info in UI
+title = "NetAI Smart Factory Extension"
+description = "Smart Factory simulation and control extension with PLC, IoT, and automation capabilities for NVIDIA Omniverse"
+
+# Path (relative to the root) or content of readme markdown file for UI.
+readme = "docs/README.md"
+
+# URL of the extension source repository.
+repository = "https://github.com/NetAI/Smart_Factory"
+
+# One of categories for UI.
+category = "Simulation"
+
+# Keywords for the extension
+keywords = ["smart factory", "automation", "plc", "iot", "manufacturing", "industry40", "modbus", "opcua", "mqtt", "simulation"]
+
+# Location of change log file in target (final) folder of extension, relative to the root.
+# More info on writing changelog: https://keepachangelog.com/en/1.0.0/
+changelog = "docs/CHANGELOG.md"
+
+# Preview image and icon. Folder named "data" automatically goes in git lfs (see .gitattributes file).
+# Preview image is shown in "Overview" of Extensions window. Screenshot of an extension might be a good preview image.
+preview_image = "data/preview.png"
+
+# Icon is shown in Extensions window, it is recommended to be square, of size 256x256.
+icon = "data/icon.png"
+
+# Use omni.ui to build simple UI
+[dependencies]
+"omni.kit.uiapp" = {}
+"omni.ui" = {}
+"omni.kit.commands" = {}
+"omni.usd" = {}
+
+# Graph system for visual scripting
+"omni.graph.core" = {}
+"omni.graph.nodes" = {}
+"omni.graph.scriptnode" = {}
+
+[python.pipapi]
+requirements = [
+    "requests==2.31.0",
+    "httpx==0.27.0",
+    "aiokafka==0.10.0",
+    "psycopg2-binary",
+    "numpy==1.26.4"
+]
+
+# Main python module this extension provides, it will be publicly available as "import netai.smart.factory".
+[[python.module]]
+name = "netai.smart.factory"
+
+[[test]]
+# Extra dependencies only to be used during test run
+dependencies = [
+    "omni.kit.ui_test" # UI testing extension
+]

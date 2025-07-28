@@ -32,8 +32,6 @@ requirements = [
 ]
 use_online_index = true
 
-# 문제가 되는 settings 섹션 완전 제거
-# [settings] 섹션 삭제
 
 [[test]]
 dependencies = [
