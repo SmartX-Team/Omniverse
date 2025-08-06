@@ -264,6 +264,7 @@ def create_tank_controll_listener(prim_path_of_husky):
                 ] if imu_sensor_valid else []),
 
             ("compute_odom.inputs:chassisPrim", controller_target_path),
+            ("odom_pub.inputs:publishTf", True), 
             ("odom_pub.inputs:topicName", ODOM_TOPIC_NAME),
             ("odom_pub.inputs:odomFrameId", ODOM_FRAME_ID),
             ("odom_pub.inputs:chassisFrameId", BASE_FRAME_ID),
@@ -271,8 +272,10 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("controller.inputs:robotPath", controller_target_path),
             ("controller.inputs:jointNames", husky_joint_names),
 
-            ("tf_static_pub.inputs:targetPrims", ["{0}".format(valid_paths["husky_root"]),
-                                                  f"{prim_path_of_husky}/lidar_link"]),
+            ("tf_static_pub.inputs:targetPrims", [
+                        f"{prim_path_of_husky}/base_link",
+                        f"{prim_path_of_husky}/lidar_link",
+                    ]),
             ("tf_static_pub.inputs:topicName", "/tf_static"),
             ("tf_static_pub.inputs:staticPublisher", True),
             ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets),
