@@ -58,7 +58,7 @@ def create_tank_controll_listener(prim_path_of_husky):
     IMU_FRAME_ID = "lidar_link" # 실제 IMU의 frame_id와 일치시킴
     IMU_TOPIC_NAME = "/imu/virtual"
     
-    ODOM_TOPIC_NAME = "/virtual/odom"
+    ODOM_TOPIC_NAME = "/odom"
     ODOM_FRAME_ID = "odom" # 가상 Odometry 좌표계
     BASE_FRAME_ID = "base_link" # 로봇의 기준 좌표계
     graph_path = "/husky_ros_graph" # 그래프 경로 일관성 유지
