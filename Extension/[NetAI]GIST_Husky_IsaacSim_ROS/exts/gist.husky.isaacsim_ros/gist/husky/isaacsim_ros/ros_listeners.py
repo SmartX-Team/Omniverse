@@ -271,7 +271,8 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("controller.inputs:robotPath", controller_target_path),
             ("controller.inputs:jointNames", husky_joint_names),
 
-            ("tf_static_pub.inputs:targetPrims", [valid_paths.get("husky_root")]),
+            ("tf_static_pub.inputs:targetPrims", ["{0}".format(valid_paths["husky_root"]),
+                                                  f"{prim_path_of_husky}/lidar_link"]),
             ("tf_static_pub.inputs:topicName", "/tf_static"),
             ("tf_static_pub.inputs:staticPublisher", True),
             ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets),
