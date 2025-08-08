@@ -150,6 +150,11 @@ RUN apt-get update && \
         ros-humble-rmw-fastrtps-cpp \
         ros-humble-cv-bridge \
         libpcap-dev \
+        # === Nav2 + SLAM  ===
+        ros-humble-nav2-bringup \
+        ros-humble-slam-toolbox \
+        ros-humble-robot-localization \
+        ros-humble-dwb-plugins \
     && rm -rf /var/lib/apt/lists/*
 
 # Intel RealSense 설정 및 설치
@@ -204,9 +209,9 @@ FROM runtime-realsense-ros AS runtime-configs
 # 디렉토리 생성 및 설정 파일 복사
 RUN mkdir -p /configs /etc/clearpath
 
-COPY robot.yaml /etc/clearpath/robot.yaml
-COPY driver_params.yaml /configs/ouster_driver_params.yaml
-COPY ouster_param.yaml /configs/ouster_param.yaml
+COPY /src/husky_isaac_bringup/config/robot.yaml /etc/clearpath/robot.yaml
+COPY /src/husky_isaac_bringup/config/driver_params.yaml /configs/ouster_driver_params.yaml
+COPY /src/husky_isaac_bringup/config/ouster_param.yaml /configs/ouster_param.yaml
 
 # Clearpath 설정 생성 단계
 FROM runtime-configs AS runtime-clearpath-gen
@@ -242,11 +247,13 @@ COPY --from=ouster-built ${OUSTER_WS_ROOT} ${OUSTER_WS_ROOT}
 # 최종 단계 - 애플리케이션 파일 복사
 FROM runtime-workspaces AS final
 
-# 애플리케이션 파일들 복사
-COPY simple_subscriber.py /root/simple_subscriber.py
-COPY fastdds_force_udp.xml /etc/fastdds/fastdds_force_udp.xml
-COPY robot_bringup.launch.py /root/robot_bringup.launch.py
-COPY scripts/ /root/scripts/
+RUN mkdir -p /root/app_ws
+
+COPY src/ /root/app_ws/src/
+
+#독립 스크립트 복사
+COPY standalone_scripts/ /root/standalone_scripts/
+
 
 WORKDIR /root
 

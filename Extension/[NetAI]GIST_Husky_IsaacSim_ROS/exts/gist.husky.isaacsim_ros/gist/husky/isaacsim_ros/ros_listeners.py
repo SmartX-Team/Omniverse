@@ -39,7 +39,7 @@ def create_tank_controll_listener(prim_path_of_husky):
     LIDAR_SENSOR_PRIM_PATH = prim_path_of_husky + "/lidar_link/lidar_sensor"
     LIDAR_FRAME_ID = "lidar_link"
     LIDAR_TOPIC_NAME = "/pointcloud"
-    LIDAR_SCAN_TOPIC_NAME = "/virtual/scan" # LaserScan topic name
+    LIDAR_SCAN_TOPIC_NAME = "/scan" # LaserScan topic name
 
     # --- RGB & Depth Camera Configuration (이미지 기반) ---
     RGBD_CAMERA_PRIM_PATH = prim_path_of_husky + "/front_bumper_link/husky_rgb_cam"
@@ -95,6 +95,7 @@ def create_tank_controll_listener(prim_path_of_husky):
         print(f"Error: Could not determine a valid 'husky_root' path for TF.")
         validation_passed = False
 
+    base_link_path = f"{prim_path_of_husky}/base_link"
     lidar_link_path = f"{prim_path_of_husky}/lidar_link"
     front_bumper_link_path = f"{prim_path_of_husky}/front_bumper_link" # 예시, 다른 환경에서 사용시 실제 경로 확인 필요
     imu_sensor_path = f"{lidar_link_path}/imu_sensor" # imu_link 하위 또는 base_link 하위일 수 있음, 경로 확인
@@ -198,6 +199,9 @@ def create_tank_controll_listener(prim_path_of_husky):
 
             ("controller", "isaacsim.core.nodes.IsaacArticulationController"),
             ("sim_time", "isaacsim.core.nodes.IsaacReadSimulationTime"),
+
+            ("clock_pub", "isaacsim.ros2.bridge.ROS2PublishClock"),
+            
             ("tf_static_pub", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
             ("tf_dynamic_pub", "isaacsim.ros2.bridge.ROS2PublishTransformTree"),
             # LiDAR 관련 노드 
@@ -238,6 +242,7 @@ def create_tank_controll_listener(prim_path_of_husky):
         ]
 
         values_to_set = [
+            ("sim_time.inputs:resetOnStop", True), # Stop 버튼 클릭시 SImTime 초기화
             ("twist_sub.inputs:topicName", "/cmd_vel"), # 구독 토픽 변경
             ("diff_ctrl.inputs:wheelRadius", HUSKY_WHEEL_RADIUS),
             ("diff_ctrl.inputs:wheelDistance", HUSKY_WHEEL_BASE), # 아이작심에서는 속성 이름 wheelDistance 임
@@ -257,6 +262,8 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("insert_val_at_idx2.inputs:index", 2),
             ("insert_val_at_idx3.inputs:index", 3),
 
+            ("clock_pub.inputs:topicName", "/clock"),
+
             *([
                 ("imu_sensor_reader.inputs:imuPrim", IMU_SENSOR_PRIM_PATH),
                 ("imu_pub.inputs:topicName", IMU_TOPIC_NAME),
@@ -264,7 +271,6 @@ def create_tank_controll_listener(prim_path_of_husky):
                 ] if imu_sensor_valid else []),
 
             ("compute_odom.inputs:chassisPrim", controller_target_path),
-            ("odom_pub.inputs:publishTf", True), 
             ("odom_pub.inputs:topicName", ODOM_TOPIC_NAME),
             ("odom_pub.inputs:odomFrameId", ODOM_FRAME_ID),
             ("odom_pub.inputs:chassisFrameId", BASE_FRAME_ID),
@@ -272,7 +278,7 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("controller.inputs:robotPath", controller_target_path),
             ("controller.inputs:jointNames", husky_joint_names),
 
-            ("tf_static_pub.inputs:targetPrims", [valid_paths.get("husky_root")]),
+            ("tf_static_pub.inputs:targetPrims", dynamic_tf_targets),
             ("tf_static_pub.inputs:topicName", "/tf_static"),
             ("tf_static_pub.inputs:staticPublisher", True),
             ("tf_dynamic_pub.inputs:targetPrims", dynamic_tf_targets),
@@ -321,12 +327,12 @@ def create_tank_controll_listener(prim_path_of_husky):
            # ("break_angular_velocity.outputs:z", "diff_ctrl.inputs:angularVelocity"),
 
             ("break_angular_velocity.outputs:z", "rotation_multiplier.inputs:a"),
-            # ConstantDouble 노드의 출력을 Multiply 노드의 입력 b로 연결합니다.
+            # ConstantDouble 노드의 출력을 Multiply 노드의 입력 b로 연결
             ("rotation_correction_factor.inputs:value", "rotation_multiplier.inputs:b"),
-            # Multiply 결과를 컨트롤러 입력으로 연결합니다.
+            # Multiply 결과를 컨트롤러 입력으로 연결
             ("rotation_multiplier.outputs:product", "diff_ctrl.inputs:angularVelocity"),
 
-            ("phys_step.outputs:step", "diff_ctrl.inputs:execIn"), # DifferentialController도 실행 신호 필요할 수 있음
+            ("phys_step.outputs:step", "diff_ctrl.inputs:execIn"), 
 
             ("diff_ctrl.outputs:velocityCommand", "get_v_left.inputs:array"),
             ("diff_ctrl.outputs:velocityCommand", "get_v_right.inputs:array"),
@@ -375,8 +381,13 @@ def create_tank_controll_listener(prim_path_of_husky):
             ("phys_step.outputs:step", "controller.inputs:execIn"),
 
             ("phys_step.outputs:step", "tf_static_pub.inputs:execIn"),
+            ("sim_time.outputs:simulationTime", "tf_static_pub.inputs:timeStamp"), 
+
             ("phys_step.outputs:step", "tf_dynamic_pub.inputs:execIn"),
             ("sim_time.outputs:simulationTime", "tf_dynamic_pub.inputs:timeStamp"),
+
+            ("phys_step.outputs:step", "clock_pub.inputs:execIn"),
+            ("sim_time.outputs:simulationTime", "clock_pub.inputs:timeStamp"),
             # --- LiDAR 연결 수정 ---
             *([
                 # Render Product 생성 실행

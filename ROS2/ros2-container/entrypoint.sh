@@ -7,6 +7,7 @@ echo "--- Docker Entrypoint Start ---"
 
 MODE="isaac_sim_default" # 기본 모드를 Isaac Sim으로 가정
 COMMANDS_TO_EXEC="bash"  # 기본적으로 bash 쉘 실행
+AUTO_LAUNCH_BRINGUP="false" # 자동으로 robot_bringup.launch.py 실행 여부
 
 # 첫 번째 인자가 있다면 모드로 간주
 if [ ! -z "$1" ]; then
@@ -17,21 +18,49 @@ if [ ! -z "$1" ]; then
     fi
 fi
 
+# 환경 변수로 자동 실행 제어 (docker run -e AUTO_LAUNCH=true)
+if [ ! -z "$AUTO_LAUNCH" ]; then
+    AUTO_LAUNCH_BRINGUP="$AUTO_LAUNCH"
+fi
+
 echo "Selected Mode: $MODE"
+echo "Auto Launch Bringup: $AUTO_LAUNCH_BRINGUP"
 echo "Effective RMW_IMPLEMENTATION: $RMW_IMPLEMENTATION" # Dockerfile에서 설정된 값 확인
 echo "FASTRTPS_DEFAULT_PROFILES_FILE: $FASTRTPS_DEFAULT_PROFILES_FILE"
 
 # 워크스페이스 경로 (Dockerfile 내 최종 경로와 일치해야 함)
 ROS2_DISTRO_SETUP="/opt/ros/humble/setup.bash"
 ISAAC_SIM_WS_SETUP="/root/isaac_sim_ros_ws/src/IsaacSim-ros_workspaces/humble_ws/install/setup.bash"
-#USER_CUSTOM_WS_SETUP="/root/user_clearpath_ws/install/setup.bash" 필요시 실행 # 예시
 OUSTER_DRIVER_WS_SETUP="/root/ouster_ws/install/setup.bash"
 CLEARPATH_GENERATED_SETUP="/etc/clearpath/setup.bash"
+
+APP_WS="/root/app_ws"
 
 # 모드에 따른 환경 설정 소싱
 if [[ "$MODE" == "isaac_sim" || "$MODE" == "isaac_sim_default" ]]; then
     echo "--- Isaac Sim Mode Setup ---"
-    # Isaac Sim 모드에서는 Isaac Sim 워크스페이스만 source (ROS 기본 환경도 여기서 관리될 것으로 가정)
+
+    if [ -d "${APP_WS}/src" ]; then
+        echo "--- Building and sourcing husky_isaac_bringup workspace at ${APP_WS} ---"
+        cd ${APP_WS}
+        colcon build --symlink-install
+        source ${APP_WS}/install/setup.bash
+        cd /root # 작업 디렉토리 원위치로 복귀
+    else
+        echo "Warning: Application workspace source directory not found at ${APP_WS}/src. Skipping build."
+    fi
+
+
+    # 1. Source base ROS 2 Humble environment first
+    if [ -f "$ROS2_DISTRO_SETUP" ]; then
+        echo "Sourcing ROS 2 Humble environment: $ROS2_DISTRO_SETUP"
+        source "$ROS2_DISTRO_SETUP"
+    else
+        echo "Error: ROS 2 Distro setup file not found at $ROS2_DISTRO_SETUP" >&2
+        exit 1
+    fi
+
+    # 3. Source Isaac Sim workspace
     if [ -f "$ISAAC_SIM_WS_SETUP" ]; then
         echo "Sourcing Isaac Sim workspace: $ISAAC_SIM_WS_SETUP"
         source "$ISAAC_SIM_WS_SETUP"
@@ -39,28 +68,66 @@ if [[ "$MODE" == "isaac_sim" || "$MODE" == "isaac_sim_default" ]]; then
         echo "Error: Isaac Sim workspace setup file not found at $ISAAC_SIM_WS_SETUP. Cannot proceed." >&2
         exit 1
     fi
-    # Isaac Sim 모드에서 사용자 정의 워크스페이스(Kafka 조이스틱 등)가 필요하다면 여기서 추가 source
-    # if [ -f "$USER_CUSTOM_WS_SETUP" ]; then
-    #     echo "Sourcing user custom workspace for Isaac Sim: $USER_CUSTOM_WS_SETUP"
-    #     source "$USER_CUSTOM_WS_SETUP"
-    # fi
+    
+    # 4. Nav2 와 SLAM 패키지가 필요하므로 확인
+    echo "Checking for Nav2 and SLAM packages..."
+    if ros2 pkg list | grep -q "nav2_bringup"; then
+        echo "✓ Nav2 packages found"
+    else
+        echo "⚠ Warning: Nav2 packages not found. Navigation features may not work."
+    fi
+    
+    if ros2 pkg list | grep -q "slam_toolbox"; then
+        echo "✓ SLAM Toolbox found"
+    else
+        echo "⚠ Warning: SLAM Toolbox not found. SLAM features may not work."
+    fi
+    
+    # 5. 센서 드라이버 파일 확인 (실제 로봇 모드에서 사용)
+    if [ -f "/root/robot_bringup_sensors.launch.py" ]; then
+        echo "✓ Sensor drivers launch file found"
+    else
+        echo "⚠ Warning: Sensor drivers launch file not found. Real robot sensors may not work."
+    fi
 
-
-    # Isaac Sim 모드이고, docker run 시 별도 명령이 없었다면, 기본적으로 bash 실행
-    if [ "$MODE" == "isaac_sim_default" ] && [ "$COMMANDS_TO_EXEC" == "bash" ]; then
-        echo "Isaac Sim default mode: Environment sourced. Ready for Isaac Sim connection or manual commands."
-        # 기존에 Isaac Sim 연동을 위해 자동으로 실행되던 명령이 생긴다면 일단 여기에 추가
-        # 예: COMMANDS_TO_EXEC="ros2 launch isaac_ros_bridge client.launch.py"
+    # Isaac Sim 모드에서 자동 실행 또는 수동 명령 처리
+    if [ "$AUTO_LAUNCH_BRINGUP" == "true" ]; then
+        echo "Auto-launching robot bringup for Isaac Sim mode..."
+        COMMANDS_TO_EXEC="ros2 launch husky_isaac_bringup robot_bringup.launch.py robot_mode:=isaac_sim use_sim_time:=true use_sensors:=false"
+    elif [ "$MODE" == "isaac_sim_default" ] && [ "$COMMANDS_TO_EXEC" == "bash" ]; then
+        echo ""
+        echo "==============================================================================="
+        echo "Isaac Sim default mode: Environment ready for Isaac Sim connection"
+        echo ""
+        echo "To start SLAM + Navigation, run:"
+        echo "  ros2 launch /root/robot_bringup.launch.py robot_mode:=isaac_sim use_sensors:=false"
+        echo ""
+        echo "Or set AUTO_LAUNCH=true when running docker:"
+        echo "  docker run -e AUTO_LAUNCH=true ..."
+        echo ""
+        echo "For Isaac Sim with custom topics:"
+        echo "  export ROS_SCAN_TOPIC=/virtual/scan"
+        echo "  export ROS_ODOM_TOPIC=/virtual/odom"
+        echo "  ros2 launch /root/robot_bringup.launch.py robot_mode:=isaac_sim use_sensors:=false"
+        echo ""
+        echo "Available ROS 2 tools:"
+        echo "  ros2 topic list          # View available topics from Isaac Sim"
+        echo "  ros2 topic echo /scan    # Monitor laser scan data"
+        echo "  ros2 run rviz2 rviz2     # Start visualization"
+        echo "==============================================================================="
+        echo ""
     fi
 
 elif [ "$MODE" == "real_robot" ]; then
     echo "--- Real Robot Mode Setup ---"
+    
     # 1. Source base ROS 2 Humble environment
     if [ -f "$ROS2_DISTRO_SETUP" ]; then
         echo "Sourcing ROS 2 Humble environment: $ROS2_DISTRO_SETUP"
         source "$ROS2_DISTRO_SETUP"
     else
-        echo "Error: ROS 2 Distro setup file not found at $ROS2_DISTRO_SETUP" >&2; exit 1
+        echo "Error: ROS 2 Distro setup file not found at $ROS2_DISTRO_SETUP" >&2
+        exit 1
     fi
     
     # 2. Source Clearpath generated environment
@@ -69,10 +136,9 @@ elif [ "$MODE" == "real_robot" ]; then
         source "$CLEARPATH_GENERATED_SETUP"
     else
         echo "Warning: Clearpath generated setup file $CLEARPATH_GENERATED_SETUP not found." >&2
-        # This might be critical, consider exiting if it's always required
     fi
 
-    # 3. Source Ouster LiDAR driver workspace (if it exists and is used)
+    # 3. Source Ouster LiDAR driver workspace
     if [ -f "$OUSTER_DRIVER_WS_SETUP" ]; then
         echo "Sourcing Ouster LiDAR workspace: $OUSTER_DRIVER_WS_SETUP"
         source "$OUSTER_DRIVER_WS_SETUP"
@@ -80,76 +146,91 @@ elif [ "$MODE" == "real_robot" ]; then
         echo "Warning: Ouster LiDAR workspace setup file not found at $OUSTER_DRIVER_WS_SETUP." >&2
     fi
 
-    # Export CPR_SETUP_PATH, potentially used by Clearpath launch files
+    # Export CPR_SETUP_PATH
     export CPR_SETUP_PATH=/etc/clearpath
     echo "CPR_SETUP_PATH set to: $CPR_SETUP_PATH"
 
-
-    # --- MCU 시리얼 포트 심볼릭 링크 생성 시작 호스트 시스템에 따라 달라질 수 있으니 미리 호스트 시스템 설정 체크 ---
-    REAL_MCU_DEVICE="/dev/ttyUSB0" # 호스트에서 확인된 실제 장치명
+    # --- MCU 시리얼 포트 심볼릭 링크 생성 ---
+    REAL_MCU_DEVICE="/dev/ttyUSB0"
     SYMLINK_PATH="/dev/clearpath/prolific"
-    SYMLINK_DIR=$(dirname "$SYMLINK_PATH") # /dev/clearpath
+    SYMLINK_DIR=$(dirname "$SYMLINK_PATH")
 
-    echo "Checking for MCU device $REAL_MCU_DEVICE and attempting to create symlink $SYMLINK_PATH..."
+    echo "Checking for MCU device $REAL_MCU_DEVICE..."
     if [ -e "$REAL_MCU_DEVICE" ]; then
         mkdir -p "$SYMLINK_DIR"
-        if [ ! -L "$SYMLINK_PATH" ]; then # -L: 심볼릭 링크인지 확인, !-e: 파일/디렉토리/링크 없는지 확인
-            ln -s "$REAL_MCU_DEVICE" "$SYMLINK_PATH" && echo "Symlink $SYMLINK_PATH -> $REAL_MCU_DEVICE created." || echo "Failed to create symlink $SYMLINK_PATH."
+        if [ ! -L "$SYMLINK_PATH" ]; then
+            ln -s "$REAL_MCU_DEVICE" "$SYMLINK_PATH" && \
+                echo "✓ Symlink $SYMLINK_PATH -> $REAL_MCU_DEVICE created." || \
+                echo "✗ Failed to create symlink $SYMLINK_PATH."
         else
-            echo "Symlink $SYMLINK_PATH already exists."
+            echo "✓ Symlink $SYMLINK_PATH already exists."
         fi
     else
-        echo "Warning: Target MCU device $REAL_MCU_DEVICE not found in container. Cannot create symlink."
-        echo "Ensure '--device=/dev/ttyUSB0:/dev/ttyUSB0' or similar is part of 'docker run'."
-    fi
-    # --- MCU 시리얼 포트 심볼릭 링크 생성 끝 ---
-
-
-    PLATFORM_LAUNCH_FILE="/etc/clearpath/platform/launch/platform-service.launch.py"
-    SENSORS_LAUNCH_FILE="/etc/clearpath/sensors/launch/sensors-service.launch.py"
-    MANIPULATORS_LAUNCH_FILE="/etc/clearpath/manipulators/launch/manipulators-service.launch.py" # If used
-
-    if [ -f "$PLATFORM_LAUNCH_FILE" ]; then
-        echo "Launching Clearpath Platform Service in background: $PLATFORM_LAUNCH_FILE"
-        ros2 launch "$PLATFORM_LAUNCH_FILE" &
-        sleep 3 # Give it a moment to start
-    else
-        echo "Warning: Platform service launch file not found at $PLATFORM_LAUNCH_FILE"
-    fi
-    
-    if [ -f "$SENSORS_LAUNCH_FILE" ]; then
-        echo "Launching Clearpath Sensors Service in background: $SENSORS_LAUNCH_FILE"
-        ros2 launch "$SENSORS_LAUNCH_FILE" &
-        sleep 3 # Give it a moment to start
-    else
-        echo "Warning: Sensors service launch file not found at $SENSORS_LAUNCH_FILE"
+        echo "⚠ Warning: MCU device $REAL_MCU_DEVICE not found in container."
+        echo "  Ensure '--device=/dev/ttyUSB0:/dev/ttyUSB0' is part of 'docker run'."
     fi
 
-    # If defaulting to bash in real_robot mode, provide instructions
-    if [ "$COMMANDS_TO_EXEC" == "bash" ]; then
-        echo "Real Robot mode: Environment sourced. To start robot services, run commands like:"
+    # Real Robot 모드에서 자동 실행 처리
+    if [ "$AUTO_LAUNCH_BRINGUP" == "true" ]; then
+        echo "Auto-launching robot bringup for Real Robot mode..."
+        COMMANDS_TO_EXEC="ros2 launch /root/robot_bringup.launch.py robot_mode:=real_robot"
+    elif [ "$COMMANDS_TO_EXEC" == "bash" ]; then
+        # 기존 Clearpath 서비스는 자동 실행하지 않고 통합 launch 파일 사용 안내
+        echo ""
+        echo "==============================================================================="
+        echo "Real Robot mode: Environment ready"
+        echo ""
+        echo "To start complete robot system with SLAM + Navigation:"
+        echo "  ros2 launch /root/robot_bringup.launch.py robot_mode:=real_robot"
+        echo ""
+        echo "Or launch individual components:"
         echo "  ros2 launch /etc/clearpath/platform/launch/platform-service.launch.py"
         echo "  ros2 launch /etc/clearpath/sensors/launch/sensors-service.launch.py"
-        # Add manipulators if applicable:
-        # echo "  ros2 launch /etc/clearpath/manipulators/launch/manipulators-service.launch.py"
-        echo "These can be run in separate terminals using 'docker exec', or combined in a custom launch file."
+        echo ""
+        echo "For automatic startup, set AUTO_LAUNCH=true when running docker:"
+        echo "  docker run -e AUTO_LAUNCH=true ..."
+        echo "==============================================================================="
+        echo ""
     fi
+    
+elif [ "$MODE" == "slam_nav_test" ]; then
+    # 새로운 테스트 모드: SLAM + Nav2만 빠르게 테스트
+    echo "--- SLAM + Navigation Test Mode ---"
+    
+    # Source ROS 2 environment
+    if [ -f "$ROS2_DISTRO_SETUP" ]; then
+        source "$ROS2_DISTRO_SETUP"
+    fi
+    
+    echo "Starting SLAM + Nav2 in test mode (no hardware dependencies)..."
+    COMMANDS_TO_EXEC="ros2 launch /root/robot_bringup.launch.py \
+        robot_mode:=isaac_sim \
+        use_ouster:=false \
+        use_realsense:=false \
+        slam_enabled:=true \
+        nav_enabled:=true"
+        
 else
-    echo "Error: Invalid mode '$MODE' specified. Allowed: 'isaac_sim', 'isaac_sim_default', or 'real_robot'." >&2
-    COMMANDS_TO_EXEC="bash" # Default to bash on error
+    echo "Error: Invalid mode '$MODE' specified." >&2
+    echo "Allowed modes: 'isaac_sim', 'isaac_sim_default', 'real_robot', 'slam_nav_test'" >&2
+    COMMANDS_TO_EXEC="bash"
 fi
 
 echo "--- Environment Sourced for mode: $MODE ---"
-# AMENT_PREFIX_PATH 출력 (디버깅용)
+
+# AMENT_PREFIX_PATH 출력 (디버깅용 - 간략화)
 AMENT_PATHS=$(echo "$AMENT_PREFIX_PATH" | tr ':' '\n')
 AMENT_PATHS_COUNT=$(echo "$AMENT_PATHS" | wc -l)
-if [ "$AMENT_PATHS_COUNT" -gt 6 ]; then
-    SHOWN_AMENT_PATHS=$(echo "$AMENT_PATHS" | head -n 3; echo "..."; echo "$AMENT_PATHS" | tail -n 3)
-else
-    SHOWN_AMENT_PATHS=$(echo "$AMENT_PATHS")
-fi
-echo "AMENT_PREFIX_PATH (sample):"
-echo "$SHOWN_AMENT_PATHS" | tr '\n' ':' | sed 's/:$//' && echo ""
+echo "AMENT_PREFIX_PATH: $AMENT_PATHS_COUNT packages loaded"
+
+# 주요 패키지 확인
+echo -n "Key packages: "
+for pkg in slam_toolbox nav2_bringup clearpath_robot; do
+    if ros2 pkg list 2>/dev/null | grep -q "^$pkg$"; then
+        echo -n "[$pkg ✓] "
+    fi
+done
+echo ""
 
 echo "--- Executing Command: $COMMANDS_TO_EXEC ---"
 exec $COMMANDS_TO_EXEC
