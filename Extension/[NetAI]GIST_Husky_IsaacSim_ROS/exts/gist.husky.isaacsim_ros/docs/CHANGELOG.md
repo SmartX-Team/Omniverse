@@ -45,3 +45,30 @@ to be selected again.
 - Rewritten the README.md at the start of the extension for better understanding
 - Added pictures to hopefully clarify the process
 - Adjusted Tank Controller values
+
+
+
+## [6.0.0] - 2025-08-10
+
+Added
+
+Multi-Robot Support with ROS2 Domain ID Configuration
+
+Each robot can now operate on independent ROS2 Domain IDs (0-232)
+Enables complete network isolation between robots for swarm/fleet operations
+ROS2Context node integration for proper domain management
+
+
+Enhanced UI for Multi-Robot Management
+
+New "Multi-Robot ROS2 Domain Controller" interface
+Domain ID input field for each robot (configurable per robot)
+Automatic robot_id assignment (0, 1, 2...) for internal management
+Real-time status display showing active domain configuration
+
+
+Improved Graph Management
+
+Dynamic graph path generation (/husky_ros_graph_{robot_id})
+Create/Delete graph operations per robot
+Proper cleanup on robot removal

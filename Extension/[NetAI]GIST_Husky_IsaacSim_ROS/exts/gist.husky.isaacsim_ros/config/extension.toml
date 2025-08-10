@@ -1,9 +1,9 @@
 [package]
 # Semantic Versioning is used: https://semver.org/
-version = "4.0.0"
+version = "4.5.0"
 
 # Lists people or organizations that are considered the "authors" of the package.
-authors = ["CosmoAdAstra", "NVIDIA"]
+authors = ["InYong Song", "Ni-KI", "NetAI", "NVIDIA"]
 
 # The title and description fields are primarily for displaying extension info in UI
 title = "netai_gist_husky_isaacsim_ros"

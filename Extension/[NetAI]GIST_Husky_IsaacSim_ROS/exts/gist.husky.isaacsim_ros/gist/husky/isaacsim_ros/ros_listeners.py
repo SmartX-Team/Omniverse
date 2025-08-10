@@ -35,7 +35,9 @@ import carb
 # --- Function to check and create Tank Control Listener ---
 # --- 메인 함수: Husky 로봇용 완전한 ROS2 그래프 생성 ---
 # 센서 검증(USD 존재하는지 경로등) 이후 노드 생성 → 초기 value 설정 → 연결 설정의 3단계 프로세스로 구성
-def create_tank_controll_listener(prim_path_of_husky):
+def create_twist_control_listener_with_domain(prim_path_of_husky, robot_id=0, domain_id=0):
+
+    print(f"[INFO] Creating ROS2 graph for Robot {robot_id} with Domain ID {domain_id}")
     LIDAR_SENSOR_PRIM_PATH = prim_path_of_husky + "/lidar_link/lidar_sensor"
     LIDAR_FRAME_ID = "lidar_link"
     LIDAR_TOPIC_NAME = "/pointcloud"
@@ -61,12 +63,12 @@ def create_tank_controll_listener(prim_path_of_husky):
     ODOM_TOPIC_NAME = "/odom"
     ODOM_FRAME_ID = "odom" # 가상 Odometry 좌표계
     BASE_FRAME_ID = "base_link" # 로봇의 기준 좌표계
-    graph_path = "/husky_ros_graph" # 그래프 경로 일관성 유지
+    graph_path = f"/husky_ros_graph_{robot_id}"
 
     stage = omni.usd.get_context().get_stage()
     if not stage:
         carb.log_error("Error: Could not get USD stage.")
-        return
+        return False
 
     print("Validating required prim paths and APIs...")
     valid_paths = {}
@@ -154,8 +156,8 @@ def create_tank_controll_listener(prim_path_of_husky):
         carb.log_error(f"Error: IMU Sensor Prim not found at {IMU_SENSOR_PRIM_PATH}. IMU publishing will be disabled.")
 
     if not validation_passed:
-        carb.log_error("Critical validation failed (Controller Target/Husky Root path). Cannot create OmniGraph.")
-        return
+        carb.log_error(f"Critical validation failed for Robot {robot_id}")
+        return False  
     print("Path validation finished.")
 
     if stage.GetPrimAtPath(graph_path).IsValid():
@@ -167,6 +169,7 @@ def create_tank_controll_listener(prim_path_of_husky):
     try:
         # --- 노드 정의 (조향 로직 변경 및 LiDAR 조건부 추가) ---
         nodes_to_create = [
+            ("ros2_context", "isaacsim.ros2.bridge.ROS2Context"), # Required for Domain ID configuration
             ("phys_step", "isaacsim.core.nodes.OnPhysicsStep"),
             # ("ack_sub", "isaacsim.ros2.bridge.ROS2SubscribeAckermannDrive"), # 기존 Ackermann 구독 노드 삭제
             ("twist_sub", "isaacsim.ros2.bridge.ROS2SubscribeTwist"),       # Twist 구독 노드로 변경
@@ -242,6 +245,7 @@ def create_tank_controll_listener(prim_path_of_husky):
         ]
 
         values_to_set = [
+            ("ros2_context.inputs:domain_id", domain_id),
             ("sim_time.inputs:resetOnStop", True), # Stop 버튼 클릭시 SImTime 초기화
             ("twist_sub.inputs:topicName", "/cmd_vel"), # 구독 토픽 변경
             ("diff_ctrl.inputs:wheelRadius", HUSKY_WHEEL_RADIUS),
@@ -317,6 +321,20 @@ def create_tank_controll_listener(prim_path_of_husky):
 
         # --- 연결 설정 (조향 로직 변경 및 LiDAR 조건부 추가) ---
         connections = [
+
+            ("ros2_context.outputs:context", "twist_sub.inputs:context"), # domain_id 변경
+            ("ros2_context.outputs:context", "clock_pub.inputs:context"),
+            ("ros2_context.outputs:context", "odom_pub.inputs:context"),
+            ("ros2_context.outputs:context", "tf_static_pub.inputs:context"),
+            ("ros2_context.outputs:context", "tf_dynamic_pub.inputs:context"),
+            ("ros2_context.outputs:context", "imu_pub.inputs:context"),
+            ("ros2_context.outputs:context", "lidar_pub_pc.inputs:context"),
+            ("ros2_context.outputs:context", "lidar_pub_ls.inputs:context"),
+            ("ros2_context.outputs:context", "rgb_camera_helper.inputs:context"),
+            ("ros2_context.outputs:context", "depth_camera_helper.inputs:context"),
+
+
+
             ("phys_step.outputs:step", "twist_sub.inputs:execIn"),
             ("phys_step.outputs:deltaSimulationTime", "diff_ctrl.inputs:dt"), # OnPhysicsStep의 deltaSimulationTime 사용
 
@@ -431,11 +449,13 @@ def create_tank_controll_listener(prim_path_of_husky):
             }
         )
         print(f"Successfully created/updated graph at {graph_path} with Twist control!")
+        return True
 
     except Exception as e:
         error_msg = f"Error during graph creation/modification for '{graph_path}': {e}"
         print(error_msg)
         traceback.print_exc()
+        return False
 
 # --- Function to check and create Joystick Listener (Placeholder) ---
 def create_joystick_listener(prim_path_of_husky):
