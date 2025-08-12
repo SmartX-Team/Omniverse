@@ -35,7 +35,7 @@ Pre-built Docker container path: docker pull ttyy441/ros2-container
 - **NVIDIA Driver:** Tested on version 535
 - **NVIDIA Container Toolkit:** If you want using this container in the Isaac-sim, You must need install toolkit 
 
-
+```
 ros2-container <project_root>/
 ├── Dockerfile                    # Multi-stage Docker build configuration
 ├── entrypoint.sh                # Container startup script with mode selection
@@ -77,7 +77,7 @@ ros2-container <project_root>/
         ├── bag_collector_to_kafka.py      # ROS bag to Kafka streaming
         ├── pointcloud_to_kafka.py         # Point cloud data streaming
         └── ros2_camera_to_kafka_agent.py  # Camera feed streaming
-
+```
 
 ## 4. Setup and Execution Procedures
 
@@ -126,7 +126,7 @@ Especially when controlling physical UGV with joysticks or MCU serial ports, you
 Before running Isaac Sim, set the following environment variables in the host terminal that will start Isaac Sim. This ensures Isaac Sim's FastDDS uses the provided XML profile (force UDP) and uses the correct RMW implementation.
 
 
-```bash
+```
 
 Complete example with SLAM and Navigation enabled:
 
@@ -179,9 +179,6 @@ Additional Options:
 --device=/dev/dri:/dev/dri - GPU acceleration for visualization
 -v ~/ros2_maps:/root/maps - Mount host directory for saving/loading SLAM maps
 --security-opt label=disable - Disable SELinux labeling (required on some systems)
-
-
-
 
 ```
 
