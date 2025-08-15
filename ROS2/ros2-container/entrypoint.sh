@@ -120,7 +120,7 @@ if [[ "$MODE" == "isaac_sim" || "$MODE" == "isaac_sim_default" ]]; then
 
 elif [ "$MODE" == "real_robot" ]; then
     echo "--- Real Robot Mode Setup ---"
-    
+
     # 1. Source base ROS 2 Humble environment
     if [ -f "$ROS2_DISTRO_SETUP" ]; then
         echo "Sourcing ROS 2 Humble environment: $ROS2_DISTRO_SETUP"
@@ -146,6 +146,15 @@ elif [ "$MODE" == "real_robot" ]; then
         echo "Warning: Ouster LiDAR workspace setup file not found at $OUSTER_DRIVER_WS_SETUP." >&2
     fi
 
+    if [ -d "${APP_WS}/src" ]; then
+        echo "--- Building and sourcing husky_isaac_bringup workspace at ${APP_WS} ---"
+        cd ${APP_WS}
+        colcon build --symlink-install
+        source ${APP_WS}/install/setup.bash
+        cd /root
+    fi
+
+
     # Export CPR_SETUP_PATH
     export CPR_SETUP_PATH=/etc/clearpath
     echo "CPR_SETUP_PATH set to: $CPR_SETUP_PATH"
@@ -170,12 +179,24 @@ elif [ "$MODE" == "real_robot" ]; then
         echo "  Ensure '--device=/dev/ttyUSB0:/dev/ttyUSB0' is part of 'docker run'."
     fi
 
+    echo "Starting Clearpath platform services..."
+    ros2 launch /etc/clearpath/platform/launch/platform-service.launch.py &
+    PLATFORM_PID=$!
+    sleep 3
+    
+    echo "Starting Clearpath sensor services..."
+    ros2 launch /etc/clearpath/sensors/launch/sensors-service.launch.py &
+    SENSORS_PID=$!
+    sleep 2
+    
+    echo "✓ Clearpath services started (Platform PID: $PLATFORM_PID, Sensors PID: $SENSORS_PID)"
+
     # Real Robot 모드에서 자동 실행 처리
     if [ "$AUTO_LAUNCH_BRINGUP" == "true" ]; then
         echo "Auto-launching robot bringup for Real Robot mode..."
-        COMMANDS_TO_EXEC="ros2 launch /root/robot_bringup.launch.py robot_mode:=real_robot"
+        COMMANDS_TO_EXEC="ros2 launch husky_isaac_bringup robot_bringup.launch.py robot_mode:=real_robot use_sim_time:=false"
     elif [ "$COMMANDS_TO_EXEC" == "bash" ]; then
-        # 기존 Clearpath 서비스는 자동 실행하지 않고 통합 launch 파일 사용 안내
+
         echo ""
         echo "==============================================================================="
         echo "Real Robot mode: Environment ready"

@@ -68,9 +68,9 @@ ros2-container <project_root>/
 │       ├── package.xml           # ROS2 package manifest
 │       └── setup.py              # Python package setup
 │
-└── standalone_scripts/          # Independent utility scripts [NEW]
+└── standalone_scripts/          # Independent utility scripts
     ├── controller/               # Robot control utilities
-    │   ├── inyong_joystick.py     # Custom joystick controller
+    │   ├── inyong_joystick.py     # joystick controller using cme_vel topic
     │   └── sync_mode_kafka.py     # Kafka-based synchronization
     │
     └── data/                    # Data pipeline utilities
