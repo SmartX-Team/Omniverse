@@ -327,11 +327,17 @@ def create_twist_control_listener_with_domain(prim_path_of_husky, robot_id=0, do
             ("ros2_context.outputs:context", "odom_pub.inputs:context"),
             ("ros2_context.outputs:context", "tf_static_pub.inputs:context"),
             ("ros2_context.outputs:context", "tf_dynamic_pub.inputs:context"),
-            ("ros2_context.outputs:context", "imu_pub.inputs:context"),
-            ("ros2_context.outputs:context", "lidar_pub_pc.inputs:context"),
-            ("ros2_context.outputs:context", "lidar_pub_ls.inputs:context"),
-            ("ros2_context.outputs:context", "rgb_camera_helper.inputs:context"),
-            ("ros2_context.outputs:context", "depth_camera_helper.inputs:context"),
+            *([("ros2_context.outputs:context", "imu_pub.inputs:context")] if imu_sensor_valid else []),
+            *([
+                ("ros2_context.outputs:context", "lidar_pub_pc.inputs:context"),
+                ("ros2_context.outputs:context", "lidar_pub_ls.inputs:context")
+            ] if lidar_sensor_valid else []),
+            *([
+                ("ros2_context.outputs:context", "rgb_camera_helper.inputs:context"),
+                ("ros2_context.outputs:context", "depth_camera_helper.inputs:context"),
+                ("ros2_context.outputs:context", "rgb_camera_info_helper.inputs:context"),
+                ("ros2_context.outputs:context", "depth_camera_info_helper.inputs:context")
+            ] if rgbd_camera_valid else []),
 
 
 
