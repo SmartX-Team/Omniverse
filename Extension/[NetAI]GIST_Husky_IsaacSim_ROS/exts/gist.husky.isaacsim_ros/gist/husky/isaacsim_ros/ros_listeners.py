@@ -246,6 +246,7 @@ def create_twist_control_listener_with_domain(prim_path_of_husky, robot_id=0, do
 
         values_to_set = [
             ("ros2_context.inputs:domain_id", domain_id),
+            ("ros2_context.inputs:useDomainIDEnvVar", False),
             ("sim_time.inputs:resetOnStop", True), # Stop 버튼 클릭시 SImTime 초기화
             ("twist_sub.inputs:topicName", "/cmd_vel"), # 구독 토픽 변경
             ("diff_ctrl.inputs:wheelRadius", HUSKY_WHEEL_RADIUS),
