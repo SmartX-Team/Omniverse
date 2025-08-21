@@ -3,9 +3,11 @@
 UWB Real-Time Location System Extension for NVIDIA Omniverse
 
 ## Overview
-[간단한 설명]
+This extension currently includes functionality for real-time position tracking based on UWB sensor data installed on the S7, as well as publishing UWB coordinates accordingly.
 
 ## Installation
+
+
 
 
 ## Documentation

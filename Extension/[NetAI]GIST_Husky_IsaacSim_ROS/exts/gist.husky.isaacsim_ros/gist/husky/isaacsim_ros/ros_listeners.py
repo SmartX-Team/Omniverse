@@ -440,7 +440,7 @@ def create_twist_control_listener_with_domain(prim_path_of_husky, robot_id=0, do
             {
               "graph_path": graph_path,
               "evaluator_name": "execution",
-              "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND,
+              "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_SIMULATION,
             },
             {
               keys.CREATE_NODES: nodes_to_create,

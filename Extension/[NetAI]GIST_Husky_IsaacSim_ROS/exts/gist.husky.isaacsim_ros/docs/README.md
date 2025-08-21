@@ -1,12 +1,10 @@
-# GIST Husky Isaac Sim ROS Extension - 코드 구조 설명
-
 # GIST Husky Isaac Sim ROS Extension - Code Structure Explanation
 
 This document describes the internal code structure of the `gist.husky.isaacsim_ros` Python package.
 
 ## Directory Structure (Expected)
 
-
+```
 gist/husky/isaacsim_ros/
 ├── init.py         # Package initialization and main class exposure
 ├── extension.py        # Omniverse extension lifecycle (startup/shutdown), UI window creation and management
@@ -18,7 +16,7 @@ gist/husky/isaacsim_ros/
 ├── config.py           # (Optional Improvement) Definition of main configuration values (Prim paths, topic names, etc.)
 └── Standalone_Scripts/ # Scripts runnable independently of the extension (e.g., external controllers)
 └── ...
-
+```
 
 ## Main Module Descriptions
 
