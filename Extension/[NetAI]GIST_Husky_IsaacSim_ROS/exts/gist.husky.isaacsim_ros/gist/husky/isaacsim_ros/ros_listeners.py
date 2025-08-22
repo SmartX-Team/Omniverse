@@ -343,21 +343,21 @@ def create_twist_control_listener_with_domain(prim_path_of_husky, robot_id=0, do
 
 
             ("phys_step.outputs:step", "twist_sub.inputs:execIn"),
-            ("phys_step.outputs:deltaSimulationTime", "diff_ctrl.inputs:dt"), # OnPhysicsStep의 deltaSimulationTime 사용
+            #("phys_step.outputs:deltaSimulationTime", "diff_ctrl.inputs:dt"), # OnPhysicsStep의 deltaSimulationTime 사용
 
+            ("phys_step.outputs:step", "diff_ctrl.inputs:execIn"),
+            ("phys_step.outputs:deltaSimulationTime", "diff_ctrl.inputs:dt"),
 
             ("twist_sub.outputs:linearVelocity", "break_linear_velocity.inputs:tuple"),
             ("twist_sub.outputs:angularVelocity", "break_angular_velocity.inputs:tuple"),
-            ("break_linear_velocity.outputs:x", "diff_ctrl.inputs:linearVelocity"),
-           # ("break_angular_velocity.outputs:z", "diff_ctrl.inputs:angularVelocity"),
 
+           # ("break_angular_velocity.outputs:z", "diff_ctrl.inputs:angularVelocity"),
+            ("break_linear_velocity.outputs:x", "diff_ctrl.inputs:linearVelocity"),
             ("break_angular_velocity.outputs:z", "rotation_multiplier.inputs:a"),
             # ConstantDouble 노드의 출력을 Multiply 노드의 입력 b로 연결
             ("rotation_correction_factor.inputs:value", "rotation_multiplier.inputs:b"),
             # Multiply 결과를 컨트롤러 입력으로 연결
             ("rotation_multiplier.outputs:product", "diff_ctrl.inputs:angularVelocity"),
-
-            ("phys_step.outputs:step", "diff_ctrl.inputs:execIn"), 
 
             ("diff_ctrl.outputs:velocityCommand", "get_v_left.inputs:array"),
             ("diff_ctrl.outputs:velocityCommand", "get_v_right.inputs:array"),
@@ -446,7 +446,7 @@ def create_twist_control_listener_with_domain(prim_path_of_husky, robot_id=0, do
         og.Controller.edit(
             {
               "graph_path": graph_path,
-              "evaluator_name": "execution",
+              "evaluator_name": "push",
               "pipeline_stage": og.GraphPipelineStage.GRAPH_PIPELINE_STAGE_ONDEMAND,
             },
             {
