@@ -1,17 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
-    <transport_descriptors>
-        <transport_descriptor>
-            <transport_id>UDPv4Transport</transport_id>
-            <type>UDPv4</type>
-        </transport_descriptor>
-    </transport_descriptors>
-    <participant profile_name="force_udp_profile" is_default_profile="true">
-        <rtps>
-            <userTransports>
-                <transport_id>UDPv4Transport</transport_id>
-            </userTransports>
-            <useBuiltinTransports>false</useBuiltinTransports>
-        </rtps>
-    </participant>
+  <transport_descriptors>
+    <transport_descriptor>
+      <transport_id>udp</transport_id>
+      <type>UDPv4</type>
+    </transport_descriptor>
+  </transport_descriptors>
+
+  <participant profile_name="udp_only" is_default_profile="true">
+    <rtps>
+      <useBuiltinTransports>false</useBuiltinTransports>
+      <userTransports>
+        <transport_id>udp</transport_id>
+      </userTransports>
+      <builtin>
+        <!-- 멀티캐스트로 디스커버리/데이터 허용 -->
+        <avoid_builtin_multicast>false</avoid_builtin_multicast>
+      </builtin>
+    </rtps>
+
+    <!-- Data-Sharing(SHM) 전송 완전 비활성 -->
+    <sharing>
+      <enabled>false</enabled>
+    </sharing>
+  </participant>
 </profiles>
