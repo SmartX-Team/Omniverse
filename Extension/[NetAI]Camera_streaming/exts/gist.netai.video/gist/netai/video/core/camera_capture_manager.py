@@ -25,12 +25,13 @@ class CameraCaptureManager:
         self.stage = stage
         self.cameras = {}  # Store camera information
         self._next_camera_id = 0
+        self._active_writers = []
         
-        # Initialize replicator orchestrator
-        try:
-            rep.orchestrator.run()
-        except Exception as e:
-            print(f"[Warning] Orchestrator initialization: {e}")
+        # Initialize replicator orchestrator ; 1.2.0 때 새로 생성한 함수 
+        self._force_cleanup_all()
+
+        # Orchestrator 재초기화 ; 1.2.0 때 새로 생성한 함수 
+        self._reinitialize_orchestrator()
     
     def validate_camera(self, camera_path: str) -> Tuple[bool, str]:
         """
@@ -126,6 +127,7 @@ class CameraCaptureManager:
     def _create_render_product(self, camera_path: str, camera_id: int, resolution: tuple):
         """Create render product and writer for off-screen capture"""
         try:
+            self._cleanup_writer_by_id(camera_id)
 
             rp = rep.create.render_product(
                 camera_path, 
@@ -151,7 +153,13 @@ class CameraCaptureManager:
                 colorize_semantic_segmentation=False
             )
             writer.attach([rp])
-            
+
+            self._active_writers.append({
+                'camera_id': camera_id,
+                'writer': writer,
+                'render_product': rp
+            })
+
             print(f"[Info] Created render product for camera {camera_id}")
             return rp, writer
             
@@ -160,7 +168,18 @@ class CameraCaptureManager:
             import traceback
             traceback.print_exc()  # 전체 에러 스택 출력
             return None, None
-    
+
+    def _cleanup_writer_by_id(self, camera_id: int):
+        """Clean up specific writer by camera ID"""
+        for item in self._active_writers[:]:
+            if item['camera_id'] == camera_id:
+                try:
+                    item['writer'].detach()
+                    self._active_writers.remove(item)
+                    print(f"[Info] Cleaned up writer for camera {camera_id}")
+                except:
+                    pass
+
     async def capture_single_frame(self, camera_path: str) -> bool:
         """
         Capture a single frame from camera
@@ -293,7 +312,58 @@ class CameraCaptureManager:
         """Cleanup all resources"""
         self.stop_all_captures()
         
-        for camera_path, camera_info in self.cameras.items():
+        # 추적된 모든 writer 정리
+        for item in self._active_writers[:]:
+            try:
+                item['writer'].detach()
+            except:
+                pass
+        self._active_writers.clear()
+        
+        # 카메라별 정리
+        for camera_info in self.cameras.values():
             self._cleanup_render_product(camera_info)
         
         self.cameras.clear()
+        
+        # 강제 가비지 컬렉션
+        import gc
+        gc.collect()
+
+    def _force_cleanup_all(self):
+        """Force cleanup all replicator components"""
+        try:
+            # 모든 비동기 태스크 취소
+            for task in asyncio.all_tasks():
+                if hasattr(task, '_coro') and 'capture' in str(task._coro):
+                    task.cancel()
+                    
+            # Syntheticdata 센서 정리
+            try:
+                import omni.syntheticdata as sd
+                if hasattr(sd, '_sensor_helpers'):
+                    sd._sensor_helpers.clear_all_sensors()
+            except:
+                pass
+            
+            # 메모리 강제 정리
+            import gc
+            gc.collect()
+            
+        except Exception as e:
+            print(f"[Warning] Force cleanup error: {e}")
+
+
+    def _reinitialize_orchestrator(self):
+        """Reinitialize orchestrator safely"""
+        try:
+            # 기존 orchestrator 정지
+            if rep.orchestrator.get_is_started():
+                rep.orchestrator.stop()
+                asyncio.sleep(0.2)
+            
+            # 새로 시작
+            rep.orchestrator.run()
+            print("[Info] Orchestrator reinitialized")
+        except Exception as e:
+            print(f"[Warning] Orchestrator reinit error: {e}")

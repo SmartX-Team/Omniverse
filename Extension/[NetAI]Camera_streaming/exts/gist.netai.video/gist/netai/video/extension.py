@@ -1,12 +1,15 @@
 # camera_capture_extension.py
-"""Main extension that coordinates UI and business logic"""
+"""Main extension that coordinates UI and business logic
+"""
 
 import omni.ext
 import asyncio
+import gc
 from omni.usd import get_context
 from .ui.camera_capture_ui import CameraCaptureUI
 from .core.camera_capture_manager import CameraCaptureManager
 from .core.camera_validator import CameraValidator
+import omni.replicator.core as rep
 
 # Default Configuration
 DEFAULT_CAMERA_PATH = "/World/Camera"
@@ -21,6 +24,8 @@ class CameraCaptureExtension(omni.ext.IExt):
     def on_startup(self, ext_id: str):
         """Called upon extension startup"""
         print(f"[{ext_id}] CameraCaptureExtension startup")
+
+        self._cleanup_existing_replicator_resources()
         
         # Initialize manager
         self.stage = get_context().get_stage()
@@ -115,11 +120,93 @@ class CameraCaptureExtension(omni.ext.IExt):
         """Called upon extension shutdown"""
         print("[CameraCaptureExtension] Shutdown")
         
-        # Cleanup manager
+        # 모든 캡처 정지
+        self.capture_manager.stop_all_captures()
+        
+        # 각 카메라별 리소스 확실히 정리
+        for camera_path in list(self.capture_manager.cameras.keys()):
+            camera_info = self.capture_manager.cameras[camera_path]
+            
+            # Writer detach
+            if camera_info.get("writer"):
+                try:
+                    camera_info["writer"].detach()
+                    camera_info["writer"] = None
+                except:
+                    pass
+            
+            # Render product 정리
+            if camera_info.get("render_product"):
+                camera_info["render_product"] = None
+        
+        # Orchestrator 정지
+        try:
+            if rep.orchestrator.get_is_started():
+                rep.orchestrator.stop()
+                print("[Info] Orchestrator stopped")
+        except Exception as e:
+            print(f"[Warning] Error stopping orchestrator: {e}")
+        
+        # Manager 정리
         self.capture_manager.cleanup()
         
-        # Cleanup UI
+        # UI 정리
         self.ui.destroy()
         
         self.stage = None
         print("[CameraCaptureExtension] Shutdown complete")
+
+    def _cleanup_existing_replicator_resources(self):
+        """Clean up any existing replicator resources from previous sessions"""
+
+        try:
+            print("[Info] Starting aggressive Replicator cleanup...")
+            
+            # 1. 모든 실행 중인 비동기 태스크 취소
+            for task in asyncio.all_tasks():
+                if 'capture' in str(task).lower():
+                    task.cancel()
+
+            try:
+                print("[Info] Cleaning up existing Replicator resources...")
+                
+                # Orchestrator 정지
+                if rep.orchestrator.get_is_started():
+                    rep.orchestrator.stop()
+                    print("[Info] Stopped existing orchestrator")
+            except:
+                pass
+            # 모든 writer 정리 시도
+            try:
+                # WriterRegistry의 모든 writer 정리
+                writers_cleared = 0
+                for writer_name in ['BasicWriter', 'RtxWriter', 'KittiWriter']:
+                    try:
+                        writer = rep.WriterRegistry.get(writer_name)
+                        if writer:
+                            writer.detach()
+                            writers_cleared += 1
+                    except:
+                        pass
+                
+                # Registry 자체 초기화 시도
+                rep.WriterRegistry.clear()
+                print(f"[Info] Cleared {writers_cleared} writer types")
+            except AttributeError:
+                pass
+
+            try:
+                # 모든 render product 찾아서 정리
+                import omni.syntheticdata as sd
+                sd._sensor_helpers.clear_all_sensors()
+            except:
+                pass
+
+            gc.collect()
+            time.sleep(0.1)
+            # Orchestrator 재시작
+            rep.orchestrator.run()
+            print("[Info] Replicator resources cleaned and reinitialized")
+            
+        except Exception as e:
+            print(f"[Warning] Error during replicator cleanup: {e}")        
