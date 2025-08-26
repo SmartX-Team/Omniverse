@@ -67,7 +67,7 @@ class CameraCaptureExtension(omni.ext.IExt):
         temp_id = self.capture_manager._next_camera_id
         
         # Create UI elements
-        ui_refs = self.ui.add_camera_ui(temp_id, camera_path, output_dir)
+        ui_refs = self.ui.add_camera_panel(temp_id, camera_path, output_dir, capture_mode="LOCAL")
         
         if ui_refs:
             # Add camera to manager with UI references
@@ -82,7 +82,7 @@ class CameraCaptureExtension(omni.ext.IExt):
         self.ui.update_status(camera_path, "Capturing...")
         
         task = asyncio.ensure_future(
-            self.capture_manager.capture_single_frame(camera_path)
+            self.capture_manager.capture_single_frame(camera_path, pause_sim=True)
         )
         
         def on_complete(future):
@@ -105,7 +105,13 @@ class CameraCaptureExtension(omni.ext.IExt):
         """Handle remove camera request"""
         print(f"[Info] Removing camera: {camera_path}")
         self.capture_manager.remove_camera(camera_path)
-        self.ui.remove_camera_ui(camera_path)
+        import time
+        time.sleep(0.1)
+        
+        # UI 패널 제거
+        self.ui.remove_camera_panel(camera_path)
+        
+        print(f"[Info] Camera {camera_id} removal complete")
     
     def _on_stop_all(self):
         """Handle stop all captures request"""

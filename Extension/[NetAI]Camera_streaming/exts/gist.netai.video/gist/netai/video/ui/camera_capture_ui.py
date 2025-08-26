@@ -1,37 +1,28 @@
-"""UI components for Camera Capture Extension
-
-1.1.0 버전 기준으로 UI 구조는 분리시킴 -Inyong Song
-"""
-
+# ui/camera_capture_ui.py
 import omni.ui as ui
-import weakref
-import functools
-from typing import Dict, Callable, Optional
 import asyncio
+from typing import Dict, Callable, Optional
+from .panels.local_storage_panel import LocalStoragePanel
+from .panels.base_panel import CameraPanelBase
 
 class CameraCaptureUI:
-    """Manages the UI for Camera Capture Extension"""
+    """Manages the UI for Camera Capture Extension with panel abstraction"""
     
     def __init__(self, 
                  default_camera_path: str,
                  default_output_dir: str,
                  callbacks: Dict[str, Callable]):
-        """
-        Initialize UI manager
-        
-        Args:
-            default_camera_path: Default camera path
-            default_output_dir: Default output directory  
-            callbacks: Dictionary of callback functions from main extension
-        """
         self._window = None
         self._callbacks = callbacks
         self._camera_ui_container = None
-        self._camera_ui_items = {}  # Store UI references for each camera
+        self._camera_panels = {}  # Store panel objects
         
         # Models for input fields
         self._camera_path_model = ui.SimpleStringModel(default_camera_path)
         self._output_dir_model = ui.SimpleStringModel(default_output_dir)
+        
+        # Default capture mode
+        self._default_capture_mode = "LOCAL"
         
         self._build_window()
     
@@ -101,148 +92,79 @@ class CameraCaptureUI:
         if self._callbacks.get("add_camera"):
             self._callbacks["add_camera"](camera_path, output_dir)
     
-    def add_camera_ui(self, camera_id: int, camera_path: str, output_dir: str) -> dict:
-        """
-        Add UI for a specific camera
-        
-        Returns:
-            Dictionary containing UI models and references
-        """
+    def add_camera_panel(self, camera_id: int, camera_path: str, output_dir: str, 
+                        capture_mode: str = "LOCAL") -> Optional[Dict]:
+        """Add a camera panel based on capture mode"""
         if not self._camera_ui_container:
             print("[ERROR] Camera UI container not initialized.")
             return None
         
-        # Create models for UI inputs
-        ui_models = {
-            "interval_model": ui.SimpleFloatModel(1.0),
-            "frame_count_model": ui.SimpleIntModel(5),
-            "resolution_x_model": ui.SimpleIntModel(1280),
-            "resolution_y_model": ui.SimpleIntModel(720)
-        }
+        # Create appropriate panel based on mode
+        panel = None
+        if capture_mode == "LOCAL":
+            panel = LocalStoragePanel(camera_id, camera_path, self._camera_ui_container, self._callbacks)
+        # elif capture_mode == "KAFKA":
+        #     panel = KafkaStreamingPanel(camera_id, camera_path, self._camera_ui_container, self._callbacks)
+        else:
+            print(f"[ERROR] Unknown capture mode: {capture_mode}")
+            return None
         
-        ui_refs = {}
+        # Build panel UI
+        ui_refs = panel.build_panel(output_dir=output_dir)
         
-        with self._camera_ui_container:
-            frame_title = f"Camera {camera_id}: {camera_path}"
-            collapsable_frame = ui.CollapsableFrame(frame_title, collapsed=False)
-            ui_refs["frame"] = collapsable_frame
-            
-            with collapsable_frame:
-                with ui.VStack(spacing=5, height=0):
-                    # Status display
-                    ui_refs["status_label"] = ui.Label("Status: Ready", word_wrap=True)
-                    ui_refs["progress_label"] = ui.Label("", word_wrap=True)
-                    
-                    # Output directory display
-                    with ui.HStack(height=25, spacing=5):
-                        ui.Label("Output:", width=80)
-                        ui.Label(output_dir, style={"color": 0xFF888888})
-                    
-                    # Resolution input
-                    with ui.HStack(height=25, spacing=5):
-                        ui.Label("Resolution:", width=80)
-                        ui.IntField(model=ui_models["resolution_x_model"], width=60)
-                        ui.Label("x", width=20)
-                        ui.IntField(model=ui_models["resolution_y_model"], width=60)
-                    
-                    # Capture settings
-                    with ui.HStack(height=25, spacing=5):
-                        ui.Label("Interval (s):", width=80)
-                        ui.FloatField(model=ui_models["interval_model"], width=60)
-                        ui.Label("Frames:", width=60)
-                        ui.IntField(model=ui_models["frame_count_model"], width=60)
-                    
-                    ui.Line(height=2)
-                    
-                    # Control buttons
-                    self._build_camera_controls(camera_path, camera_id)
+        # Store panel object
+        self._camera_panels[camera_path] = panel
         
-        self._camera_ui_items[camera_path] = {**ui_models, **ui_refs}
-        return self._camera_ui_items[camera_path]
+        return ui_refs
     
-    def _build_camera_controls(self, camera_path: str, camera_id: int):
-        """Build control buttons for a camera"""
-        with ui.HStack(spacing=5):
-            ui.Button("Capture Once", 
-                     clicked_fn=functools.partial(
-                         self._callbacks.get("capture_once"), camera_path, camera_id
-                     ),
-                     tooltip=f"Capture single frame from camera {camera_id}")
-            ui.Button("Start Periodic", 
-                     clicked_fn=functools.partial(
-                         self._callbacks.get("capture_periodic"), camera_path, camera_id
-                     ),
-                     tooltip=f"Start periodic capture",
-                     style={"background_color": 0xFF27AE60})
-        
-        with ui.HStack(spacing=5):
-            ui.Button("Stop Capture", 
-                     clicked_fn=functools.partial(
-                         self._callbacks.get("stop_capture"), camera_path, camera_id
-                     ),
-                     tooltip="Stop ongoing capture",
-                     style={"background_color": 0xFFE67E22})
-            ui.Button("Remove", 
-                     clicked_fn=functools.partial(
-                         self._callbacks.get("remove_camera"), camera_path, camera_id
-                     ),
-                     tooltip="Remove camera from management",
-                     style={"color": 0xFFFF6666})
-    
-    def remove_camera_ui(self, camera_path: str):
-        """Remove camera UI by hiding first, then destroying"""
-        if camera_path not in self._camera_ui_items:
-            print(f"[Warning] Camera UI not found for path: {camera_path}")
+    def remove_camera_panel(self, camera_path: str):
+        """Remove camera panel with proper cleanup"""
+        if camera_path not in self._camera_panels:
+            print(f"[Warning] Camera panel not found for path: {camera_path}")
             return
         
-        ui_item = self._camera_ui_items[camera_path]
-        frame = ui_item.get("frame")
+        panel = self._camera_panels[camera_path]
         
-        if frame:
-            frame.visible = False
+        # Hide immediately
+        panel.hide()
         
-        # deferred destroy를 위한 태스크 생성
+        # Deferred destroy
         async def cleanup():
-            await asyncio.sleep(0.1)  # 100ms 대기
-            if frame:
-                try:
-                    frame.destroy()
-                except:
-                    pass
+            await asyncio.sleep(0.1)
+            if not panel.is_destroyed():
+                panel.destroy()
         
-        # 딕셔너리에서는 즉시 제거
-        del self._camera_ui_items[camera_path]
-        print(f"[Info] Camera removed: {camera_path}")
+        # Remove from dictionary
+        del self._camera_panels[camera_path]
+        print(f"[Info] Camera panel removed: {camera_path}")
         
-        # 정리는 백그라운드에서
+        # Schedule cleanup
         asyncio.ensure_future(cleanup())
     
     def update_status(self, camera_path: str, status: str):
-        """Update status label for a camera"""
-        if camera_path in self._camera_ui_items:
-            label = self._camera_ui_items[camera_path].get("status_label")
-            if label:
-                label.text = status
+        """Update status for a camera panel"""
+        if camera_path in self._camera_panels:
+            self._camera_panels[camera_path].update_status(status)
     
     def update_progress(self, camera_path: str, progress: str):
-        """Update progress label for a camera"""
-        if camera_path in self._camera_ui_items:
-            label = self._camera_ui_items[camera_path].get("progress_label")
-            if label:
-                label.text = progress
+        """Update progress for a camera panel"""
+        if camera_path in self._camera_panels:
+            self._camera_panels[camera_path].update_progress(progress)
     
-    def get_camera_path(self) -> str:
-        """Get current camera path from input field"""
-        return self._camera_path_model.get_value_as_string().strip()
-    
-    def get_output_dir(self) -> str:
-        """Get current output directory from input field"""
-        return self._output_dir_model.get_value_as_string().strip()
+    def get_panel(self, camera_path: str) -> Optional[CameraPanelBase]:
+        """Get panel object for a camera"""
+        return self._camera_panels.get(camera_path)
     
     def destroy(self):
         """Clean up UI"""
+        # Destroy all panels
+        for panel in self._camera_panels.values():
+            if not panel.is_destroyed():
+                panel.destroy()
+        
         if self._window:
             self._window.destroy()
+        
         self._window = None
         self._camera_ui_container = None
-        self._camera_ui_items.clear()
+        self._camera_panels.clear()

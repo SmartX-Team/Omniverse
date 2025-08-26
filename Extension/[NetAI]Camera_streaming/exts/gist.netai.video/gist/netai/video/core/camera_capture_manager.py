@@ -11,6 +11,7 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 import omni.replicator.core as rep
+import time
 
 class CameraCaptureManager:
     """Manages camera capture operations"""
@@ -96,33 +97,62 @@ class CameraCaptureManager:
             return
         
         camera_info = self.cameras[camera_path]
+        camera_id = camera_info.get("camera_id")
         
         # Stop any ongoing capture
         if camera_info.get("capture_task"):
             camera_info["stop_requested"] = True
+            if camera_info["capture_task"]:
+                camera_info["capture_task"].cancel()
+                camera_info["capture_task"] = None
         
         # Clean up render product and writer
         self._cleanup_render_product(camera_info)
         
         del self.cameras[camera_path]
+        # 가비지 컬렉션 강제 실행
+        import gc
+        gc.collect()        
         print(f"[Info] Camera removed. Remaining: {len(self.cameras)} cameras")
     
     def _cleanup_render_product(self, camera_info: dict):
         """Clean up render product"""
-        # Writer 정리
+        camera_id = camera_info.get("camera_id")
+        
+        # Writer 정리 - flush 대기 추가
         if camera_info.get("writer"):
             try:
-                # detach는 필요 없을 수 있음
+                writer = camera_info["writer"]
+                
+                # 모든 프레임이 기록될 때까지 대기
+                max_wait = 30  # 최대 3초 대기
+                while max_wait > 0:
+                    pending = rep.orchestrator.get_sim_times_to_write()
+                    if not pending:
+                        break
+                    time.sleep(0.1)
+                    max_wait -= 1
+                
+                writer.detach()
                 camera_info["writer"] = None
+                print(f"[Info] Writer detached for camera {camera_id}")
             except Exception as e:
                 print(f"[Warning] Failed to clean up writer: {e}")
         
         # Render product 정리
         if camera_info.get("render_product"):
             try:
+                rp = camera_info["render_product"]
+                del rp
                 camera_info["render_product"] = None
+                print(f"[Info] Render product cleaned for camera {camera_id}")
             except Exception as e:
                 print(f"[Warning] Failed to clean up render product: {e}")
+        
+        # Active writers 리스트에서도 제거
+        if hasattr(self, '_active_writers'):
+            self._active_writers = [w for w in self._active_writers 
+                                if w.get('camera_id') != camera_id]
     
     def _create_render_product(self, camera_path: str, camera_id: int, resolution: tuple):
         """Create render product and writer for off-screen capture"""
@@ -180,19 +210,18 @@ class CameraCaptureManager:
                 except:
                     pass
 
-    async def capture_single_frame(self, camera_path: str) -> bool:
+    async def capture_single_frame(self, camera_path: str, pause_sim: bool = True) -> bool:
         """
         Capture a single frame from camera
         
-        Returns:
-            Success status
+        Args:
+            use_orchestrator: True for single capture (stops sim), False for periodic (no stop)
         """
         camera_info = self.cameras.get(camera_path)
         if not camera_info:
             return False
-        
+
         camera_id = camera_info["camera_id"]
-        print(f"[Debug] Capturing from camera {camera_id}: {camera_path}")
         
         # Get resolution from UI models
         resolution = (
@@ -202,17 +231,11 @@ class CameraCaptureManager:
         
         # Check if render product exists or resolution changed
         if not camera_info["render_product"] or camera_info.get("last_resolution") != resolution:
-            # Clean up old render product if resolution changed
             if camera_info["render_product"] and camera_info.get("last_resolution") != resolution:
-                print(f"[Info] Resolution changed for camera {camera_info['camera_id']}, recreating render product")
+                print(f"[Info] Resolution changed for camera {camera_id}, recreating render product")
                 self._cleanup_render_product(camera_info)
             
-            # Create new render product and writer
-            rp, writer = self._create_render_product(
-                camera_path, 
-                camera_info["camera_id"], 
-                resolution
-            )
+            rp, writer = self._create_render_product(camera_path, camera_id, resolution)
             if not rp or not writer:
                 return False
             
@@ -221,25 +244,26 @@ class CameraCaptureManager:
             camera_info["last_resolution"] = resolution
         
         try:
-            # Capture frame using existing writer
-            await rep.orchestrator.step_async()
+            # pause_timeline 파라미터로 시뮬레이션 중단 여부 제어
+            await rep.orchestrator.step_async(pause_timeline=pause_sim)
             
             camera_info["frame_counter"] += 1
             timestamp = datetime.now().strftime("%H:%M:%S")
             
-            # Update progress through UI reference
             if camera_info.get("progress_label"):
                 camera_info["progress_label"].text = f"Captured frame {camera_info['frame_counter']} at {timestamp}"
             
+            print(f"[Debug] Frame {camera_info['frame_counter']} captured at {timestamp}")
+            
             return True
         except Exception as e:
-            print(f"[ERROR] Capture failed for camera {camera_info['camera_id']}: {e}")
+            print(f"[ERROR] Capture failed for camera {camera_id}: {e}")
             if camera_info.get("status_label"):
                 camera_info["status_label"].text = f"Error: {str(e)}"
             return False
     
     async def capture_periodic_task(self, camera_path: str):
-        """Execute periodic capture task"""
+        """Execute periodic capture task with proper timing"""
         camera_info = self.cameras.get(camera_path)
         if not camera_info:
             return
@@ -247,30 +271,45 @@ class CameraCaptureManager:
         interval = camera_info["interval_model"].as_float
         total_frames = camera_info["frame_count_model"].as_int
         
+        print(f"[Info] Starting periodic capture: {total_frames} frames with {interval}s interval")
+        
         if camera_info.get("status_label"):
             camera_info["status_label"].text = f"Capturing: 0/{total_frames}"
         
+        frames_captured = 0
+        
         for i in range(total_frames):
             if camera_info.get("stop_requested"):
+                print(f"[Info] Capture stopped by user at frame {i}/{total_frames}")
                 break
             
-            await self.capture_single_frame(camera_path)
+            # pause_sim=False로 시뮬레이션 안 멈추고 캡처
+            success = await self.capture_single_frame(camera_path, pause_sim=False)
             
-            if camera_info.get("status_label"):
-                camera_info["status_label"].text = f"Capturing: {i+1}/{total_frames}"
+            if success:
+                frames_captured += 1
+                if camera_info.get("status_label"):
+                    camera_info["status_label"].text = f"Capturing: {frames_captured}/{total_frames}"
             
+            # stop 체크를 interval 대기 중에도
             if i < total_frames - 1:
-                await asyncio.sleep(interval)
+                # interval을 작은 단위로 나눠서 체크
+                interval_steps = int(interval * 10)  # 100ms 단위로 체크
+                for _ in range(interval_steps):
+                    if camera_info.get("stop_requested"):
+                        break
+                    await asyncio.sleep(0.1)
         
-        # Update final status
-        if camera_info.get("status_label"):
-            if not camera_info.get("stop_requested"):
-                camera_info["status_label"].text = f"Complete: {camera_info['frame_counter']} frames captured"
-            else:
-                camera_info["status_label"].text = f"Stopped: {camera_info['frame_counter']} frames captured"
+        # 태스크 종료 처리
+        if not camera_info.get("stop_requested"):
+            # 정상 완료
+            if camera_info.get("status_label"):
+                camera_info["status_label"].text = f"Complete: {frames_captured} frames captured"
+        # stop_requested인 경우는 stop_capture에서 이미 처리
         
         camera_info["capture_task"] = None
-        camera_info["stop_requested"] = False
+        
+        print(f"[Info] Periodic capture ended: {frames_captured} frames")
     
     def start_periodic_capture(self, camera_path: str):
         """Start periodic capture for a camera"""
@@ -293,12 +332,79 @@ class CameraCaptureManager:
         if not camera_info:
             return
         
-        if camera_info["capture_task"]:
-            camera_info["stop_requested"] = True
+        camera_id = camera_info.get("camera_id")
+
+        # 진행 중인 태스크가 없으면 바로 리턴
+        if not camera_info.get("capture_task"):
             if camera_info.get("status_label"):
-                camera_info["status_label"].text = "Stopping..."
-        elif camera_info.get("status_label"):
-            camera_info["status_label"].text = "No active capture"
+                camera_info["status_label"].text = "No active capture"
+            return
+        
+        print(f"[Info] Stopping capture for camera {camera_id}")
+        
+        # 1. stop 플래그 설정
+        camera_info["stop_requested"] = True
+        
+        # 2. 상태 업데이트
+        if camera_info.get("status_label"):
+            camera_info["status_label"].text = "Stopping..."
+        
+        # 3. 태스크 취소
+        try:
+            if camera_info["capture_task"]:
+                camera_info["capture_task"].cancel()
+        except:
+            pass
+        finally:
+            camera_info["capture_task"] = None
+        
+        # 4. Writer와 Render Product 정리 칵
+        print(f"[Info] Cleaning up resources for camera {camera_id}")
+        
+        # Writer flush 및 정리
+        if camera_info.get("writer"):
+            try:
+                writer = camera_info["writer"]
+                
+                # 펜딩 프레임 대기
+                import time
+                max_wait = 20  # 2초 대기
+                while max_wait > 0:
+                    pending = rep.orchestrator.get_sim_times_to_write()
+                    if not pending:
+                        break
+                    time.sleep(0.1)
+                    max_wait -= 1
+                
+                writer.detach()
+                camera_info["writer"] = None
+                print(f"[Info] Writer stopped and detached for camera {camera_id}")
+            except Exception as e:
+                print(f"[Warning] Error stopping writer: {e}")
+        
+        # Render product 정리
+        if camera_info.get("render_product"):
+            try:
+                rp = camera_info["render_product"]
+                del rp
+                camera_info["render_product"] = None
+                print(f"[Info] Render product removed for camera {camera_id}")
+            except Exception as e:
+                print(f"[Warning] Error removing render product: {e}")
+        
+        # Active writers 리스트에서 제거
+        if hasattr(self, '_active_writers'):
+            self._active_writers = [w for w in self._active_writers 
+                                if w.get('camera_id') != camera_id]
+        
+        # 상태 업데이트
+        if camera_info.get("status_label"):
+            camera_info["status_label"].text = "Stopped - Ready"
+        
+        # stop_requested 플래그 리셋
+        camera_info["stop_requested"] = False
+        
+        print(f"[Info] Capture stopped for camera {camera_id}. Writer/RP cleaned.")
     
     def stop_all_captures(self):
         """Stop all ongoing captures"""
