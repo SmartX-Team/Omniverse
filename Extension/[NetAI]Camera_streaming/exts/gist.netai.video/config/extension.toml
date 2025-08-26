@@ -50,3 +50,11 @@ use_online_index = true
 dependencies = [
     "omni.kit.ui_test" # UI testing extension
 ]
+
+[python.pipapi]
+requirements = [
+    "requests==2.31.0",
+    "aiokafka==0.10.0",
+    "Pillow==9.5.0"
+
+]

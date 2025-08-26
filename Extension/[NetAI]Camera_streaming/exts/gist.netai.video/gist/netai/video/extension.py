@@ -55,7 +55,7 @@ class CameraCaptureExtension(omni.ext.IExt):
             callbacks
         )
     
-    def _on_add_camera(self, camera_path: str, output_dir: str):
+    def _on_add_camera(self, camera_path: str, output_or_config: str, capture_mode: str = "LOCAL"):
         """Handle add camera request"""
         # Validate camera
         is_valid, error_msg = CameraValidator.validate_camera(
@@ -67,17 +67,17 @@ class CameraCaptureExtension(omni.ext.IExt):
             print(f"[Warning] {error_msg}")
             return
         
-        print(f"[Info] Adding camera: {camera_path}")
+        print(f"[Info] Adding camera: {camera_path} with mode: {capture_mode}")
         
         # Get camera ID for UI
         temp_id = self.capture_manager._next_camera_id
         
         # Create UI elements
-        ui_refs = self.ui.add_camera_panel(temp_id, camera_path, output_dir, capture_mode="LOCAL")
+        ui_refs = self.ui.add_camera_panel(temp_id, camera_path, output_or_config, capture_mode)
         
         if ui_refs:
             # Add camera to manager with UI references
-            self.capture_manager.add_camera(camera_path, output_dir, ui_refs)
+            self.capture_manager.add_camera(camera_path, output_or_config, ui_refs, capture_mode)
     
     def _on_capture_once(self, camera_path: str, camera_id: int):
         """Handle single capture request"""
@@ -243,11 +243,19 @@ class CameraCaptureExtension(omni.ext.IExt):
         
         for camera_config in preset_data.get('cameras', []):
             camera_path = camera_config.get('camera_path')
-            output_dir = camera_config.get('output_dir', '/home/netai/Documents/traffic_captures')
-
-            print(f"[Info] Processing camera from preset: {camera_path}")
-
             capture_mode = camera_config.get('capture_mode', 'LOCAL')
+
+            # Prepare config based on mode
+            if capture_mode == 'LOCAL':
+                output_or_config = camera_config.get('output_dir', '/home/netai/Documents/traffic_captures')
+            elif capture_mode == 'KAFKA':
+                broker = camera_config.get('kafka_broker', 'localhost:9092')
+                topic = camera_config.get('kafka_topic', '')
+                output_or_config = f"{broker}|{topic}" if topic else broker
+            else:
+                output_or_config = camera_config.get('output_dir', '/home/netai/Documents/traffic_captures')
+            
+            print(f"[Info] Processing camera from preset: {camera_path} (mode: {capture_mode})")
             
             # Validate camera
             is_valid, error_msg = CameraValidator.validate_camera(
@@ -260,16 +268,16 @@ class CameraCaptureExtension(omni.ext.IExt):
                 # Get camera ID
                 temp_id = self.capture_manager._next_camera_id
                 
-                # Create panel
+                # Create panel with capture mode
                 ui_refs = self.ui.add_camera_panel(
                     temp_id, 
                     camera_path, 
-                    output_dir, 
+                    output_or_config, 
                     capture_mode=capture_mode
                 )
                 
                 if ui_refs:
-                    self.capture_manager.add_camera(camera_path, output_dir, ui_refs)
+                    self.capture_manager.add_camera(camera_path, output_or_config, ui_refs, capture_mode)
                     
                     # Apply preset settings to UI models if provided
                     if 'resolution' in camera_config and len(camera_config['resolution']) == 2:
@@ -290,7 +298,7 @@ class CameraCaptureExtension(omni.ext.IExt):
             else:
                 print(f"[Warning] Failed to add camera '{camera_path}': {error_msg}")
                 cameras_failed += 1
-        
+    
         print(f"[Info] Preset loaded: {cameras_added} cameras added, {cameras_failed} failed")
 
     def _on_save_preset(self, preset_path: str):
@@ -299,13 +307,12 @@ class CameraCaptureExtension(omni.ext.IExt):
         for camera_path, camera_info in self.capture_manager.cameras.items():
             # Get panel to determine capture mode
             panel = self.ui.get_panel(camera_path)
-            capture_mode = "LOCAL"
+            capture_mode = camera_info.get("capture_mode", "LOCAL")
             if panel:
                 capture_mode = panel.get_capture_mode()
             
-            cameras.append({
+            camera_entry = {
                 "camera_path": camera_path,
-                "output_dir": camera_info.get("output_dir", ""),
                 "capture_mode": capture_mode,
                 "resolution": [
                     camera_info["resolution_x_model"].as_int,
@@ -313,7 +320,17 @@ class CameraCaptureExtension(omni.ext.IExt):
                 ],
                 "interval": camera_info["interval_model"].as_float,
                 "frame_count": camera_info["frame_count_model"].as_int
-            })
+            }
+            
+            # Add mode-specific configuration
+            if capture_mode == "LOCAL":
+                camera_entry["output_dir"] = camera_info.get("output_dir", "")
+            elif capture_mode == "KAFKA":
+                kafka_config = camera_info.get("kafka_config", {})
+                camera_entry["kafka_broker"] = kafka_config.get("broker", "localhost:9092")
+                camera_entry["kafka_topic"] = kafka_config.get("topic", "")
+            
+            cameras.append(camera_entry)
         
         if PresetLoader.save_preset(cameras, preset_path):
             print(f"[Info] Saved {len(cameras)} cameras to preset")

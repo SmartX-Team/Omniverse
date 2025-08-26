@@ -12,7 +12,6 @@ from datetime import datetime
 from typing import Dict, Optional, Tuple
 import omni.replicator.core as rep
 import time
-
 class CameraCaptureManager:
     """Manages camera capture operations"""
     
@@ -64,7 +63,7 @@ class CameraCaptureManager:
         
         return True, ""
     
-    def add_camera(self, camera_path: str, output_dir: str, ui_refs: dict) -> int:
+    def add_camera(self, camera_path: str, output_or_config: str, ui_refs: dict, capture_mode: str = "LOCAL") -> int:
         """
         Add a camera to management
         
@@ -73,11 +72,37 @@ class CameraCaptureManager:
         """
         camera_id = self._next_camera_id
         self._next_camera_id += 1
-        
+
+        # Parse configuration based on capture mode
+        if capture_mode == "LOCAL":
+            output_dir = output_or_config
+            kafka_config = None
+        elif capture_mode == "KAFKA":
+            output_dir = None  # Not used for Kafka mode
+            # Parse Kafka configuration
+            if "|" in output_or_config:
+                broker, topic = output_or_config.split("|", 1)
+            else:
+                broker = output_or_config
+                topic = f"camera_{camera_id}"
+            kafka_config = {
+                "broker": broker,
+                "topic": topic
+            }
+        else:
+            # Default to LOCAL
+            output_dir = output_or_config
+            kafka_config = None
+            capture_mode = "LOCAL"
+
+
+
         camera_info = {
             "path": camera_path,
             "camera_id": camera_id,
+            "capture_mode": capture_mode,
             "output_dir": output_dir,
+            "kafka_config": kafka_config,
             "render_product": None,
             "writer": None,
             "last_resolution": None,
@@ -118,9 +143,10 @@ class CameraCaptureManager:
     def _cleanup_render_product(self, camera_info: dict):
         """Clean up render product"""
         camera_id = camera_info.get("camera_id")
+        capture_mode = camera_info.get("capture_mode", "LOCAL")
         
         # Writer 정리 - flush 대기 추가
-        if camera_info.get("writer"):
+        if capture_mode == "LOCAL" and camera_info.get("writer"):
             try:
                 writer = camera_info["writer"]
                 
@@ -150,7 +176,7 @@ class CameraCaptureManager:
                 print(f"[Warning] Failed to clean up render product: {e}")
         
         # Active writers 리스트에서도 제거
-        if hasattr(self, '_active_writers'):
+        if capture_mode == "LOCAL" and hasattr(self, '_active_writers'):
             self._active_writers = [w for w in self._active_writers 
                                 if w.get('camera_id') != camera_id]
     
@@ -158,45 +184,71 @@ class CameraCaptureManager:
         """Create render product and writer for off-screen capture"""
         try:
             self._cleanup_writer_by_id(camera_id)
-
+            
+            # 현재 카메라 정보 가져오기
+            camera_info = self.cameras.get(camera_path)
+            if not camera_info:
+                print(f"[ERROR] Camera info not found for {camera_path}")
+                return None, None
+                
+            capture_mode = camera_info.get("capture_mode", "LOCAL")
+            print(f"[Info] Creating render product for camera {camera_id} in {capture_mode} mode")
+            
             rp = rep.create.render_product(
                 camera_path, 
                 resolution=resolution
             )
             
-            # Writer 생성
-            writer = rep.WriterRegistry.get("BasicWriter")
-            
-            # 각 카메라별 고유 출력 디렉토리
-            camera_name = camera_path.split('/')[-1]
-            output_subdir = os.path.join(
-                self.cameras[camera_path]["output_dir"],
-                f"camera_{camera_id}_{camera_name}"
-            )
-            os.makedirs(output_subdir, exist_ok=True)
-            
-            # Writer 초기화 - 고유 이름 없이
-            writer.initialize(
-                output_dir=output_subdir,
-                rgb=True,
-                colorize_instance_segmentation=False,
-                colorize_semantic_segmentation=False
-            )
-            writer.attach([rp])
-
-            self._active_writers.append({
-                'camera_id': camera_id,
-                'writer': writer,
-                'render_product': rp
-            })
-
-            print(f"[Info] Created render product for camera {camera_id}")
-            return rp, writer
+            # LOCAL 모드에서만 BasicWriter 생성
+            if capture_mode == "LOCAL":
+                if not camera_info.get("output_dir"):
+                    print(f"[ERROR] No output_dir specified for LOCAL mode camera {camera_id}")
+                    return rp, None
+                    
+                # Writer 생성
+                writer = rep.WriterRegistry.get("BasicWriter")
+                
+                # 각 카메라별 고유 출력 디렉토리
+                camera_name = camera_path.split('/')[-1]
+                output_subdir = os.path.join(
+                    camera_info["output_dir"],
+                    f"camera_{camera_id}_{camera_name}"
+                )
+                os.makedirs(output_subdir, exist_ok=True)
+                
+                # Writer 초기화
+                writer.initialize(
+                    output_dir=output_subdir,
+                    rgb=True,
+                    colorize_instance_segmentation=False,
+                    colorize_semantic_segmentation=False
+                )
+                writer.attach([rp])
+                
+                self._active_writers.append({
+                    'camera_id': camera_id,
+                    'writer': writer,
+                    'render_product': rp
+                })
+                
+                print(f"[Info] Created render product with BasicWriter for LOCAL camera {camera_id}")
+                return rp, writer
+                
+            elif capture_mode == "KAFKA":
+                # Kafka 모드에서는 writer 없이 render product만 생성
+                kafka_config = camera_info.get("kafka_config", {})
+                print(f"[Info] Created render product for KAFKA camera {camera_id}")
+                print(f"  - Broker: {kafka_config.get('broker')}")
+                print(f"  - Topic: {kafka_config.get('topic')}")
+                return rp, None
+            else:
+                print(f"[ERROR] Unknown capture mode: {capture_mode}")
+                return rp, None
             
         except Exception as e:
             print(f"[ERROR] Failed to create render product for camera {camera_id}: {e}")
             import traceback
-            traceback.print_exc()  # 전체 에러 스택 출력
+            traceback.print_exc()
             return None, None
 
     def _cleanup_writer_by_id(self, camera_id: int):
@@ -212,16 +264,17 @@ class CameraCaptureManager:
 
     async def capture_single_frame(self, camera_path: str, pause_sim: bool = True) -> bool:
         """
-        Capture a single frame from camera
+        Capture a single frame from camera with metadata
         
         Args:
-            use_orchestrator: True for single capture (stops sim), False for periodic (no stop)
+            pause_sim: True for single capture (stops sim), False for periodic (no stop)
         """
         camera_info = self.cameras.get(camera_path)
         if not camera_info:
             return False
 
         camera_id = camera_info["camera_id"]
+        capture_mode = camera_info.get("capture_mode", "LOCAL")
         
         # Get resolution from UI models
         resolution = (
@@ -236,32 +289,206 @@ class CameraCaptureManager:
                 self._cleanup_render_product(camera_info)
             
             rp, writer = self._create_render_product(camera_path, camera_id, resolution)
-            if not rp or not writer:
+            if not rp:  # render product는 필수, writer는 LOCAL 모드에서만 필요
                 return False
             
             camera_info["render_product"] = rp
-            camera_info["writer"] = writer
+            camera_info["writer"] = writer  # KAFKA 모드에서는 None일 수 있음
             camera_info["last_resolution"] = resolution
         
         try:
-            # pause_timeline 파라미터로 시뮬레이션 중단 여부 제어
-            await rep.orchestrator.step_async(pause_timeline=pause_sim)
+            # KAFKA 모드에서 이미지 데이터 추출 및 전송
+            if capture_mode == "KAFKA":
+                # 먼저 프레임 캡처
+                await rep.orchestrator.step_async(pause_timeline=pause_sim)
+                
+                # 이미지 데이터 추출
+                import omni.syntheticdata as sd
+                import numpy as np
+                from PIL import Image
+                import io
+                
+                try:
+                    # render product에서 RGB 데이터 가져오기
+                    rgb_annotator = rep.AnnotatorRegistry.get_annotator("rgb", device="cpu")
+                    rgb_annotator.attach([camera_info["render_product"]])
+                    
+                    # 데이터 대기
+                    await rep.orchestrator.step_async(pause_timeline=False)
+                    
+                    # RGB 데이터 가져오기
+                    rgb_data = rgb_annotator.get_data()
+                    
+                    if rgb_data is not None and len(rgb_data) > 0:
+                        # RGB 데이터 처리
+                        if isinstance(rgb_data, dict):
+                            image_data = rgb_data.get("data", rgb_data.get("rgb", None))
+                        else:
+                            image_data = rgb_data
+                        
+                        if image_data is not None:
+                            # NumPy array로 변환
+                            if not isinstance(image_data, np.ndarray):
+                                image_data = np.array(image_data)
+                            
+                            # RGBA to RGB 변환 (4채널인 경우)
+                            if len(image_data.shape) == 3 and image_data.shape[2] == 4:
+                                image_data = image_data[:, :, :3]
+                            
+                            # uint8로 변환
+                            if image_data.dtype != np.uint8:
+                                image_data = (image_data * 255).astype(np.uint8)
+                            
+                            # PIL Image로 변환
+                            image = Image.fromarray(image_data)
+                            
+                            # JPEG로 압축
+                            buffer = io.BytesIO()
+                            image.save(buffer, format='JPEG', quality=85)
+                            image_bytes = buffer.getvalue()
+                            
+                            # 카메라 메타데이터 추출
+                            camera_metadata = self.get_camera_metadata(camera_path, resolution)
+                            
+                            # Kafka로 전송
+                            kafka_config = camera_info.get("kafka_config", {})
+                            broker = kafka_config.get("broker", "localhost:9092")
+                            topic = kafka_config.get("topic", f"camera_{camera_id}")
+                            
+                            # Kafka handler 초기화 (필요시)
+                            if not hasattr(self, 'kafka_handlers'):
+                                self.kafka_handlers = {}
+                            
+                            if camera_id not in self.kafka_handlers:
+                                from ..utils.kafka_handler import KafkaHandler
+                                handler = KafkaHandler()
+                                success, msg = await handler.connect(broker)
+                                if success:
+                                    self.kafka_handlers[camera_id] = handler
+                                    print(f"[Info] Connected to Kafka broker: {broker}")
+                                else:
+                                    print(f"[Error] Failed to connect to Kafka: {msg}")
+                                    if camera_info.get("status_label"):
+                                        camera_info["status_label"].text = f"Kafka connection failed: {msg}"
+                                    return False
+                            
+                            handler = self.kafka_handlers.get(camera_id)
+                            if handler:
+                                # 메타데이터와 함께 이미지 전송
+                                import base64
+                                
+                                message = {
+                                    # Frame identification
+                                    "frame_id": f"frame_{int(datetime.now().timestamp() * 1000)}",
+                                    "camera_id": camera_id,
+                                    "camera_name": f"cam{camera_id}",
+                                    "camera_path": camera_path,
+                                    "timestamp": datetime.now().isoformat(),
+                                    "timestamp_ms": int(datetime.now().timestamp() * 1000),
+                                    
+                                    # Camera calibration
+                                    "intrinsics": {
+                                        "K": camera_metadata["K"],  # 3x3 matrix
+                                        "distortion": camera_metadata["distortion"],  # [0,0,0,0,0]
+                                        "image_size": camera_metadata["image_size"],  # [width, height]
+                                        "focal_length": camera_metadata["focal_length"],
+                                        "sensor_size": camera_metadata["sensor_size"]
+                                    },
+                                    
+                                    # Camera pose
+                                    "extrinsics": {
+                                        "R": camera_metadata["R"],  # 3x3 rotation matrix
+                                        "t": camera_metadata["t"],  # 3x1 translation vector
+                                        "T_world_cam": camera_metadata["T_world_cam"]  # Full 4x4 transform
+                                    },
+                                    
+                                    # Image data
+                                    "image": {
+                                        "format": "jpeg",
+                                        "quality": 85,
+                                        "size": len(image_bytes),
+                                        "width": resolution[0],
+                                        "height": resolution[1],
+                                        "data": base64.b64encode(image_bytes).decode('utf-8')
+                                    }
+                                }
+                                
+                                # KafkaHandler의 send_message 사용 (value_serializer가 처리)
+                                try:
+                                    success = await handler.send_message(
+                                        topic=topic,
+                                        message=message,
+                                        key=f"cam{camera_id}"
+                                    )
+                                    if success:
+                                        print(f"[Info] Sent frame with metadata to topic '{topic}' - Camera {camera_id} (size: {len(image_bytes)} bytes)")
+                                    else:
+                                        print(f"[Error] Failed to send frame to Kafka topic '{topic}'")
+                                except Exception as e:
+                                    print(f"[Error] Failed to send to Kafka: {e}")
+                            
+                            # annotator 정리
+                            rgb_annotator.detach()
+                        else:
+                            print(f"[Warning] No valid image data received for camera {camera_id}")
+                    else:
+                        print(f"[Warning] No RGB data available for camera {camera_id}")
+                        
+                except Exception as e:
+                    print(f"[Error] Kafka streaming failed for camera {camera_id}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+            else:  # LOCAL mode
+                # 기존 방식대로 BasicWriter가 파일로 저장
+                await rep.orchestrator.step_async(pause_timeline=pause_sim)
+
+                # 메타데이터 추출 및 저장 추가
+                if camera_info.get("output_dir"):
+                    camera_metadata = self.get_camera_metadata(camera_path, resolution)
+                    
+                    # 메타데이터 JSON 파일 저장
+                    import json
+                    camera_name = camera_path.split('/')[-1]
+                    output_subdir = os.path.join(
+                        camera_info["output_dir"],
+                        f"camera_{camera_id}_{camera_name}"
+                    )
+                    
+                    # 프레임별 메타데이터 파일
+                    frame_num = camera_info["frame_counter"]
+                    metadata_file = os.path.join(
+                        output_subdir, 
+                        f"frame_{frame_num:06d}_metadata.json"
+                    )
+                    
+                    metadata_with_frame = {
+                        "frame_number": frame_num,
+                        "timestamp": datetime.now().isoformat(),
+                        **camera_metadata
+                    }
+                    
+                    with open(metadata_file, 'w') as f:
+                        json.dump(metadata_with_frame, f, indent=2)
             
+            # 공통 처리
             camera_info["frame_counter"] += 1
             timestamp = datetime.now().strftime("%H:%M:%S")
             
             if camera_info.get("progress_label"):
                 camera_info["progress_label"].text = f"Captured frame {camera_info['frame_counter']} at {timestamp}"
             
-            print(f"[Debug] Frame {camera_info['frame_counter']} captured at {timestamp}")
+            mode_str = f" ({capture_mode} mode)" if capture_mode == "KAFKA" else ""
+            print(f"[Debug] Frame {camera_info['frame_counter']} captured at {timestamp}{mode_str}")
             
             return True
+            
         except Exception as e:
             print(f"[ERROR] Capture failed for camera {camera_id}: {e}")
             if camera_info.get("status_label"):
                 camera_info["status_label"].text = f"Error: {str(e)}"
             return False
-    
+        
     async def capture_periodic_task(self, camera_path: str):
         """Execute periodic capture task with proper timing"""
         camera_info = self.cameras.get(camera_path)
@@ -333,6 +560,8 @@ class CameraCaptureManager:
             return
         
         camera_id = camera_info.get("camera_id")
+        capture_mode = camera_info.get("capture_mode", "LOCAL")
+
 
         # 진행 중인 태스크가 없으면 바로 리턴
         if not camera_info.get("capture_task"):
@@ -362,7 +591,7 @@ class CameraCaptureManager:
         print(f"[Info] Cleaning up resources for camera {camera_id}")
         
         # Writer flush 및 정리
-        if camera_info.get("writer"):
+        if capture_mode == "LOCAL" and camera_info.get("writer"):
             try:
                 writer = camera_info["writer"]
                 
@@ -392,8 +621,8 @@ class CameraCaptureManager:
             except Exception as e:
                 print(f"[Warning] Error removing render product: {e}")
         
-        # Active writers 리스트에서 제거
-        if hasattr(self, '_active_writers'):
+        # Active writers 리스트에서 제거 (LOCAL 모드만)
+        if capture_mode == "LOCAL" and hasattr(self, '_active_writers'):
             self._active_writers = [w for w in self._active_writers 
                                 if w.get('camera_id') != camera_id]
         
@@ -436,6 +665,12 @@ class CameraCaptureManager:
         import gc
         gc.collect()
 
+        # Kafka handlers 정리
+        if hasattr(self, 'kafka_handlers'):
+            for handler in self.kafka_handlers.values():
+                asyncio.create_task(handler.disconnect())
+            self.kafka_handlers.clear()        
+
     def _force_cleanup_all(self):
         """Force cleanup all replicator components"""
         try:
@@ -473,3 +708,102 @@ class CameraCaptureManager:
             print("[Info] Orchestrator reinitialized")
         except Exception as e:
             print(f"[Warning] Orchestrator reinit error: {e}")
+
+
+    def get_camera_metadata(self, camera_path: str, resolution: tuple) -> dict:
+            """
+            Extract camera intrinsic and extrinsic parameters from USD
+            """
+            import numpy as np
+            from pxr import UsdGeom, Gf
+            
+            camera_prim = self.stage.GetPrimAtPath(camera_path)
+            if not camera_prim:
+                return None
+            
+            camera = UsdGeom.Camera(camera_prim)
+            
+            # Get intrinsic parameters (기본값 처리 포함)
+            focal_length = camera.GetFocalLengthAttr().Get()
+            h_aperture = camera.GetHorizontalApertureAttr().Get()
+            v_aperture = camera.GetVerticalApertureAttr().Get()
+            
+            # USD 기본값 사용 (없으면)
+            if not focal_length:
+                focal_length = 18.14756
+            if not h_aperture:
+                h_aperture = 20.955
+            if not v_aperture:
+                v_aperture = 15.2908
+            
+            width, height = resolution
+            
+            # Calculate intrinsic matrix K
+            fx = focal_length * width / h_aperture
+            fy = focal_length * height / v_aperture
+            cx = width / 2.0
+            cy = height / 2.0
+            
+            K = np.array([
+                [fx, 0,  cx],
+                [0,  fy, cy],
+                [0,  0,  1]
+            ])
+            
+            # Get extrinsic parameters (world transform)
+            xform = UsdGeom.Xformable(camera_prim)
+            world_transform = xform.ComputeLocalToWorldTransform(0)
+            
+            # Convert to 4x4 matrix
+            T_world_cam = np.array(world_transform).reshape(4, 4)
+            
+            # Extract rotation (R) and translation (t)
+            R = T_world_cam[:3, :3]
+            t = T_world_cam[:3, 3]
+            
+            # Camera looks down -Z in USD, convert to OpenCV convention (Z forward)
+            flip = np.array([
+                [1, 0, 0],
+                [0, -1, 0],
+                [0, 0, -1]
+            ])
+            R = R @ flip
+            
+            return {
+                "camera_path": camera_path,
+                "K": K.tolist(),  # 3x3 intrinsic matrix
+                "distortion": [0, 0, 0, 0, 0],  # No distortion in USD
+                "R": R.tolist(),  # 3x3 rotation matrix
+                "t": t.tolist(),  # 3x1 translation vector
+                "T_world_cam": T_world_cam.tolist(),  # Full 4x4 transform
+                "image_size": [width, height],
+                "focal_length": focal_length,
+                "sensor_size": [h_aperture, v_aperture]
+            }
+
+    def export_rig_config(self, output_path: str = "rig.json"):
+        """
+        Export all camera configurations to a rig file
+        """
+        import json
+        
+        rig_data = {
+            "timestamp": datetime.now().isoformat(),
+            "frame_id": "world",
+            "cameras": []
+        }
+        
+        for camera_path in self.cameras.keys():
+            metadata = self.get_camera_metadata(camera_path)
+            if metadata:
+                # Add camera index/name
+                camera_info = self.cameras[camera_path]
+                metadata["camera_id"] = camera_info["camera_id"]
+                metadata["camera_name"] = f"cam{camera_info['camera_id']}"
+                rig_data["cameras"].append(metadata)
+        
+        with open(output_path, 'w') as f:
+            json.dump(rig_data, f, indent=2)
+        
+        print(f"[Info] Exported camera rig to {output_path}")
+        return rig_data

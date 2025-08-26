@@ -3,7 +3,11 @@ import omni.ui as ui
 import asyncio
 from typing import Dict, Callable, Optional
 from .panels.local_storage_panel import LocalStoragePanel
+from .panels.kafka_streaming_panel import KafkaStreamingPanel
 from .panels.base_panel import CameraPanelBase
+
+# Import CaptureMode from models
+from ..models.capture_mode import CaptureMode
 
 class CameraCaptureUI:
     """Manages the UI for Camera Capture Extension with panel abstraction"""
@@ -21,8 +25,9 @@ class CameraCaptureUI:
         self._camera_path_model = ui.SimpleStringModel(default_camera_path)
         self._output_dir_model = ui.SimpleStringModel(default_output_dir)
         
-        # Default capture mode
-        self._default_capture_mode = "LOCAL"
+        # Kafka specific models
+        self._kafka_broker_model = ui.SimpleStringModel("localhost:9092")
+        self._kafka_topic_model = ui.SimpleStringModel("")
         
         self._build_window()
     
@@ -46,23 +51,77 @@ class CameraCaptureUI:
         ui.Line()
     
     def _build_input_section(self):
-        """Build input section for adding cameras"""
+        """Build input section for adding cameras with capture mode selection"""
         with ui.VStack(spacing=5):
-            # Camera path input
-            with ui.HStack(height=30, spacing=5):
-                ui.Label("Camera Path:", width=100)
-                ui.StringField(model=self._camera_path_model, width=ui.Percent(70))
+            # Preset loading section
+            with ui.CollapsableFrame("Preset Configuration", collapsed=True):
+                with ui.VStack(spacing=5):
+                    # Preset file path input
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Preset File:", width=100)
+                        self._preset_path_model = ui.SimpleStringModel("")
+                        ui.StringField(model=self._preset_path_model, width=ui.Percent(60))
+                        ui.Button("Browse", 
+                                clicked_fn=self._on_browse_preset,
+                                width=80)
+                    
+                    # Load/Save preset buttons
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Button("Load Preset", 
+                                clicked_fn=self._on_load_preset,
+                                height=30,
+                                style={"background_color": 0xFF27AE60})
+                        ui.Button("Save Preset",
+                                clicked_fn=self._on_save_preset,
+                                height=30,
+                                style={"background_color": 0xFF2980B9})
             
-            # Output directory input
-            with ui.HStack(height=30, spacing=5):
-                ui.Label("Output Dir:", width=100)
-                ui.StringField(model=self._output_dir_model, width=ui.Percent(70))
+            ui.Separator(height=10)
             
-            # Add button
-            ui.Button("Add Camera", 
-                     clicked_fn=self._on_add_camera_clicked,
-                     height=30,
-                     style={"background_color": 0xFF4A90E2})
+            # Manual camera add section - 올바른 들여쓰기로 수정
+            with ui.CollapsableFrame("Manual Camera Add", collapsed=False):
+                with ui.VStack(spacing=5):
+                    # Camera path input
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Camera Path:", width=100)
+                        ui.StringField(model=self._camera_path_model, width=ui.Percent(70))
+                    
+                    ui.Separator(height=5)
+                    
+                    # Local Storage section
+                    ui.Label("Local Storage Mode:", style={"color": 0xFF4A90E2, "font_weight": "bold"})
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Output Dir:", width=100)
+                        ui.StringField(model=self._output_dir_model, width=ui.Percent(70))
+                    
+                    # Add Local button
+                    ui.Button("Add Camera (Local)", 
+                            clicked_fn=self._on_add_local_camera,
+                            height=30,
+                            style={"background_color": 0xFF4A90E2})
+                    
+                    ui.Separator(height=10)
+                    
+                    # Kafka Streaming section
+                    ui.Label("Kafka Streaming Mode:", style={"color": 0xFF9B59B6, "font_weight": "bold"})
+                    
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Kafka Broker:", width=100,
+                                tooltip="Format: host:port")
+                        ui.StringField(model=self._kafka_broker_model, 
+                                     placeholder="localhost:9092")
+                    
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Topic (optional):", width=100,
+                                tooltip="Leave empty to auto-generate")
+                        ui.StringField(model=self._kafka_topic_model,
+                                     placeholder="auto-generate")
+                    
+                    # Add Kafka button
+                    ui.Button("Add Camera (Kafka)", 
+                            clicked_fn=self._on_add_kafka_camera,
+                            height=30,
+                            style={"background_color": 0xFF9B59B6})
     
     def _build_camera_list_section(self):
         """Build camera list section"""
@@ -83,62 +142,46 @@ class CameraCaptureUI:
             ui.Button("Clear All", 
                      clicked_fn=self._callbacks.get("clear_all"),
                      style={"background_color": 0xFF95A5A6})
-
-
-    def _build_input_section(self):
-        """Build input section for adding cameras for preset"""
-        with ui.VStack(spacing=5):
-            # Preset loading section
-            with ui.CollapsableFrame("Preset Configuration", collapsed=False):
-                with ui.VStack(spacing=5):
-                    # Preset file path input
-                    with ui.HStack(height=30, spacing=5):
-                        ui.Label("Preset File:", width=100)
-                        self._preset_path_model = ui.SimpleStringModel("")
-                        ui.StringField(model=self._preset_path_model, width=ui.Percent(60))
-                        ui.Button("Browse", 
-                                clicked_fn=self._on_browse_preset,
-                                width=80)
-                    
-                    # Load preset button
-                    ui.Button("Load Preset", 
-                            clicked_fn=self._on_load_preset,
-                            height=30,
-                            style={"background_color": 0xFF27AE60})
-            
-            ui.Separator(height=10)
-            
-            # Manual camera add section (기존 코드)
-            with ui.CollapsableFrame("Manual Camera Add", collapsed=False):
-                with ui.VStack(spacing=5):
-                    # Camera path input
-                    with ui.HStack(height=30, spacing=5):
-                        ui.Label("Camera Path:", width=100)
-                        ui.StringField(model=self._camera_path_model, width=ui.Percent(70))
-                    
-                    # Output directory input
-                    with ui.HStack(height=30, spacing=5):
-                        ui.Label("Output Dir:", width=100)
-                        ui.StringField(model=self._output_dir_model, width=ui.Percent(70))
-                    
-                    # Add button
-                    ui.Button("Add Camera", 
-                            clicked_fn=self._on_add_camera_clicked,
-                            height=30,
-                            style={"background_color": 0xFF4A90E2})
-
-
-    def _on_add_camera_clicked(self):
-        """Handle add camera button click"""
+    
+    def _on_add_local_camera(self):
+        """Handle add camera button click for LOCAL mode"""
         camera_path = self._camera_path_model.get_value_as_string().strip()
         output_dir = self._output_dir_model.get_value_as_string().strip()
+        capture_mode = "LOCAL"
+        
+        print(f"[DEBUG] Add Local Camera:")
+        print(f"  - Camera Path: {camera_path}")
+        print(f"  - Output Dir: {output_dir}")
         
         if self._callbacks.get("add_camera"):
-            self._callbacks["add_camera"](camera_path, output_dir)
+            self._callbacks["add_camera"](camera_path, output_dir, capture_mode)
     
-    def add_camera_panel(self, camera_id: int, camera_path: str, output_dir: str, 
+    def _on_add_kafka_camera(self):
+        """Handle add camera button click for KAFKA mode"""
+        camera_path = self._camera_path_model.get_value_as_string().strip()
+        broker = self._kafka_broker_model.get_value_as_string().strip()
+        topic = self._kafka_topic_model.get_value_as_string().strip()
+        kafka_config = f"{broker}|{topic}" if topic else broker
+        capture_mode = "KAFKA"
+        
+        print(f"[DEBUG] Add Kafka Camera:")
+        print(f"  - Camera Path: {camera_path}")
+        print(f"  - Broker: {broker}")
+        print(f"  - Topic: {topic if topic else 'auto-generate'}")
+        print(f"  - Config: {kafka_config}")
+        
+        if self._callbacks.get("add_camera"):
+            self._callbacks["add_camera"](camera_path, kafka_config, capture_mode)
+    
+    def add_camera_panel(self, camera_id: int, camera_path: str, output_or_config: str, 
                         capture_mode: str = "LOCAL") -> Optional[Dict]:
         """Add a camera panel based on capture mode"""
+        print(f"[DEBUG] add_camera_panel called:")
+        print(f"  - Camera ID: {camera_id}")
+        print(f"  - Camera Path: {camera_path}")
+        print(f"  - Config: {output_or_config}")
+        print(f"  - Capture Mode: {capture_mode}")
+        
         if not self._camera_ui_container:
             print("[ERROR] Camera UI container not initialized.")
             return None
@@ -146,30 +189,39 @@ class CameraCaptureUI:
         # Create appropriate panel based on mode
         panel = None
         if capture_mode == "LOCAL":
+            print("[DEBUG] Creating LocalStoragePanel")
             panel = LocalStoragePanel(camera_id, camera_path, self._camera_ui_container, self._callbacks)
-        # elif capture_mode == "KAFKA":
-        #     panel = KafkaStreamingPanel(camera_id, camera_path, self._camera_ui_container, self._callbacks)
+            ui_refs = panel.build_panel(output_dir=output_or_config)
+            
+        elif capture_mode == "KAFKA":
+            print("[DEBUG] Creating KafkaStreamingPanel")
+            panel = KafkaStreamingPanel(camera_id, camera_path, self._camera_ui_container, self._callbacks)
+            # Parse Kafka config
+            if "|" in output_or_config:
+                broker, topic = output_or_config.split("|", 1)
+            else:
+                broker = output_or_config
+                topic = f"camera_{camera_id}"
+            print(f"[DEBUG] Kafka panel params - Broker: {broker}, Topic: {topic}")
+            ui_refs = panel.build_panel(broker=broker, topic=topic)
+            
         else:
             print(f"[ERROR] Unknown capture mode: {capture_mode}")
             return None
         
-        # Build panel UI
-        ui_refs = panel.build_panel(output_dir=output_dir)
-        
         # Store panel object
         self._camera_panels[camera_path] = panel
+        print(f"[DEBUG] Panel created and stored. Total panels: {len(self._camera_panels)}")
         
         return ui_refs
-
+    
     def _on_browse_preset(self):
         """Open file browser for preset selection"""
-        # Simple file dialog using omni.kit.widget.filebrowser if available
-        # For now, just use a default path
         import os
         default_preset = os.path.expanduser("~/Documents/camera_preset.json")
         self._preset_path_model.set_value(default_preset)
         print(f"[Info] Set preset path to: {default_preset}")
-
+    
     def _on_load_preset(self):
         """Load cameras from preset file"""
         preset_path = self._preset_path_model.get_value_as_string().strip()
@@ -179,7 +231,7 @@ class CameraCaptureUI:
         
         if self._callbacks.get("load_preset"):
             self._callbacks["load_preset"](preset_path)
-
+    
     def _on_save_preset(self):
         """Save current cameras to preset file"""
         preset_path = self._preset_path_model.get_value_as_string().strip()
@@ -189,8 +241,7 @@ class CameraCaptureUI:
         
         if self._callbacks.get("save_preset"):
             self._callbacks["save_preset"](preset_path)
-
-
+    
     def remove_camera_panel(self, camera_path: str):
         """Remove camera panel with proper cleanup"""
         if camera_path not in self._camera_panels:
