@@ -12,16 +12,17 @@ class LocalStoragePanel(CameraPanelBase):
         self.callbacks = callbacks
         self.output_dir = ""
     
-    def build_panel(self, output_dir: str = "/home/netai/Documents/traffic_captures", **kwargs) -> Dict[str, Any]:
+    def build_panel(self, output_dir: str = "/home/netai/Documents/traffic_captures", resolution: list = None, interval: float = None, 
+                frame_count: int = None, **kwargs) -> Dict[str, Any]:
         """Build local storage panel UI"""
         self.output_dir = output_dir
         
         # Create UI models
         self._ui_models = {
-            "interval_model": ui.SimpleFloatModel(1.0),
-            "frame_count_model": ui.SimpleIntModel(5),
-            "resolution_x_model": ui.SimpleIntModel(1280),
-            "resolution_y_model": ui.SimpleIntModel(720)
+            "interval_model": ui.SimpleFloatModel(interval if interval else 1.0),
+            "frame_count_model": ui.SimpleIntModel(frame_count if frame_count else 5),
+            "resolution_x_model": ui.SimpleIntModel(resolution[0] if resolution else 1280),
+            "resolution_y_model": ui.SimpleIntModel(resolution[1] if resolution and len(resolution) > 1 else 720)
         }
         
         # Build UI

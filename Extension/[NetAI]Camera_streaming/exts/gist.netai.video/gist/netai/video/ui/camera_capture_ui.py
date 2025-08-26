@@ -83,7 +83,51 @@ class CameraCaptureUI:
             ui.Button("Clear All", 
                      clicked_fn=self._callbacks.get("clear_all"),
                      style={"background_color": 0xFF95A5A6})
-    
+
+
+    def _build_input_section(self):
+        """Build input section for adding cameras for preset"""
+        with ui.VStack(spacing=5):
+            # Preset loading section
+            with ui.CollapsableFrame("Preset Configuration", collapsed=False):
+                with ui.VStack(spacing=5):
+                    # Preset file path input
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Preset File:", width=100)
+                        self._preset_path_model = ui.SimpleStringModel("")
+                        ui.StringField(model=self._preset_path_model, width=ui.Percent(60))
+                        ui.Button("Browse", 
+                                clicked_fn=self._on_browse_preset,
+                                width=80)
+                    
+                    # Load preset button
+                    ui.Button("Load Preset", 
+                            clicked_fn=self._on_load_preset,
+                            height=30,
+                            style={"background_color": 0xFF27AE60})
+            
+            ui.Separator(height=10)
+            
+            # Manual camera add section (기존 코드)
+            with ui.CollapsableFrame("Manual Camera Add", collapsed=False):
+                with ui.VStack(spacing=5):
+                    # Camera path input
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Camera Path:", width=100)
+                        ui.StringField(model=self._camera_path_model, width=ui.Percent(70))
+                    
+                    # Output directory input
+                    with ui.HStack(height=30, spacing=5):
+                        ui.Label("Output Dir:", width=100)
+                        ui.StringField(model=self._output_dir_model, width=ui.Percent(70))
+                    
+                    # Add button
+                    ui.Button("Add Camera", 
+                            clicked_fn=self._on_add_camera_clicked,
+                            height=30,
+                            style={"background_color": 0xFF4A90E2})
+
+
     def _on_add_camera_clicked(self):
         """Handle add camera button click"""
         camera_path = self._camera_path_model.get_value_as_string().strip()
@@ -116,7 +160,37 @@ class CameraCaptureUI:
         self._camera_panels[camera_path] = panel
         
         return ui_refs
-    
+
+    def _on_browse_preset(self):
+        """Open file browser for preset selection"""
+        # Simple file dialog using omni.kit.widget.filebrowser if available
+        # For now, just use a default path
+        import os
+        default_preset = os.path.expanduser("~/Documents/camera_preset.json")
+        self._preset_path_model.set_value(default_preset)
+        print(f"[Info] Set preset path to: {default_preset}")
+
+    def _on_load_preset(self):
+        """Load cameras from preset file"""
+        preset_path = self._preset_path_model.get_value_as_string().strip()
+        if not preset_path:
+            print("[Warning] Please specify a preset file path")
+            return
+        
+        if self._callbacks.get("load_preset"):
+            self._callbacks["load_preset"](preset_path)
+
+    def _on_save_preset(self):
+        """Save current cameras to preset file"""
+        preset_path = self._preset_path_model.get_value_as_string().strip()
+        if not preset_path:
+            print("[Warning] Please specify a preset file path")
+            return
+        
+        if self._callbacks.get("save_preset"):
+            self._callbacks["save_preset"](preset_path)
+
+
     def remove_camera_panel(self, camera_path: str):
         """Remove camera panel with proper cleanup"""
         if camera_path not in self._camera_panels:
