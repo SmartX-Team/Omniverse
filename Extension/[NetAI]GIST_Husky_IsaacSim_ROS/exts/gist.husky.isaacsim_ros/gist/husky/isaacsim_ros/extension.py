@@ -336,7 +336,7 @@ class NetAIRosExtension(omni.ext.IExt):
 
     def on_shutdown(self):
         """Called upon extension shutdown."""
-        print("[ni.ki.test.ros] NiKiTestRosExtension shutdown")
+        print("[NetAIRosExtension] NetAI RoS2 Robot Simulation shutdown")
         
         # Cleanup all robots
         for robot_path in list(self.managed_robots.keys()):

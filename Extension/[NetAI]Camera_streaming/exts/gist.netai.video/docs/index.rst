@@ -1,4 +1,4 @@
-gist.lakehouse
+gist.netai.video
 #############################
 
 Example of Python only extension
