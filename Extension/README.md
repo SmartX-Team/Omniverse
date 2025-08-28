@@ -30,8 +30,9 @@ Please keep this list updated whenever a **new extension** is added or **existin
 
 | Extension Name    | Description                                                                                                              | Status  |
 |-------------------|--------------------------------------------------------------------------------------------------------------------------|---------|
-| **GIST_Husky_IsaacSim_ROS**  | simulation isaac-sim &ros2 based UGV                                            | Active  |
-| **Falcon**  | An Omniverse extension that visualizes human coordinates calculated via the Falcon project.                                      | Active  |
+| **GIST_Husky_IsaacSim_ROS**  | Simulation isaac-sim &ros2 based UGV                                            | Active  |
+| **Camera_streaming**  |  Support to video data generation with Local & Kafka streaming capabilities for Isaac Sim & ROS2 based systems                                           | Active  |
+| **Falcon**  | Visualize to human coordinates calculated via the Falcon project.                                      | Active  |
 | **Usd_timetravel**  | Detects and tracks changes to the USD stage on-the-fly                                              | Active  |
 | **UWB RLTS**  | Real-time tracking of MobileX Stations with attached UWB Tags in Omniverse.                                             | Active  |
 | **Stations Align**| Facilitates the alignment of MobileX Station Models.                                                                    | Deprecated  |

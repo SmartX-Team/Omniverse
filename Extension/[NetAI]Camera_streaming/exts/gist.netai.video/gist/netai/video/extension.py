@@ -170,59 +170,97 @@ class CameraCaptureExtension(omni.ext.IExt):
 
     def _cleanup_existing_replicator_resources(self):
         """Clean up any existing replicator resources from previous sessions"""
-
+        import omni.syntheticdata as sd
+        from pxr import Usd
+        
         try:
-            print("[Info] Starting aggressive Replicator cleanup...")
+            print("[Info] Starting comprehensive Replicator cleanup...")
             
-            # 1. 모든 실행 중인 비동기 태스크 취소
+            # 1. 모든 capture 관련 태스크 취소
+            tasks_cancelled = 0
             for task in asyncio.all_tasks():
-                if 'capture' in str(task).lower():
+                task_str = str(task).lower()
+                if any(word in task_str for word in ['capture', 'write', 'render', 'replicator']):
                     task.cancel()
-
+                    tasks_cancelled += 1
+            
+            if tasks_cancelled:
+                print(f"[Info] Cancelled {tasks_cancelled} async tasks")
+            
+            # 2. Orchestrator 정지 및 대기
             try:
-                print("[Info] Cleaning up existing Replicator resources...")
-                
-                # Orchestrator 정지
                 if rep.orchestrator.get_is_started():
                     rep.orchestrator.stop()
-                    print("[Info] Stopped existing orchestrator")
+                    time.sleep(0.5)  # 충분한 대기 시간
+                    print("[Info] Orchestrator stopped")
             except:
                 pass
-            # 모든 writer 정리 시도
-            try:
-                # WriterRegistry의 모든 writer 정리
-                writers_cleared = 0
-                for writer_name in ['BasicWriter', 'RtxWriter', 'KittiWriter']:
-                    try:
-                        writer = rep.WriterRegistry.get(writer_name)
-                        if writer:
-                            writer.detach()
-                            writers_cleared += 1
-                    except:
-                        pass
-                
-                # Registry 자체 초기화 시도
-                rep.WriterRegistry.clear()
-                print(f"[Info] Cleared {writers_cleared} writer types")
-            except AttributeError:
-                pass
-
-            try:
-                # 모든 render product 찾아서 정리
-                import omni.syntheticdata as sd
-                sd._sensor_helpers.clear_all_sensors()
-            except:
-                pass
-
-            gc.collect()
-            time.sleep(0.1)
-            # Orchestrator 재시작
-            rep.orchestrator.run()
-            print("[Info] Replicator resources cleaned and reinitialized")
             
+            # 3. WriterRegistry 완전 초기화
+            try:
+                # 내부 딕셔너리 직접 접근
+                if hasattr(rep.WriterRegistry, '_writers'):
+                    writers = list(rep.WriterRegistry._writers.values())
+                    for writer in writers:
+                        try:
+                            writer.detach()
+                        except:
+                            pass
+                    rep.WriterRegistry._writers.clear()
+                
+                # WriterRegistry의 클래스 변수들도 초기화
+                if hasattr(rep.WriterRegistry, '_registry'):
+                    rep.WriterRegistry._registry.clear()
+                    
+            except Exception as e:
+                print(f"[Warning] WriterRegistry cleanup: {e}")
+            
+            # 4. Synthetic data 완전 정리
+            try:
+                # 모든 센서 제거
+                sd._sensor_helpers.clear_all_sensors()
+                
+                # 내부 캐시들 정리
+                if hasattr(sd, '_annotators'):
+                    sd._annotators.clear()
+                if hasattr(sd, '_sensors'):
+                    sd._sensors.clear()
+                    
+            except Exception as e:
+                print(f"[Warning] Sensor cleanup: {e}")
+            
+            # 5. Stage에서 RenderProduct prim 제거
+            try:
+                stage = get_context().get_stage()
+                if stage:
+                    prims_to_delete = []
+                    for prim in stage.Traverse():
+                        if "RenderProduct" in prim.GetTypeName():
+                            prims_to_delete.append(prim.GetPath())
+                    
+                    for path in prims_to_delete:
+                        stage.RemovePrim(path)
+                        
+                    if prims_to_delete:
+                        print(f"[Info] Removed {len(prims_to_delete)} RenderProduct prims")
+                        
+            except Exception as e:
+                print(f"[Warning] Stage cleanup: {e}")
+            
+            # 6. 가비지 컬렉션
+            import gc
+            gc.collect()
+            time.sleep(0.2)
+            
+            # 7. Orchestrator 재시작
+            try:
+                rep.orchestrator.run()
+                print("[Info] Orchestrator reinitialized")
+            except Exception as e:
+                print(f"[Warning] Orchestrator reinit: {e}")
+                
         except Exception as e:
-            print(f"[Warning] Error during replicator cleanup: {e}")
-
+            print(f"[Error] During cleanup: {e}")
 
 
     def _on_load_preset(self, preset_path: str):

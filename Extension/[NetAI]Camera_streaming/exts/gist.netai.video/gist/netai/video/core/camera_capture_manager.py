@@ -160,7 +160,18 @@ class CameraCaptureManager:
                     max_wait -= 1
                 
                 writer.detach()
+                # WriterRegistry에서도 제거 시도
+                try:
+                    if hasattr(rep.WriterRegistry, '_writers'):
+                        for key in list(rep.WriterRegistry._writers.keys()):
+                            if rep.WriterRegistry._writers[key] == writer:
+                                del rep.WriterRegistry._writers[key]
+                except:
+                    pass
+                
                 camera_info["writer"] = None
+                del writer
+
                 print(f"[Info] Writer detached for camera {camera_id}")
             except Exception as e:
                 print(f"[Warning] Failed to clean up writer: {e}")
@@ -169,8 +180,17 @@ class CameraCaptureManager:
         if camera_info.get("render_product"):
             try:
                 rp = camera_info["render_product"]
-                del rp
+
+                # Annotator 연결 해제
+                try:
+                    import omni.syntheticdata as sd
+                    sd._sensor_helpers.remove_sensor(str(rp))
+                except:
+                    pass
+
+
                 camera_info["render_product"] = None
+                del rp
                 print(f"[Info] Render product cleaned for camera {camera_id}")
             except Exception as e:
                 print(f"[Warning] Failed to clean up render product: {e}")
@@ -646,7 +666,12 @@ class CameraCaptureManager:
     def cleanup(self):
         """Cleanup all resources"""
         self.stop_all_captures()
-        
+        time.sleep(0.2)
+
+        for camera_path in list(self.cameras.keys()):
+            camera_info = self.cameras[camera_path]
+            self._cleanup_render_product(camera_info)
+
         # 추적된 모든 writer 정리
         for item in self._active_writers[:]:
             try:
@@ -655,9 +680,14 @@ class CameraCaptureManager:
                 pass
         self._active_writers.clear()
         
-        # 카메라별 정리
-        for camera_info in self.cameras.values():
-            self._cleanup_render_product(camera_info)
+        # 4. Kafka handlers 정리
+        if hasattr(self, 'kafka_handlers'):
+            for handler in self.kafka_handlers.values():
+                try:
+                    asyncio.create_task(handler.disconnect())
+                except:
+                    pass
+            self.kafka_handlers.clear()
         
         self.cameras.clear()
         
