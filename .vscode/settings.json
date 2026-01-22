@@ -1,0 +1,15 @@
+{
+  // VS Code 기본 Markdown paste (Cmd+V)용
+  "markdown.editor.filePaste.enabled": true,
+  "markdown.editor.filePaste.copyIntoWorkspace": "mediaFiles",
+  "markdown.copyFiles.destination": {
+    "/Handover/**/*": "assets/${documentBaseName}/"
+  },
+  "markdown.copyFiles.overwriteBehavior": "rename",
+
+  // Paste Image 확장(명령 팔레트에서 Paste Image 실행 / Option+Command+V)용
+  "pasteImage.path": "${currentFileDir}/assets/${currentFileNameWithoutExt}",
+  "pasteImage.basePath": "${currentFileDir}",
+  "pasteImage.forceUnixStyleSeparator": true,
+  "pasteImage.namePrefix": "${currentFileNameWithoutExt}_"
+}

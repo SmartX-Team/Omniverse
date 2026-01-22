@@ -11,11 +11,11 @@
 # Handover Hub (로보틱스 시뮬레이션 인수인계 허브)
 
 이 폴더는 Omniverse Extensions Repository의 **로보틱스 인수인계 문서 허브**입니다.  
-새로운 담당자가 아래를 빠르게 수행하도록 구성했습니다:
+새로운 담당자가 아래를 수행하도록 구성했습니다:
 
 - 로보틱스 중심 **시스템 맥락** 이해
 - 개발/런타임 **환경 구축**
-- **최소 동작 워크플로우** 실행
+- **단계별 워크플로우** 실행 및 검증
 - 자주 발생하는 문제 **트러블슈팅**
 - 로보틱스 시뮬레이션 및 연동을 **안전하게 운영/유지**
 
@@ -25,44 +25,76 @@
 
 ---
 
-## Overview: 이 인수인계를 따라하면 가능한 연구 범위
+## 1) Research Scope: 이 인수인계를 따라하면 가능한 연구 범위
 
 이 문서를 그대로 따라가면, 아래 3가지 범위의 작업을 재현/검증할 수 있습니다.
 
+- **10) 현실 Husky UGV 다루는 법**  
+  실제 Husky UGV를 기본 안전 수칙 하에 구동하고, ROS2 기반으로 최소 제어/상태 확인을 수행
 
-10)  **현실 Husky UGV 다루는 법**  
-- 실제 Husky UGV를 기본 안전 수칙 하에 구동하고, ROS2 기반으로 최소 제어/상태 확인을 수행
+- **20) 가상 Husky UGV 시뮬레이션 동작하는 법**  
+  Isaac Sim(Omniverse)에서 Husky UGV 시뮬레이션을 구동하고, 센서/상태/제어 루프가 정상 동작하는지 확인
 
-20)  **가상 Husky UGV 시뮬레이션 동작하는 법**  
-- Isaac Sim(Omniverse)에서 Husky UGV 시뮬레이션을 구동하고, 센서/상태/제어 루프가 정상 동작하는지 확인
-
-30)  **Sim-to-Real 테스트 예시**  
-- 동일(또는 유사)한 제어/토픽 구조를 기준으로 시뮬레이터 ↔ 실기체 간 전환 테스트를 수행하는 예시 워크플로우 제공
-
-
----
-
-## Document Index (최소 구성)
-
-- **[00 - Overview](./00-overview.md)**  
-  로보틱스 인수인계 범위, 실행 환경, 실행 보장 목표, 주요 리스크, “무엇부터 할지” 정리
-
-- **[10 - Real Husky UGV Guide](./10-real-husky-ugv-guide.md)**  
-  현실 Husky UGV 기본 운용(안전 수칙 포함), ROS2 기반 최소 제어/상태 확인 절차
-
-- **[20 - Sim Husky UGV Bringup](./20-sim-husky-ugv-bringup.md)**  
-  Isaac Sim(Omniverse)에서 Husky UGV 시뮬레이션 구동, 센서/상태/제어 루프 검증
-
-- **[30 - Sim-to-Real Test Examples](./30-sim-to-real-examples.md)**  
-  동일(또는 유사)한 제어/토픽 구조를 기준으로 시뮬레이터 ↔ 실기체 전환 테스트 예시 워크플로우
-
-- **[90 - Troubleshooting](./90-troubleshooting.md)**
-  실행 실패/환경 불일치/ROS2 연동 문제 등 **증상 → 진단 → 해결**을 빠르게 찾기 위한 문제 해결 가이드
+- **30) Sim-to-Real 테스트 예시**  
+  동일(또는 유사)한 제어/토픽 구조를 기준으로 시뮬레이터 ↔ 실기체 간 전환 테스트를 수행하는 예시 워크플로우 제공  
+  (환경/버전 차이에 따라 결과가 달라질 수 있음)
 
 ---
 
-## Folder Convention (Robotics Scope)
+## 2) Document Index 규칙 (번호 체계 일반화)
 
-- `00-` : Overview / 범위 및 목표
-- `90-` : Troubleshooting (로보틱스 연동 문제 해결)
+본 인수인계 문서는 **10 단위(10/20/30 …)** 로 “주요 주제(major topic)”를 구분합니다.  
+각 major topic 블록 안에서는 아래 규칙을 공통으로 따릅니다.
+
+- **`00`**: 작성자(송인용)가 실제로 **구축/실행/검증한 전체 공통 환경 스냅샷**  
+  (OS/Isaac Sim/ROS2/Docker/하드웨어/네트워크 등 재현 조건)
+
+- **`X0` (예: 10, 20, 30)**: 해당 major topic의 **세부 실행 환경/전제 조건/준비물**  
+  “이 주제를 따라하기 전에 무엇이 준비되어 있어야 하는가”를 정리
+
+- **`X1` ~ `X8` (예: 11~18, 21~28, 31~38)**: 해당 major topic의 **단계별 따라하기(Procedure)**  
+  순서대로 진행하면 재현되도록 작성
+
+- **`X9` (예: 19, 29, 39)**: 해당 major topic의 **Troubleshooting 모음**  
+  “증상 → 진단(확인 명령/로그 위치) → 해결/우회” 형태로 정리
+
+---
+
+## 3) Document Index (현재 구성)
+
+- **[00 - Tested Environment Snapshot](./00-overview.md)**  
+  작성자가 실제로 실행/검증한 환경(버전/구성) + 인수인계 범위/목표/리스크 + 무엇부터 할지
+
+### 10) Real Husky UGV
+- **[10 - Real Husky UGV Prerequisites](./10-real-husky-ugv-guide.md)**  
+  현실 Husky UGV 주제의 전제 조건/세부 실행 환경/준비물(안전 수칙 포함)
+
+- *(추후 추가: 11~18 단계별 따라하기 문서)*
+
+- *(추후 추가: 19 트러블슈팅 문서)*
+
+### 20) Sim Husky UGV (Isaac Sim)
+- **[20 - Sim Husky UGV Prerequisites](./20-sim-husky-ugv-bringup.md)**  
+  시뮬레이션 주제의 전제 조건/세부 실행 환경/준비물
+
+- *(추후 추가: 21~28 단계별 따라하기 문서)*
+
+- *(추후 추가: 29 트러블슈팅 문서)*
+
+### 30) Sim-to-Real
+- **[30 - Sim-to-Real Prerequisites & Examples](./30-sim-to-real-examples.md)**  
+  sim-to-real 주제의 전제 조건 + 예시 워크플로우(환경에 따라 결과 달라질 수 있음)
+
+- *(추후 추가: 31~38 단계별 따라하기 문서)*
+
+- *(추후 추가: 39 트러블슈팅 문서)*
+
+---
+
+## 4) File Convention (Robotics Scope)
+
+- `00` : 전체 공통 실행/테스트 환경 스냅샷
+- `X0` : 주제 X의 실행 환경/전제 조건
+- `X1~X8` : 주제 X의 단계별 따라하기
+- `X9` : 주제 X의 트러블슈팅
 - `assets/` : 인수인계용 이미지/다이어그램/스크린샷
