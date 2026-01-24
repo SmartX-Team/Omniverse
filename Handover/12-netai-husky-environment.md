@@ -23,7 +23,7 @@
 ### 12.2.1 센서 목록(기체별)
 | 센서 종류 | 모델명/스펙 | 장착 위치 | 사진 | 메모 |
 |---|---|---|---|---|
-| LiDAR | Ouster OS1-32 | Husky A200 브라켓 위 | ![alt text](assets/12-netai-husky-environment/image.png) | IMU 포함된 버전|
+| LiDAR | Ouster OS1-32 | Husky A200 브라켓 위 | ![alt text](assets/12-netai-husky-environment/image.png) | IMU 내장됨 |
 | Depth Camera | Intel depth camera d435 | 일반적으로 정면 | ![alt text](assets/12-netai-husky-environment/image-1.png) |   |
 
 
@@ -31,73 +31,84 @@
 
 - ROS1 버전의 경우 23년도에 ROAS 라는 업체에서 A200 UGV를 납품받을때 ROS 코드및 센서를 함께 설치해주심  
 - ROS1 머신의 경우 Ouster Lidar 가 인식되지 않으면, 에러 상황으로 인식해 로봇 동작을 못하도록 세팅되어 있음!  
-- Depth Camera 의 경우 수명을 위해 사용하지 않을 경우 전원 연결을 꺼두는 편을 권장함
+- Depth Camera 의 경우 수명을 위해 사용하지 않을 경우 전원 연결을 빼두라고함
 
 ---
 
 ## 12.3 악세서리/부품 인벤토리(추가 구매 포함)
 
-아래 표는 11.2.1 연구실 실물 사진 기록외 세부적인 정상 상태 캡처한 이미지
+ROS2 용 머신으로 Intel NUC 를 새로 세팅한거 외에는
+23년도에 납품받은후 추가적인 센서 장착등 변동사항 없음
 
-| 분류 | 품목 | 수량 | 사진 | 보관 위치 | 메모 |
-|---|---|---:|---|---|---|
-| 안전 | Lockout 키 |  | ![](assets/12-netai-husky-accessories-and-environment/REPLACE_ME.png) |  |  |
-| 네트워크/접속 | 이더넷 케이블(길이) |  | ![](assets/12-netai-husky-accessories-and-environment/REPLACE_ME.png) |  |  |
-| 네트워크/접속 | USB-시리얼 어댑터 |  | ![](assets/12-netai-husky-accessories-and-environment/REPLACE_ME.png) |  |  |
-| 입력장치 | 무선 컨트롤러(모델명) |  | ![](assets/12-netai-husky-accessories-and-environment/REPLACE_ME.png) |  |  |
-| 브라켓/기구 | 추가 브라켓/마운트 |  | ![](assets/12-netai-husky-accessories-and-environment/REPLACE_ME.png) |  |  |
-| 기타 | (추가 항목) |  |  |  |  |
+혹시 수리나 업그레이드로 선 연결 상태가 변경 될 수 있으므로 백업용으로 사진 남겨둠
+
+
+| 항목 | 용도 | 내용| 사진 |
+|---|---|---| ---|
+| Husky 본체내 포트 (User Power Panel) | 전원 공급 및 시리얼 통신 연결 | 1) 사용자 전원 출력(예: 12V, VBAT 등 퓨즈가 걸린 라인)로 **온보드 PC(NUC)·센서(라이다/카메라)·추가 장비**에 전원 공급: 납품받은 선정리 상태 그대로 유지 권장 2) 온보드 PC ↔ Husky 베이스(MCU) 사이 **RS-232 시리얼 링크**로 주행 명령/상태를 주고받는 핵심 통신 경로 | ![alt text](assets/12-netai-husky-environment/image-4.png) |
+| Husky 본체 내부의 NUC PC | 시리얼 통신 브리지 및 센서 데이터 처리 | 1) User Power Panel의 **RS-232 시리얼 포트**와 연결되어 Husky 베이스(MCU)로부터 **주행 상태/오도메트리/진단 정보**를 수신하고, 상위에서 들어온 **주행 명령(cmd_vel 계열)**을 베이스로 전달하는 “중앙 브리지” 역할  2) LiDAR/Depth Camera 등 센서등 모두 케이블 연결 3) 시리얼 링크(USB-to-Serial 포함) 또는 NUC 부팅/네트워크가 불안정하면 베이스가 **명령 스트림 없음/통신 이상**으로 판단해 주행이 막힘 가동할때 (특히 파란 USB-Serial 어댑터/연결선) 체결 상태를 우선 점검 | ![alt text](assets/12-netai-husky-environment/image-5.png) |
+| Ouster LiDAR (OS1-32) | LiDAR 전원 공급/분배용 중간 부품 | 1) 데이터 전송은 **Ethernet 기반**이므로, LiDAR의 RJ45 케이블이 **Husky 본체 내부 NUC PC의 LAN 포트(이더넷 포트)**까지 반드시 연결되어 있어야 함 2) LAN 케이블 분리/접촉 불량 시 LiDAR 데이터가 들어오지 않으며(토픽/드라이버 미동작), ROS1 세팅된 NUC PC 조작시에는 이를 에러로 인식해 **로봇 주행이 차단**될 수 있으니 부팅/가동 전 LAN 케이블 체결 상태를 우선 점검 | ![alt text](assets/12-netai-husky-environment/image-6.png) |
+| Ouster LiDAR (OS1-32) 센서 본체  | 3D LiDAR 센서 데이터 취득 | 1) Husky A200 상단 브라켓에 장착된 3D LiDAR 2) 오래 가동하면 뜨거워지니까 맨손으로 만지지 말 것  | ![alt text](assets/12-netai-husky-environment/image-7.png) |
+| Depth Camera (Intel RealSense D435) | RGB-D 영상/깊이 데이터 취득 | 1) 전방(정면) 방향으로 설치되어 근거리 장애물/사람/환경의 깊이 정보를 제공 2) 데이터는 NUC PC로 **USB 연결**되어 들어옴 3) 수명/발열 관점에서 **사용하지 않을 경우 전원(USB 전원)을 분리하거나 전원 공급을 차단**하는 편을 권장 | ![alt text](assets/12-netai-husky-environment/image-8.png) |
+
+
+
 
 ---
 
 
-## 12.4 컴퓨팅 구성(NUC/외부 PC) 및 ROS1 운용 소개
+## 12.4 컴퓨팅 구성(NUC/외부 PC) 및 기본 조작 과정 소개
 
 > 목적: “어떤 컴퓨터가 어떤 역할을 담당하는지”를 혼동하지 않도록 고정한다.  
 > 실제 인수인계에서 ROS1 운용 절차는 다루지 않으며, 여기서는 인계받은 ROS1 머신으로 실행했을때 정상적인 과정 정도만 작성함
 
 ### 12.4.1 컴퓨터 인벤토리(2대 이상: ROS1/ROS2 포함)
-| 이름/별칭 | 물리 위치 | 용도(역할) | OS/아키텍처 | 실제 사진 | 비고 |
-|---|---|---|---|---|---|
-| NUC-ROS1 |  | (예: 온보드/기체 내부) |  |  |  |
-| NUC-ROS2 |  | (예: 별도 머신, Docker ROS2 Humble) |  |  |  |
+| 이름/별칭 | 물리 위치 |  OS/아키텍처 | 실제 사진 | 비고 |
+|---|---|---|---|---|
+| NUC-ROS1 |  (예: 온보드/기체 내부) |  | ![](assets/12-netai-husky-environment/12-netai-husky-environment_2026-01-22-18-12-36.png) |  |
+| NUC-ROS2 |  (예: 별도 머신, Docker ROS2 Humble) |  | ![](assets/12-netai-husky-environment/12-netai-husky-environment_2026-01-22-18-12-57.png) | ROS2 는 도커 기반으로 설정해서, 필요시 Mini NUC 교체후 새로 세팅해도 무방 |
 
-### 12.4.2 ROS1 기반 시작 과정
+
+### 12.4.2 구동과정 단계별 사진
+> ROS1 기반 시작으로 사진 촬영했으나 기본 조작 및 실행 과정은 ROS2 도 동일
+> 26.01.24 기준으로도 모통신 케이블 연결이 정상이면 PS4 컨트롤러로 기본 움직임까지 모두 정상임을 확인해둠
+
+아래 표는 “기본 조작 및 실행 과정”을 단계별로 촬영함
+
+| 단계 | 목적/설명 | 체크 포인트 | 사진 | 비고 |
+|---:|---|---|---|---|
+| 1 | 배터리 충전 상태 확인 | 방전을 대비해 가동중이 아닐때는 항상 배러티를 충전기와 연결해둘 것 (전부 충전 되어 있으면 사진상 처럼 초록불임) | ![alt text](assets/12-netai-husky-environment/image-9.png) | 사진이랑 다르게 평소 사용할때는 충전을 위해 꼭 수직으로 안세워도 됨 |
+| 1-1 | 배터리 결합부 확인 | 배터리내 케이블(수 포트를) 본체내 암포트에 결합하면됨 | ![alt text](assets/12-netai-husky-environment/image-10.png) | ! 가동할때는 배터리를 꼭 사진처럼 본체 내부 배터리 보관하는 공간에 완전히 들어가 있었야함 |
+| 2 | 전원버튼 클릭후 전원 인가 및 초기 상태 확인 | 상태 패널/COMM/STOP 확인 | ![alt text](assets/12-netai-husky-environment/image-12.png) |  |
+| 2-1 | 모통신(시리얼/USB-Serial) 케이블 체결 확인 | 파란 USB-Serial/커넥터 흔들림 없음 정상적으로 로봇 본체와 통신중이면, 사진상처럼 시리얼 케이블이 깜박임 | ![alt text](assets/12-netai-husky-environment/image-11.png) |  |
+| 3| 상태 패널에 이상없다면, 컨트롤러 등으로 바로 조작이 가능한 상태, 로봇 동작 사진은 영상으로도 몇번 남겨서 생략함 | PS4 배터리 및 페어링 상태 확인 (페어링이 안되어 있다면 확인해볼 것 ) |  | ROS1 세팅된 머신은 전원이 들어올시 자동으로 NUC PC 부팅되고 만약 Ouster Lidar 와 통신이 성립안되면, ROS Node 들이 에러상황이라 판단해 셧다운되도록 설정되어 있음  |
+
+
+### 12.4.3 계기판 이상 있을시 예시
+
+| 목적/설명 | 체크 포인트 | 사진 | 비고 |
+| ---|---|---|---|
+| STOP 버튼 클릭되어 있을때 | 계기판에 ERR, STOP 에 빨강불이 들어오며, STOP 버튼을 다시 해제하면 정상으로 돌아옴  | ![alt text](assets/12-netai-husky-environment/image-13.png) |  |
+| Lock 키가 돌아가 있을때 | 구동부에 동력이 안들어가는 경우로 키를 다시 돌려주면 정상으로 돌아옴 | ![alt text](assets/12-netai-husky-environment/image-14.png) |  |
+| 그외 오류 | 가끔식 계기판에 노란색불이 나오면서, 동작안할때가 있는데, 보통 NUC PC 부팅중 이상등으로 통신이 제대로 성립안되는 경우로 재부팅하면 대부분 해결됨, 상황이 다양할 수는 있어서 자신 없으면 미리 ROS 수정전 백업 권장 |  |  |
+
+
+ROS1 머신의 경우 아이작심과 동기화가 불가능해서 잘 사용하지 않고 별도로 NUC PC를 ROS2 기반으로 세팅해서 사용했기에
+이 이상 남기지는 않음 
 
 ---
 
 ## 12.5 연구실 운용 환경(보관/충전/운용 규칙)
 
 ### 12.5.1 보관 위치/반출 규칙
-| 항목 | 내용 |
-|---|---|
-| 보관 장소(예: S7 MobileX Studio 등) |  |
-| 반출/이동 시 담당자/허가 |  |
-| 이동 시 기본 안전 규칙(Stop/전원/2인 운반 등) |  |
 
-### 12.5.2 충전/배터리 관리 규칙
-| 항목 | 내용 |
-|---|---|
-| 평소 충전 원칙(예: 상시 충전 여부, 충전 위치) |  |
-| 배터리 성능 저하 징후(체감/기록) |  |
-| 배터리 교체/추가 구매 히스토리 |  |
+가끔식 MobileX Studio 에 있는 Husky A200 도 다른 연구실에서 대여해갈때가 있는데, 항상 AI대학원 연구팀내 장비 관리 연구원님한테 말하고
+어떤 부품 빌려갔는지 항상 우리쪽에서도 사진등 남겨야함
+보통 김종원 교수님한테 우선적으로 연락이 간 상태임으로 인지하고 있으실 것이나 미리 대여해주기전 확인받는것도 권장
 
 ---
 
-## 12.6 네트워크/운용 환경 개요(NetAI 등)
-
-> 목적: 원격접속(13)에서 사용할 네트워크 전제를 여기서 고정한다.
-
-| 항목 | 내용 |
-|---|---|
-| 기본 접속 네트워크(SSID/유선망 등) |  |
-| IP 할당 방식(DHCP/고정) |  |
-| VPN 필요 여부 |  |
-| 자주 바뀌는 요소(IP/라우팅/포트 등) |  |
-
----
-
-## 12.7 ROS2 업그레이드 관련 “현재 세팅 현황” 요약(상세 절차는 별도 문서)
+## 12.6 ROS2 업그레이드 관련 “현재 세팅 현황” 요약(상세 절차는 별도 문서)
 
 > 목적: “현재 기준으로 무엇이 구축되어 있는지”만 요약한다.  
 > 실제 설치/재구축 절차는 별도 문서(추후 15~18 또는 별도 번호)로 분리한다.
