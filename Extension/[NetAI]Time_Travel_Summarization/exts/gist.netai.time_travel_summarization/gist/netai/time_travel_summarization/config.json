@@ -1,0 +1,9 @@
+{
+  "data_path": "./data/living_trajectory_1min_0.2s.csv",
+  
+  "auto_generate": true,
+  
+  "astronaut_usd": "omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Human/Astronaut.usd",
+  
+  "prim_map": {}
+}
