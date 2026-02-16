@@ -1,0 +1,3150 @@
+#usda 1.0
+(
+    customLayerData = {
+        dictionary MovieCaptureSettings = {
+            double animation_fps = 30
+            int bad_frame_size_threshold = 0
+            int batch_count = 1
+            string camera_name = "/World/Livingroom"
+            bool capture_application = 1
+            int capture_every_nth_frames = 20
+            bool capture_every_nth_frames_checked = 0
+            int capture_frame_end = 500000
+            int capture_frame_start = 0
+            string capture_name = "video_44"
+            string capture_range = "Custom Range - Seconds"
+            double capture_time_end = 28800
+            double capture_time_start = 0
+            int early_quit_time_limit = 0
+            string exr_compression_method = "zips"
+            double fps = 30
+            bool generate_shader_cache = 0
+            bool hdr_for_exr_checked = 1
+            bool hdr_for_exr_visible = 0
+            int iray_pathtrace_spp = 1
+            int iray_subframes_per_frame = 32
+            int max_bad_frame_threshold = 3
+            string movie_type = "Sequence"
+            int mp4_encoding_bitrate = 16777216
+            int mp4_encoding_iframe_interval = 60
+            string mp4_encoding_preset = "PRESET_DEFAULT"
+            string mp4_encoding_profile = "H264_PROFILE_HIGH"
+            string mp4_encoding_rc_mode = "RC_VBR"
+            int mp4_encoding_rc_target_quality = 0
+            bool mp4_encoding_video_full_range_flag = 0
+            string output_format = ".mp4"
+            string output_path = "C:/Users/wonjune/Documents/Kit/shared/capture"
+            bool overwrite_existing_frame_checked = 0
+            bool pathtrace_mb_checked = 1
+            double pathtrace_mb_frame_shutter_close = 0.5
+            double pathtrace_mb_frame_shutter_open = 0
+            int pathtrace_mb_subframes = 64
+            int pathtrace_spp_per_iteration_mgpu = 1
+            int pathtrace_spp_per_subframe = 1
+            string queue_instance = "localhost Queue"
+            int realtime_settle_latency = 0
+            int realtime_wait_for_render_resolve = 0
+            string render_preset = "RaytracedLighting"
+            bool render_style = 1
+            bool renumber_negtive_frames_checked = 0
+            int resolution_aspect_ratio_selected = 0
+            string resolution_aspect_ratios = '["1.900:1", "16:9", "4:3"]'
+            int resolution_height = 280
+            string resolution_type = "Custom"
+            bool resolution_w_h_linked = 0
+            int resolution_width = 532
+            int run_n_frames_before_start = 20
+            bool run_n_frames_before_start_checked = 0
+            bool save_alpha_checked = 0
+            bool skip_upload_to_s3 = 0
+            int start_delay_seconds = 10
+            double sunstudy_end = 18
+            int sunstudy_movie_minutes = 1
+            int sunstudy_movie_seconds = 1
+            double sunstudy_start = 6
+            string task_comment = ""
+            int task_priority = 65535
+            string task_type = "create-render"
+            double texture_streaming_memory_budget = 0.6000000238418579
+            bool upload_to_s3 = 0
+        }
+        dictionary cameraSettings = {
+            dictionary Front = {
+                double3 position = (0, 0, 500.0000111758712)
+                double radius = 5
+                double3 target = (0, 0, 5.684341886080802e-14)
+            }
+            dictionary Perspective = {
+                double3 position = (8330.048711240293, 8835.93467986368, -4807.726381466689)
+                double3 target = (2144.7892979872713, 446.922213391008, -1570.9109291231966)
+            }
+            dictionary Right = {
+                double3 position = (-500.0000111758712, 0, 0)
+                double radius = 5
+                double3 target = (5.684341886080802e-14, 0, 1.1102230494405754e-13)
+            }
+            dictionary Top = {
+                double3 position = (883.1108246821658, 3091.7599025987897, -2031.6777369366928)
+                double radius = 5
+                double3 target = (883.1108246821655, -9.094947017729282e-13, -2031.677736936692)
+            }
+            string boundCamera = "/World/example_camera"
+        }
+        dictionary metricsAssembler = {
+            dictionary "/World/Astronaut" = {
+            }
+            dictionary "/World/Desk_Stands_v3" = {
+            }
+            dictionary "/World/Equipment/Included_In_AI_Grad_Building_usd/Astronaut" = {
+            }
+            dictionary "/World/Launge_Table_v1" = {
+            }
+            dictionary "/World/Launge_Table_v1_01" = {
+            }
+            dictionary "/World/Material_AIgrad2ndfloor" = {
+            }
+            dictionary "/World/Meeting_Table_v4" = {
+            }
+            dictionary "/World/Meeting_Table_v4_01" = {
+            }
+            dictionary "/World/MobileX_Pole_250616" = {
+            }
+            dictionary "/World/ModularCurved" = {
+            }
+            dictionary "/World/Table_v6" = {
+            }
+            dictionary "/World/cart_2" = {
+            }
+            dictionary "/World/cart_v2" = {
+            }
+            dictionary "/World/cart_v3" = {
+            }
+            dictionary "/World/fridge" = {
+            }
+            int version = 1
+        }
+        dictionary omni_layer = {
+            string authoring_layer = "./working_building.usda"
+            dictionary locked = {
+            }
+            dictionary muteness = {
+            }
+        }
+        dictionary renderSettings = {
+            int "rtx:externalFrameCounter" = 256200
+        }
+    }
+    defaultPrim = "World"
+    endTimeCode = 1000000
+    metersPerUnit = 0.009999999776482582
+    startTimeCode = 0
+    timeCodesPerSecond = 60
+    upAxis = "Y"
+)
+
+def Xform "World"
+{
+    def "Exterior" (
+        delete payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Exterior.usd@
+        prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Exterior/Exterior.usd@
+    )
+    {
+        token visibility = "inherited"
+
+        over "ai_slope_v3"
+        {
+            over "ai_slope_v3"
+            {
+                over "ai_slope_v3"
+                {
+                    over "mesh______3"
+                    {
+                    }
+
+                    over "mesh______4"
+                    {
+                    }
+
+                    over "mesh______2_1"
+                    {
+                    }
+
+                    over "mesh______1"
+                    {
+                    }
+
+                    over "mesh______5"
+                    {
+                    }
+
+                    over "mesh______1_2"
+                    {
+                    }
+
+                    over "mesh______2"
+                    {
+                    }
+
+                    over "mesh______1_1"
+                    {
+                    }
+                }
+            }
+        }
+
+        over "exts"
+        {
+            over "exterior_second_012"
+            {
+            }
+
+            over "Box084"
+            {
+            }
+
+            over "window_second_017"
+            {
+            }
+
+            over "window_second_015"
+            {
+            }
+
+            over "window_second_010"
+            {
+            }
+
+            over "window_second_01"
+            {
+            }
+
+            over "window_second_008"
+            {
+            }
+
+            over "window_second_007"
+            {
+            }
+
+            over "window_second_004"
+            {
+            }
+
+            over "window_second_003"
+            {
+            }
+
+            over "exterior_second_011"
+            {
+            }
+
+            over "exterior_second_008"
+            {
+            }
+
+            over "exterior_second_006"
+            {
+            }
+
+            over "Box074"
+            {
+            }
+
+            over "Box072"
+            {
+            }
+
+            over "Box070"
+            {
+            }
+
+            over "Box068"
+            {
+            }
+
+            over "Box066"
+            {
+            }
+
+            over "window_second_013"
+            {
+            }
+
+            over "exterior_003"
+            {
+            }
+
+            over "window_second_009"
+            {
+            }
+
+            over "exterior_second_009"
+            {
+            }
+
+            over "window_second_002"
+            {
+            }
+
+            over "exterior_005"
+            {
+            }
+
+            over "exterior_01"
+            {
+            }
+
+            over "window_second_016"
+            {
+            }
+
+            over "Box076"
+            {
+            }
+
+            over "exterior_004"
+            {
+            }
+
+            over "window_second_014"
+            {
+            }
+
+            over "window_second_006"
+            {
+            }
+
+            over "window_second_005"
+            {
+            }
+
+            over "window_second_011"
+            {
+            }
+
+            over "window_second_012"
+            {
+            }
+
+            over "exterior_002"
+            {
+            }
+
+            over "exterior_second_010"
+            {
+            }
+
+            over "exterior_second_007"
+            {
+            }
+
+            over "exterior_02"
+            {
+            }
+        }
+
+        over "base"
+        {
+            over "mobilex_studio"
+            {
+                over "ExtrudedSurface_06"
+                {
+                }
+
+                over "ExtrudedSurface_04"
+                {
+                }
+
+                over "ExtrudedSurface_03"
+                {
+                }
+
+                over "Box034"
+                {
+                }
+
+                over "ExtrudedSurface"
+                {
+                }
+
+                over "ExtrudedSurface_02"
+                {
+                }
+
+                over "mobilex_studio_ceiling_01"
+                {
+                }
+
+                over "ExtrudedSurface_01"
+                {
+                }
+
+                over "floor_mateial_01"
+                {
+                    over "floor_mateial_01"
+                    {
+                    }
+                }
+
+                over "ExtrudedSurface_05"
+                {
+                }
+
+                over "ExtrudedSurface001"
+                {
+                }
+
+                over "ExtrudedSurface_07"
+                {
+                }
+            }
+
+            over "stair_02"
+            {
+                over "Layer_003"
+                {
+                }
+
+                over "Layer_002"
+                {
+                }
+
+                over "Box026"
+                {
+                }
+            }
+
+            over "stair_01"
+            {
+                over "Layer_001"
+                {
+                }
+
+                over "Layer_0"
+                {
+                }
+
+                over "Box024"
+                {
+                }
+            }
+
+            over "eps_room"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+
+                over "Box019"
+                {
+                }
+
+                over "ExtrudedSurface_01"
+                {
+                }
+            }
+
+            over "scent_room"
+            {
+                over "ExtrudedSurface_08"
+                {
+                }
+
+                over "ExtrudedSurface_07"
+                {
+                }
+
+                over "ExtrudedSurface_04"
+                {
+                }
+
+                over "ExtrudedSurface_03"
+                {
+                }
+
+                over "ExtrudedSurface_01"
+                {
+                }
+
+                over "ExtrudedSurface_06"
+                {
+                }
+
+                over "ExtrudedSurface_05"
+                {
+                }
+
+                over "ExtrudedSurface_02"
+                {
+                }
+
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "datacenter_wall"
+            {
+                over "Box020"
+                {
+                }
+
+                over "superComputer_wall"
+                {
+                }
+
+                over "Box021"
+                {
+                }
+
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "front_glass_wall"
+            {
+                over "Surface"
+                {
+                }
+
+                over "front_glass_wall_pillar_01"
+                {
+                }
+
+                over "glass_iron_005"
+                {
+                }
+
+                over "fron_glass_wal_base"
+                {
+                }
+
+                over "glass_iron_002"
+                {
+                }
+
+                over "front_glass_01"
+                {
+                }
+
+                over "front_glass_003"
+                {
+                }
+
+                over "front_glass_004"
+                {
+                }
+
+                over "front_glass_007"
+                {
+                }
+
+                over "front_glass_005"
+                {
+                }
+
+                over "front_glass_006"
+                {
+                }
+
+                over "glass_iron_008"
+                {
+                }
+
+                over "glass_iron_006"
+                {
+                }
+
+                over "glass_iron_003"
+                {
+                }
+
+                over "front_glass_02"
+                {
+                }
+
+                over "glass_iron_007"
+                {
+                }
+
+                over "glass_iron_01"
+                {
+                }
+
+                over "front_glass_008"
+                {
+                }
+
+                over "glass_iron_004"
+                {
+                }
+            }
+
+            over "media_studio_room"
+            {
+                over "ExtrudedSurface_01"
+                {
+                }
+
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "small_conference_room"
+            {
+                over "Box033"
+                {
+                }
+
+                over "ExtrudedSurface"
+                {
+                }
+
+                over "ExtrudedSurface_02"
+                {
+                }
+
+                over "ExtrudedSurface_01"
+                {
+                }
+            }
+
+            over "glass_wall_01"
+            {
+                over "ExtrudedSurface_02"
+                {
+                }
+
+                over "ExtrudedSurface"
+                {
+                }
+
+                over "glass_wall"
+                {
+                }
+
+                over "exterior_wall"
+                {
+                }
+
+                over "ExtrudedSurface_04"
+                {
+                }
+
+                over "ExtrudedSurface_03"
+                {
+                }
+
+                over "exterior_wall_001"
+                {
+                }
+
+                over "ExtrudedSurface_01"
+                {
+                }
+            }
+
+            over "Box032"
+            {
+                over "Box032"
+                {
+                }
+            }
+
+            over "floor_mateial_004"
+            {
+                over "floor_mateial_004" (
+                    delete apiSchemas = ["PhysicsCollisionAPI", "PhysxCollisionAPI", "PhysxTriangleMeshCollisionAPI", "PhysicsMeshCollisionAPI", "PhysxCookedDataAPI:triangleMesh"]
+                )
+                {
+                }
+            }
+
+            over "Box029"
+            {
+                over "Box029"
+                {
+                }
+            }
+
+            over "ExtrudedSurface94"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box007"
+            {
+                over "Box007"
+                {
+                }
+            }
+
+            over "Box018"
+            {
+                over "Box018"
+                {
+                }
+            }
+
+            over "ExtrudedSurface92"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface90"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "exterior_wall_007"
+            {
+                over "exterior_wall_007"
+                {
+                }
+            }
+
+            over "ExtrudedSurface87"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface74"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface91"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface121"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface67"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box008"
+            {
+                over "Box008"
+                {
+                }
+            }
+
+            over "ExtrudedSurface97"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface65"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface53"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface10"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface44"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface43"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface105"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface42"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "floor_mateial_002"
+            {
+                over "floor_mateial_002" (
+                    delete apiSchemas = ["PhysicsCollisionAPI", "PhysxCollisionAPI", "PhysxTriangleMeshCollisionAPI", "PhysicsMeshCollisionAPI", "PhysxCookedDataAPI:triangleMesh"]
+                )
+                {
+                }
+            }
+
+            over "ExtrudedSurface41"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface54"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface103"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface19"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface16"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface37"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface22"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface64"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "bathroom_wall"
+            {
+                over "Box009"
+                {
+                }
+
+                over "bathroom_wall"
+                {
+                }
+
+                over "ExtrudedSurface"
+                {
+                }
+
+                over "bathroom_wall_003"
+                {
+                }
+
+                over "ExtrudedSurface_02"
+                {
+                }
+
+                over "ExtrudedSurface_01"
+                {
+                }
+
+                over "Box010"
+                {
+                }
+
+                over "bathroom_wall_002"
+                {
+                }
+            }
+
+            over "ExtrudedSurface73"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface4"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface31"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box012"
+            {
+                over "Box012"
+                {
+                }
+            }
+
+            over "ExtrudedSurface12"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "exterior_wall_009"
+            {
+                over "exterior_wall_009"
+                {
+                }
+            }
+
+            over "ExtrudedSurface62"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface98"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface134"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface106"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface36"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface33"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "first_base"
+            {
+                over "first_base"
+                {
+                }
+            }
+
+            over "ExtrudedSurface88"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface7"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "floor_mateial_005"
+            {
+                over "floor_mateial_005" (
+                    delete apiSchemas = ["PhysicsCollisionAPI", "PhysxCollisionAPI", "PhysxTriangleMeshCollisionAPI", "PhysicsMeshCollisionAPI", "PhysxCookedDataAPI:triangleMesh"]
+                )
+                {
+                }
+            }
+
+            over "ExtrudedSurface52"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface69"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface25"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface118"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface100"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface6"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface120"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface93"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface123"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface20"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface35"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface45"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface110"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface89"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface26"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface9"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box004"
+            {
+                over "Box004"
+                {
+                }
+            }
+
+            over "ExtrudedSurface85"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface137"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface28"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface34"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface29"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box031"
+            {
+                over "Box031"
+                {
+                }
+            }
+
+            over "ExtrudedSurface63"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface30"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface0"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface84"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface114"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface68"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface40"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "exterior_shell"
+            {
+                over "exterior_shell"
+                {
+                }
+            }
+
+            over "ExtrudedSurface86"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface102"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "floor_mateial_003"
+            {
+                over "floor_mateial_003" (
+                    delete apiSchemas = ["PhysicsCollisionAPI", "PhysxCollisionAPI", "PhysxTriangleMeshCollisionAPI", "PhysicsMeshCollisionAPI", "PhysxCookedDataAPI:triangleMesh"]
+                )
+                {
+                }
+            }
+
+            over "ExtrudedSurface104"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface107"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface108"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface8"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface109"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface66"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "exterior_wall_008"
+            {
+                over "exterior_wall_008"
+                {
+                }
+            }
+
+            over "ExtrudedSurface27"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface111"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface112"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface113"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface82"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface115"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface96"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface127"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface116"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box016"
+            {
+                over "Box016"
+                {
+                }
+            }
+
+            over "ExtrudedSurface117"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface131"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface119"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface128"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface129"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface130"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface132"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface133"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface32"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "exterior_wall_006"
+            {
+                over "exterior_wall_006"
+                {
+                }
+            }
+
+            over "ExtrudedSurface138"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "exterior_wall_003"
+            {
+                over "exterior_wall_003"
+                {
+                }
+            }
+
+            over "exterior_wall_004"
+            {
+                over "exterior_wall_004"
+                {
+                }
+            }
+
+            over "exterior_wall_005"
+            {
+                over "exterior_wall_005"
+                {
+                }
+            }
+
+            over "ExtrudedSurface99"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box003"
+            {
+                over "Box003"
+                {
+                }
+            }
+
+            over "Box005"
+            {
+                over "Box005"
+                {
+                }
+            }
+
+            over "cylinder_1st"
+            {
+                over "mesh_dSolid"
+                {
+                }
+            }
+
+            over "Box006"
+            {
+                over "Box006"
+                {
+                }
+            }
+
+            over "ExtrudedSurface101"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface5"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box013"
+            {
+                over "Box013"
+                {
+                }
+            }
+
+            over "Box015"
+            {
+                over "Box015"
+                {
+                }
+            }
+
+            over "glass_elevatorhall"
+            {
+                over "glass_elevatorhall"
+                {
+                }
+            }
+
+            over "ExtrudedSurface11"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "ExtrudedSurface95"
+            {
+                over "ExtrudedSurface"
+                {
+                }
+            }
+
+            over "Box022"
+            {
+                over "Box022"
+                {
+                }
+            }
+
+            over "Box025"
+            {
+                over "Box025"
+                {
+                }
+            }
+        }
+
+        over "Material_AIgrad2ndfloor" (
+            active = false
+        )
+        {
+            token visibility = "invisible"
+        }
+
+        over "AIgrad1stfloor"
+        {
+            over "base"
+            {
+                over "datacenter_wall"
+                {
+                    over "Box021" (
+                        prepend apiSchemas = ["MaterialBindingAPI"]
+                    )
+                    {
+                        rel material:binding = </World/Exterior/AIgrad1stfloor/Looks/Clear_Glass> (
+                            bindMaterialAs = "weakerThanDescendants"
+                        )
+                    }
+
+                    over "Box020" (
+                        prepend apiSchemas = ["MaterialBindingAPI"]
+                    )
+                    {
+                        rel material:binding = </World/Exterior/AIgrad1stfloor/Looks/Chalk_Paint_Summernight> (
+                            bindMaterialAs = "weakerThanDescendants"
+                        )
+                    }
+                }
+            }
+
+            over "Looks"
+            {
+                over "deepracer_track"
+                {
+                    over "Shader"
+                    {
+                        asset inputs:diffuse_reflection_color_image = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Material/track.png@
+                    }
+                }
+            }
+        }
+
+        over "Stair"
+        {
+            quatf xformOp:orient = (6.123234e-17, 6.123234e-17, 1, 6.123234e-17)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (3.554053822107126, -7.2, -1482.4577463506953)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+    }
+
+    def Xform "Furniture"
+    {
+        token visibility = "inherited"
+        quatd xformOp:orient = (1, 0, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        def Xform "Included_In_AI_Grad_Building_usd"
+        {
+            quatd xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+            def "addone_v1_Niki" (
+                delete payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/addone_v1_Niki.usd@
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/addone_v1_Niki.usd@
+            )
+            {
+                quatf xformOp:orient = (0.70710677, 0, 0.70710677, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (49.55078581372959, 0.4547501706903745, -281.22741137859043)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                over "Addons___V1___Niki"
+                {
+                    over "Amatsukast_Sketchfab_Grand_Piano"
+                    {
+                        token visibility = "invisible"
+                    }
+
+                    over "Meeting_Table_v4_02"
+                    {
+                        token visibility = "invisible"
+                    }
+
+                    over "Meeting_Table_v4_03"
+                    {
+                        token visibility = "invisible"
+                    }
+                }
+            }
+
+            def "Amatsukast_Sketchfab_Grand_Piano" (
+                delete payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Piano/Amatsukast_Sketchfab_Grand_Piano.usdz@
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Piano/Amatsukast_Sketchfab_Grand_Piano.usdz@
+            )
+            {
+                quatf xformOp:orient = (-0.29237172, 7.645938e-17, 0.9563047, 7.9134946e-17)
+                float3 xformOp:scale = (0.7, 0.7, 0.7)
+                double3 xformOp:translate = (1365.3904698692604, 89.5498809814453, -1594.343938266168)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def "ModularCurved" (
+                prepend payload = @https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/ArchVis/Commercial/Reception/ModularCurved.usd@
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (541.4830879822845, 89.55007171630918, -1754.046812158933)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale", "xformOp:rotateX:unitsResolve"]
+
+                over "body" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </World/Exterior/AIgrad1stfloor/Looks/station_white> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                }
+            }
+
+            def "fridge" (
+                prepend payload = @https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/ArchVis/Residential/Appliances/Refrigerators/fridge.usd@
+            )
+            {
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:rotateXYZ = (0, -90, 1.1368684e-13)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (1532.1407249057845, 89.54987335205035, -2803.7343400255236)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale", "xformOp:rotateX:unitsResolve"]
+            }
+
+            def "Reaserach_v1" (
+                prepend apiSchemas = ["PhysicsRigidBodyAPI"]
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Table_Desk/Reaserach_v1.usd@
+            )
+            {
+                quatf xformOp:orient = (0.70710677, 0, 0.70710677, 0)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (143.35663713885174, 3.666400516522117e-12, -234.62419739698288)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+                over "Reaserach_V1"
+                {
+                    over "Desk_04"
+                    {
+                        over "_U_Screen_v3"
+                        {
+                            over "MeshInstance_4"
+                            {
+                                over "RIght_Leg__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_3"
+                            {
+                                over "Soft_Tissue__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance"
+                            {
+                                over "Main_Screen" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_1"
+                            {
+                                over "RIght_Leg" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_2"
+                            {
+                                over "Soft_Tissue" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "_U_Screen_v6_01"
+                        {
+                            over "Left_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "RIght_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Main_Screen" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "_U_Screen_v6"
+                        {
+                            over "Soft_Tissue__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "RIght_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Main_Screen" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "Table_v6"
+                        {
+                            over "Right_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Stand__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Stand" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Rest_Area" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Wood_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Support" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Electronic_Cover" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "Desk_Stands_v3"
+                        {
+                            over "Desk_Stands_v3"
+                            {
+                                over "Right_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Glass" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Left_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+                    }
+
+                    over "Desk_03"
+                    {
+                        over "_U_Screen_v3"
+                        {
+                            over "MeshInstance_4"
+                            {
+                                over "RIght_Leg__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_2"
+                            {
+                                over "Soft_Tissue" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance"
+                            {
+                                over "Main_Screen" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_3"
+                            {
+                                over "Soft_Tissue__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_1"
+                            {
+                                over "RIght_Leg" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "_U_Screen_v6_01"
+                        {
+                            over "Soft_Tissue__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "RIght_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Main_Screen" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "_U_Screen_v6"
+                        {
+                            over "Left_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "RIght_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Main_Screen" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "Desk_Stands_v3_01"
+                        {
+                            over "Desk_Stands_v3"
+                            {
+                                over "Right_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Glass" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Left_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "Desk_Stands_v3"
+                        {
+                            over "Desk_Stands_v3"
+                            {
+                                over "Glass" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Left_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Right_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "Table_v6"
+                        {
+                            over "Right_Stand" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Stand__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Electronic_Cover" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Support" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Rest_Area" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Wood_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+                    }
+
+                    over "Desk_01"
+                    {
+                        over "Table_v6"
+                        {
+                            over "Electronic_Cover" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Stand__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Wood_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Stand" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Support" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Rest_Area" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "Desk_Stands_v3"
+                        {
+                            over "Desk_Stands_v3"
+                            {
+                                over "Right_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Glass" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Left_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "Desk_Stands_v3_01"
+                        {
+                            over "Desk_Stands_v3"
+                            {
+                                over "Right_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Left_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Glass" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "_U_Screen_v3"
+                        {
+                            over "MeshInstance_2"
+                            {
+                                over "Soft_Tissue" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance"
+                            {
+                                over "Main_Screen" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_1"
+                            {
+                                over "RIght_Leg" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_3"
+                            {
+                                over "Soft_Tissue__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_4"
+                            {
+                                over "RIght_Leg__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "_U_Screen_v6"
+                        {
+                            over "RIght_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Main_Screen" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "_U_Screen_v6_01"
+                        {
+                            over "Main_Screen" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "RIght_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+                    }
+
+                    over "Desk_02"
+                    {
+                        over "_U_Screen_v3"
+                        {
+                            over "MeshInstance_3"
+                            {
+                                over "Soft_Tissue__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance"
+                            {
+                                over "Main_Screen" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_4"
+                            {
+                                over "RIght_Leg__1_" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_1"
+                            {
+                                over "RIght_Leg" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+
+                            over "MeshInstance_2"
+                            {
+                                over "Soft_Tissue" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "_U_Screen_v6_01"
+                        {
+                            over "Soft_Tissue__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Soft_Tissue" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Main_Screen" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "RIght_Leg" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+
+                        over "Desk_Stands_v3_01"
+                        {
+                            over "Desk_Stands_v3"
+                            {
+                                over "Glass" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Right_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Left_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "Desk_Stands_v3"
+                        {
+                            over "Desk_Stands_v3"
+                            {
+                                over "Right_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Glass" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+
+                                over "Left_Standee" (
+                                    prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                                )
+                                {
+                                    token physics:approximation = "convexHull"
+                                }
+                            }
+                        }
+
+                        over "Table_v6"
+                        {
+                            over "Right_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Rest_Area" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Support" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Extension" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Electronic_Cover" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Stand" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Right_Stand__1_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Left_Corner" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+
+                            over "Wood_" (
+                                prepend apiSchemas = ["PhysicsCollisionAPI", "PhysicsMeshCollisionAPI"]
+                            )
+                            {
+                                token physics:approximation = "convexHull"
+                            }
+                        }
+                    }
+                }
+            }
+
+            def "Launge_Table_v1" (
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Table_Desk/Launge_Table v1.usdz@
+            )
+            {
+                quatf xformOp:orient = (0.70710677, 0, 0.70710677, 0)
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:scale = (0.8, 0.8, 0.8)
+                double3 xformOp:scale:unitsResolve = (0.10000000223517423, 0.10000000223517423, 0.10000000223517423)
+                double3 xformOp:translate = (1281.1110347353533, 89.54984283447286, -2467.233394274257)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale", "xformOp:rotateX:unitsResolve", "xformOp:scale:unitsResolve"]
+
+                over "Body1" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </World/Exterior/AIgrad1stfloor/Looks/Ash_Planks> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                }
+            }
+
+            def "Launge_Table_v1_01" (
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Table_Desk/Launge_Table v1.usdz@
+            )
+            {
+                quatf xformOp:orient = (0.70710677, 0, 0.70710677, 0)
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:scale = (0.8, 0.8, 0.8)
+                double3 xformOp:scale:unitsResolve = (0.10000000223517423, 0.10000000223517423, 0.10000000223517423)
+                double3 xformOp:translate = (1281.1110347353547, 89.54984283447266, -2063.472423860979)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale", "xformOp:rotateX:unitsResolve", "xformOp:scale:unitsResolve"]
+
+                over "Body1" (
+                    prepend apiSchemas = ["MaterialBindingAPI"]
+                )
+                {
+                    rel material:binding = </World/Exterior/AIgrad1stfloor/Looks/Ash_Planks> (
+                        bindMaterialAs = "weakerThanDescendants"
+                    )
+                }
+            }
+
+            def "Meeting_Table_v4_01" (
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Table_Desk/Meeting_Table v4.usdz@
+            )
+            {
+                quatf xformOp:orient = (0.7002613, 2.2270604e-13, -0.7138866, 2.2747613e-13)
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:scale:unitsResolve = (0.10000000223517423, 0.10000000223517423, 0.10000000223517423)
+                double3 xformOp:translate = (618.1674225014496, 92.85364532467685, -873.7911611688803)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale", "xformOp:rotateX:unitsResolve", "xformOp:scale:unitsResolve"]
+            }
+
+            def "Meeting_Table_v4" (
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Table_Desk/Meeting_Table v4.usdz@
+            )
+            {
+                quatf xformOp:orient = (0.713887, -8.343528e-19, 0.70026094, 1.7519371e-17)
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:scale:unitsResolve = (0.10000000223517423, 0.10000000223517423, 0.10000000223517423)
+                double3 xformOp:translate = (749.5339759043487, 92.85364532473432, -565.753129558346)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale", "xformOp:rotateX:unitsResolve", "xformOp:scale:unitsResolve"]
+            }
+
+            def "Launge_Table_v1_02" (
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Furniture/Table_Desk/Launge_Table v1.usdz@
+            )
+            {
+                quatf xformOp:orient = (1, 0, 0, 0)
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:scale:unitsResolve = (0.10000000223517423, 0.10000000223517423, 0.10000000223517423)
+                double3 xformOp:translate = (1536.4486969352909, 92.8535995483401, -1428.3170172572184)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale", "xformOp:rotateX:unitsResolve", "xformOp:scale:unitsResolve"]
+            }
+
+            def Mesh "Track" (
+                prepend apiSchemas = ["MaterialBindingAPI"]
+            )
+            {
+                float3[] extent = [(-50, 0, -50), (50, 0, 50)]
+                int[] faceVertexCounts = [4]
+                int[] faceVertexIndices = [0, 2, 3, 1]
+                rel material:binding = </World/Exterior/AIgrad1stfloor/Looks/deepracer_track> (
+                    bindMaterialAs = "weakerThanDescendants"
+                )
+                normal3f[] normals = [(0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0)] (
+                    interpolation = "faceVarying"
+                )
+                point3f[] points = [(-50, 0, -50), (50, 0, -50), (-50, 0, 50), (50, 0, 50)]
+                texCoord2f[] primvars:st = [(0, 1), (0, 0), (1, 0), (1, 1)] (
+                    interpolation = "faceVarying"
+                )
+                uniform token subdivisionScheme = "none"
+                quatd xformOp:orient = (0.7071067811865476, 0, -0.7071067811865475, 0)
+                double3 xformOp:scale = (4.721599997915444, 4.721599997915444, 4.721599997915444)
+                double3 xformOp:translate = (3481.7351074218814, 92.85375213623037, -1891.9361915654358)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+        }
+
+        def Xform "Dynamics"
+        {
+            quatd xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+    }
+
+    def Xform "Equipment"
+    {
+        token visibility = "invisible"
+        quatd xformOp:orient = (1, 0, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        def Xform "Included_In_AI_Grad_Building_usd"
+        {
+            quatd xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+            def "elevator" (
+                delete payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Equipment/modern_apartment_elevator_kkr/scene.usd@
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Equipment/modern_apartment_elevator_kkr/elevator.usd@
+            )
+            {
+                quatf xformOp:orient = (0.5, -0.5, -0.5, -0.5)
+                float3 xformOp:scale = (0.96, 1, 1)
+                double3 xformOp:translate = (3479.9901821478707, 178.8448092451157, -570.4908594573063)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+            }
+
+            def "cart_2" (
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Equipment/MobileX_Station/cart_v3.usd@
+            )
+            {
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:rotateXYZ = (0, -95.86736, 1.1368684e-13)
+                float3 xformOp:scale = (1, 1, 1)
+                double3 xformOp:translate = (3116.9217524468904, 149.81740867719031, -1829.7701289794365)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale", "xformOp:rotateX:unitsResolve"]
+
+                over "Cam_Insta360_one_x2_sports_and_action"
+                {
+                    over "Cam360"
+                    {
+                        token visibility
+                    }
+                }
+            }
+
+            def "Astronaut001" (
+                prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Human/Astronaut.usd@
+            )
+            {
+                double xformOp:rotateX:unitsResolve = -90
+                float3 xformOp:rotateXYZ = (0, -261.41718, -3.9449333e-11)
+                float3 xformOp:scale = (0.2, 0.2, 0.2)
+                double3 xformOp:scale:unitsResolve = (10.000000372529039, 10.000000372529039, 10.000000372529039)
+                double3 xformOp:translate = (449.4737070245503, 89.49999993238858, -1503.162561197506)
+                uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale", "xformOp:rotateX:unitsResolve", "xformOp:scale:unitsResolve"]
+
+                over "Background" (
+                    active = false
+                )
+                {
+                }
+
+                over "LongView"
+                {
+                    over "OmniverseKitViewportCameraMesh"
+                    {
+                        over "CameraModel" (
+                            active = false
+                        )
+                        {
+                        }
+                    }
+                }
+
+                over "DomeLight"
+                {
+                    token visibility = "invisible"
+                }
+            }
+        }
+
+        def Xform "Dynamics"
+        {
+            quatd xformOp:orient = (1, 0, 0, 0)
+            double3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (0, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+    }
+
+    def Xform "Ground"
+    {
+        token visibility = "invisible"
+        quatd xformOp:orient = (1, 0, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+
+        def "Front_Door_Ground" (
+            prepend payload = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Ground/Front_Door_Ground.usd@
+        )
+        {
+            token visibility = "inherited"
+            quatf xformOp:orient = (6.123234e-17, 6.123234e-17, 1, 6.123234e-17)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (-1268.5893308020957, 0.02, -1478.1324538322633)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:orient", "xformOp:scale"]
+        }
+    }
+
+    def DomeLight "DomeLight" (
+        prepend apiSchemas = ["ShapingAPI"]
+    )
+    {
+        float inputs:intensity = 1000
+        float inputs:shaping:cone:angle = 180
+        float inputs:shaping:cone:softness
+        float inputs:shaping:focus
+        color3f inputs:shaping:focusTint
+        asset inputs:shaping:ies:file
+        token inputs:texture:format = "latlong"
+        double3 xformOp:rotateXYZ = (270, 0, 0)
+        double3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (1837.8843450244897, 760.4942217747371, -1889.30908203123)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }
+
+    def Xform "TimeTravel_Objects"
+    {
+        token visibility = "inherited"
+
+        def Xform "Astronaut001" (
+            prepend references = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Human/Astronaut.usd@</Root>
+        )
+        {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (474.7, 195.8, -2373)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+        }
+
+        def Xform "Astronaut002" (
+            prepend references = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Human/Astronaut.usd@</Root>
+        )
+        {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (1334.8, 107, -1739.1)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+        }
+
+        def Xform "Astronaut003" (
+            prepend references = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Human/Astronaut.usd@</Root>
+        )
+        {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (964.3, 92, -2438.1)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+        }
+
+        def Xform "Astronaut004" (
+            prepend references = @omniverse://10.38.38.32/Projects/Dream-AI_Plus_Twin/Workspace_Personal/swj/AI-Grad_Building/Human/Astronaut.usd@</Root>
+        )
+        {
+            float3 xformOp:rotateXYZ = (-90, 0, 0)
+            float3 xformOp:scale = (1, 1, 1)
+            double3 xformOp:translate = (1362.7, 168.6, -1762.4)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+        }
+    }
+
+    def Camera "Livingroom" (
+        hide_in_stage_window = false
+        no_delete = false
+    )
+    {
+        float4[] clippingPlanes = []
+        float2 clippingRange = (1, 1000000)
+        float exposure = 0
+        float focalLength = 50
+        float focusDistance = 0
+        float fStop = 0
+        float horizontalAperture = 50
+        float horizontalApertureOffset = 0
+        custom vector3d omni:kit:centerOfInterest = (0, 0, -3450.513679969427)
+        token projection = "perspective"
+        uniform token purpose = "default"
+        double shutter:close = 0
+        double shutter:open = 0
+        uniform token stereoRole = "mono"
+        float verticalAperture = 50
+        float verticalApertureOffset = 0
+        token visibility = "invisible"
+        float3 xformOp:rotateYXZ = (0.113508, 90.00041, 89.7861)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (1273.8898016892902, 1602.2813409769983, -1825.6933577016498)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    def Camera "Camera" (
+        active = false
+    )
+    {
+        token visibility = "invisible"
+    }
+
+    def Camera "example_camera" (
+        hide_in_stage_window = false
+        no_delete = false
+    )
+    {
+        float4[] clippingPlanes = []
+        float2 clippingRange = (1, 1000000)
+        float exposure = 0
+        float focalLength = 50
+        float focusDistance = 0
+        float fStop = 0
+        float horizontalAperture = 50
+        float horizontalApertureOffset = 0
+        custom vector3d omni:kit:centerOfInterest = (0, 0, -3450.513679969427)
+        token projection = "perspective"
+        uniform token purpose = "default"
+        double shutter:close = 0
+        double shutter:open = 0
+        uniform token stereoRole = "mono"
+        float verticalAperture = 50
+        float verticalApertureOffset = 0
+        token visibility = "invisible"
+        float3 xformOp:rotateYXZ = (0.113508, 90.00041, 89.7861)
+        float3 xformOp:scale = (1, 1, 1)
+        double3 xformOp:translate = (1273.8898016892902, 1602.2813409769983, -1825.6933577016498)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateYXZ", "xformOp:scale"]
+    }
+
+    def Camera "Camera_01"
+    {
+    }
+}
+
+def "Render" (
+    hide_in_stage_window = true
+    no_delete = true
+)
+{
+    def "OmniverseKit"
+    {
+        def "HydraTextures" (
+            hide_in_stage_window = true
+            no_delete = true
+        )
+        {
+            def RenderProduct "omni_kit_widget_viewport_ViewportTexture_0" (
+                prepend apiSchemas = ["OmniRtxSettingsCommonAdvancedAPI_1", "OmniRtxSettingsRtAdvancedAPI_1", "OmniRtxSettingsPtAdvancedAPI_1", "OmniRtxPostColorGradingAPI_1", "OmniRtxPostChromaticAberrationAPI_1", "OmniRtxPostBloomPhysicalAPI_1", "OmniRtxPostMatteObjectAPI_1", "OmniRtxPostCompositingAPI_1", "OmniRtxPostDofAPI_1", "OmniRtxPostMotionBlurAPI_1", "OmniRtxPostTvNoiseAPI_1", "OmniRtxPostTonemapIrayReinhardAPI_1", "OmniRtxPostDebugSettingsAPI_1", "OmniRtxDebugSettingsAPI_1"]
+                hide_in_stage_window = true
+                no_delete = true
+            )
+            {
+                rel camera = </OmniverseKit_Persp>
+                token omni:rtx:background:source:texture:textureMode = "repeatMirrored"
+                token omni:rtx:background:source:type = "domeLight"
+                bool omni:rtx:dlss:frameGeneration = 1
+                string omni:rtx:material:db:rtSensorNameToIdMap = "DefaultMaterial:0;AsphaltStandardMaterial:1;AsphaltWeatheredMaterial:2;VegetationGrassMaterial:3;WaterStandardMaterial:4;GlassStandardMaterial:5;FiberGlassMaterial:6;MetalAlloyMaterial:7;MetalAluminumMaterial:8;MetalAluminumOxidizedMaterial:9;PlasticStandardMaterial:10;RetroMarkingsMaterial:11;RetroSignMaterial:12;RubberStandardMaterial:13;SoilClayMaterial:14;ConcreteRoughMaterial:15;ConcreteSmoothMaterial:16;OakTreeBarkMaterial:17;FabricStandardMaterial:18;PlexiGlassStandardMaterial:19;MetalSilverMaterial:20"
+                bool omni:rtx:material:db:syncLoads = 1
+                bool omni:rtx:post:registeredCompositing:invertColorCorrection = 1
+                bool omni:rtx:post:registeredCompositing:invertToneMap = 1
+                bool omni:rtx:pt:lightcache:cached:dontResolveConflicts = 1
+                int omni:rtx:pt:maxSamplesPerLaunch = 2073600
+                int omni:rtx:pt:mgpu:maxPixelsPerRegionExponent = 12
+                float omni:rtx:realtime:mgpu:masterDeviceLoadBalancingWeight = 0
+                int omni:rtx:realtime:mgpu:tileCount = 2
+                color3f omni:rtx:rt:ambientLight:color = (0.1, 0.1, 0.1)
+                bool omni:rtx:rt:demoire = 0
+                bool omni:rtx:rt:ecoMode:enabled
+                bool omni:rtx:rt:lightcache:spatialCache:dontResolveConflicts = 1
+                bool omni:rtx:scene:hydra:materialSyncLoads = 1
+                bool omni:rtx:scene:hydra:mdlMaterialWarmup = 1
+                uint omni:rtx:viewTile:limit = 4294967295
+                rel orderedVars = </Render/Vars/LdrColor>
+                custom bool overrideClipRange = 0
+                uniform int2 resolution = (1280, 720)
+            }
+        }
+    }
+
+    def RenderSettings "OmniverseGlobalRenderSettings" (
+        prepend apiSchemas = ["OmniRtxSettingsGlobalRtAdvancedAPI_1", "OmniRtxSettingsGlobalPtAdvancedAPI_1"]
+        no_delete = true
+    )
+    {
+        rel products = </Render/OmniverseKit/HydraTextures/omni_kit_widget_viewport_ViewportTexture_0>
+    }
+
+    def "Vars"
+    {
+        def RenderVar "LdrColor" (
+            hide_in_stage_window = true
+            no_delete = true
+        )
+        {
+            uniform string sourceName = "LdrColor"
+        }
+    }
+}
+
+over "OmniverseKit_Persp"
+{
+    token visibility = "invisible"
+}
+
+over "OmniverseKit_Front"
+{
+    token visibility = "invisible"
+}
+
+over "OmniverseKit_Top"
+{
+    token visibility = "invisible"
+}
+
+over "OmniverseKit_Right"
+{
+    token visibility = "invisible"
+}
+
