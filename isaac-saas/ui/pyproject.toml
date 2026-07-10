@@ -1,0 +1,26 @@
+[project]
+name = "isaac-ui"
+version = "0.14.0"
+description = "Isaac Sim self-service UI for the lab GPU cluster"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<0.116",
+    "uvicorn>=0.34,<0.35",
+    "redis>=5,<6",
+    "kubernetes>=36,<37",
+]
+
+[project.optional-dependencies]
+# enable when tracking/policy move to PostgreSQL (k8s/db/):  uv add 'psycopg[binary]'
+db = ["psycopg[binary]>=3.2,<4"]
+
+[dependency-groups]
+# test/dev only - never installed in the image
+dev = [
+    "httpx>=0.27",
+    "pytest>=8",
+]
+
+[tool.uv]
+# the lockfile is the single source of truth for deployments
+required-version = ">=0.5"

@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: isaac-ui, namespace: oos-sim }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: isaac-ui, namespace: oos-sim }
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "delete", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["events"]            # for the detail drawer "recent events"
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["configmaps"]        # GPU ban policy store (when REDIS_HOST unset)
+    verbs: ["get", "create", "patch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]   # per-instance VSCode workspace (WORKSPACE_PERSIST=1)
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: ["resource.k8s.io"]          # DRA: per-instance GPU ResourceClaimTemplate
+    resources: ["resourceclaimtemplates"]
+    verbs: ["get", "list", "create", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: isaac-ui, namespace: oos-sim }
+subjects: [ { kind: ServiceAccount, name: isaac-ui, namespace: oos-sim } ]
+roleRef: { kind: Role, name: isaac-ui, apiGroup: rbac.authorization.k8s.io }
+---
+# cluster-scoped reads: nodes (GPU labels/capacity) + pods (GPU usage accounting)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: isaac-ui-nodes }
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]               # cluster-wide, to sum nvidia.com/gpu in use
+    verbs: ["get", "list"]
+  - apiGroups: ["resource.k8s.io"]    # DRA: sum GPUs held via ResourceClaims (all ns)
+    resources: ["resourceclaims"]
+    verbs: ["get", "list"]
+  - apiGroups: ["resource.k8s.io"]    # map allocated device -> GPU UUID (Details view)
+    resources: ["resourceslices"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: { name: isaac-ui-nodes }
+subjects: [ { kind: ServiceAccount, name: isaac-ui, namespace: oos-sim } ]
+roleRef: { kind: ClusterRole, name: isaac-ui-nodes, apiGroup: rbac.authorization.k8s.io }

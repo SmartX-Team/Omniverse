@@ -1,0 +1,113 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: isaac-ui, namespace: oos-sim, labels: { app: isaac-ui } }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: isaac-ui } }
+  template:
+    metadata: { labels: { app: isaac-ui } }
+    spec:
+      serviceAccountName: isaac-ui
+      # Pull from Harbor (private project). Create this secret out-of-band:
+      #   kubectl -n oos-sim create secret docker-registry harbor-regcred \
+      #     --docker-server=10.38.38.210 --docker-username=admin --docker-password=****
+      imagePullSecrets: [ { name: harbor-regcred } ]
+      # Pin to a stable node (UI needs no GPU). Flaky nodes caused probe timeouts.
+      nodeSelector: { kubernetes.io/hostname: l40s }
+      containers:
+        - name: ui
+          # Bump the tag on every release; keep it in sync with build.sh output.
+          image: 10.38.38.210/dt-saas/isaac-ui:0.15.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - { name: NAMESPACE, value: "oos-sim" }
+            # Image used for the Isaac Sim INSTANCES the UI creates (not the UI itself).
+            # 5.1-exp1 = 5.1 + experiment scripts baked at /opt/experiment/ (see isaac-sim-image/).
+            - { name: IMAGE,     value: "10.38.38.210/dt-saas/isaac-sim:5.1-exp1" }
+            - { name: NODES,     value: "l40s,rm352-1,rm352-2,sv4000-1,sv4000-2" }
+            # Product deny (0.15+, post-KCI): with DRA on this is enforced PER GPU via
+            # the instance ResourceClaim's CEL (productName selector), so mixed nodes
+            # (sv4000-1 = A6000 x2 + A100 x1) keep their good GPUs. A100 = no NVENC,
+            # cannot serve WebRTC streaming. (Pre-0.15 this was node-label matching and
+            # had to stay empty; the A100 was excluded via DEFAULT_GPU_BANS instead.)
+            - { name: INSTANCE_DENY_PRODUCTS, value: "A100" }
+            - { name: PORT,      value: "8080" }
+            # GPU allocation via DRA (NVIDIA k8s-dra-driver-gpu, K8s >=1.34). On -> each
+            # instance gets a per-instance ResourceClaimTemplate whose CEL deny-list makes
+            # per-UUID GPU bans actually enforced. Off -> legacy device-plugin nvidia.com/gpu.
+            - { name: DRA_ENABLED, value: "1" }
+            # - { name: DRA_API_VERSION, value: "resource.k8s.io/v1" }
+            # - { name: DRA_DEVICE_CLASS, value: "gpu.nvidia.com" }
+            # - { name: DRA_DRIVER,       value: "gpu.nvidia.com" }
+            # Instance image catalog (Create 모달의 이미지/태그 드롭다운). 기본 =
+            # Harbor http://10.38.38.210 / 프로젝트 dt-saas / 레포 isaac-sim.
+            # 서버는 이 카탈로그에 있는 이미지만 허용(자유 입력 불가). 실패 시
+            # 기본 IMAGE 로만 생성 가능 (fail-soft). Docker Hub 로 옮기면:
+            #   REGISTRY_KIND=dockerhub, REGISTRY_PROJECT=<hub namespace>
+            # - { name: REGISTRY_KIND,    value: "harbor" }
+            # - { name: REGISTRY_URL,     value: "http://10.38.38.210" }
+            # - { name: REGISTRY_PROJECT, value: "dt-saas" }
+            # - { name: REGISTRY_REPOS,   value: "isaac-sim" }   # 쉼표 구분 다중
+            # 비공개 프로젝트면 (Secret 권장, 값 직접 넣지 말 것):
+            # - { name: REGISTRY_USER, valueFrom: { secretKeyRef: { name: harbor-api, key: user } } }
+            # - { name: REGISTRY_PASS, valueFrom: { secretKeyRef: { name: harbor-api, key: pass } } }
+            # Scene load history (어떤 USD를 열었을 때 어느 GPU가 얼마나 힘들었나).
+            # 6.0+ 인스턴스 이미지의 stage_report.py 가 stage open/close 를 UI로 POST,
+            # UI가 DCGM 통계와 조인해 isaac-ui-scenes ConfigMap 에 세션 기록. 기본 on.
+            # - { name: SCENE_REPORT_ENABLED, value: "1" }   # "0" to disable
+            # - { name: SCENE_REPORT_URL, value: "http://isaac-ui.oos-sim.svc/api/stage-report" }
+            # - { name: SCENES_CM,  value: "isaac-ui-scenes" }
+            # - { name: SCENES_MAX, value: "500" }
+            # GPU ban store: default is the isaac-ui-policy ConfigMap in this ns.
+            # To move bans to Redis later, deploy Redis and uncomment:
+            # - { name: REDIS_HOST, value: "redis.oos-sim.svc.cluster.local" }
+            # - { name: REDIS_PORT, value: "6379" }
+            # Bundled VSCode (code-server) sidecar - on by default. Knobs:
+            # - { name: CODE_SERVER_ENABLED, value: "1" }       # "0" to disable
+            # Harbor mirror (was codercom/code-server:latest on Docker Hub) - keeps
+            # instances working after the Docker Hub PAT (regcred) is revoked:
+            - { name: CODE_SERVER_IMAGE,   value: "10.38.38.210/dt-saas/code-server:latest" }
+            # - { name: CODE_SERVER_PORT,    value: "8443" }    # LB-exposed VSCode port
+            # - { name: WORKSPACE_DIR,       value: "/opt/oos_omniverse_extensions" }  # path edited in VSCode
+            # Persistent edits (survive pod restarts) need a StorageClass:
+            # - { name: WORKSPACE_PERSIST,       value: "1" }
+            # - { name: WORKSPACE_STORAGE_CLASS, value: "local-path" }   # "" = cluster default
+            # - { name: WORKSPACE_SIZE,          value: "5Gi" }
+            # Per-instance metrics (OpenTelemetry Collector sidecar, network-centric) - on by default.
+            # OTel Collector exposes a Prometheus endpoint; monitoring-ns Prometheus pulls it via
+            # pod annotations. NOT on the Service/LB. Metric names follow OTel semconv (system_network_*).
+            # - { name: METRICS_ENABLED,    value: "1" }   # "0" to disable
+            # - { name: METRICS_OTEL_IMAGE, value: "10.38.38.210/dt-saas/otel-collector-contrib:0.119.0" }
+            # - { name: METRICS_PORT,       value: "9100" }
+            # - { name: METRICS_INTERVAL,   value: "15s" }
+            # OTel runs as a NATIVE SIDECAR (restartPolicy:Always): a runtime crash does NOT
+            # take down the instance. BUT it starts before isaac, so the image must be pullable
+            # or isaac will not start. PREREQUISITES: (1) run ./mirror-images.sh to push
+            # otel-collector-contrib into Harbor; (2) instance pods carry harbor-regcred
+            # (resources.py) so the Harbor pull authenticates. Else set METRICS_ENABLED=0.
+            # Prometheus the Metrics dashboard reads (read-only, in-cluster):
+            # - { name: PROMETHEUS_URL, value: "http://prometheus-server.monitoring.svc.cluster.local" }
+            # Extended L4 telemetry (node-exporter sidecar: TCP retransmits, TCP/UDP
+            # protocol counts, sockets). Loopback-only; the otel collector scrapes+merges
+            # it. Needs METRICS_ENABLED=1 and the node-exporter image mirrored to Harbor.
+            # - { name: NETSTAT_ENABLED, value: "1" }   # "0" to disable
+            # - { name: NETSTAT_IMAGE,   value: "10.38.38.210/dt-saas/node-exporter:1.8" }
+            # - { name: NETSTAT_PORT,    value: "9101" }
+            # GPU ban display (0.15+, post-KCI): bans are shown honestly as ban pips.
+            # During the KCI review they were disguised as occupied/grey ("1").
+            - { name: GPU_BAN_AS_USED, value: "0" }
+            # Seeded UUID bans, enforced by the DRA CEL deny-list at schedule time.
+            # Format: node:UUID, comma-sep.
+            #   l40s 0/1        : colleague reservation (L40S x2)
+            #   rm352-1/2 A10   : occupied assumption from the KCI setup (kept for now)
+            #   sv4000-1 A100   : no NVENC (also covered by INSTANCE_DENY_PRODUCTS=A100
+            #                     since 0.15 - kept as a UUID ban for defense in depth)
+            # Usable pool: L40S x6 + Quadro RTX 6000 x2 + RTX A6000 x2 + L40 x2.
+            - { name: DEFAULT_GPU_BANS, value: "l40s:GPU-812dce01-64f6-45b3-6c78-b776397ea062,l40s:GPU-e969de42-bd16-c405-9dd8-4b84bfe09bc3,rm352-1:GPU-aa862df6-da21-d03a-4ade-2280a4a0b70b,rm352-2:GPU-2b43cf0a-e364-1d50-33af-efe96ea7e225,sv4000-1:GPU-cbc2262b-aca6-d871-4c2b-3fec8646ac67" }
+          ports: [ { containerPort: 8080 } ]
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6

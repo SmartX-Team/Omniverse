@@ -1,0 +1,57 @@
+# PostgreSQL for isaac-ui (ban policy now; tracking/audit/quota later; RDS on AWS).
+#
+# Deployed SEPARATELY from the UI on purpose: the main ArgoCD Application has
+# prune+selfHeal on ui/k8s, and a pruned database is a lost database. Apply with
+#   kubectl apply -k k8s/db/
+# or a second ArgoCD Application with prune DISABLED (see db/README.md).
+#
+# Secret is created out-of-band (never in Git):
+#   kubectl -n oos-sim create secret generic isaac-db-cred \
+#     --from-literal=POSTGRES_PASSWORD='<strong-password>'
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: isaac-db, namespace: oos-sim, labels: { app: isaac-db } }
+spec:
+  serviceName: isaac-db
+  replicas: 1
+  selector: { matchLabels: { app: isaac-db } }
+  template:
+    metadata: { labels: { app: isaac-db } }
+    spec:
+      # Same stable node as the UI. Mandatory if you use local-path storage
+      # (the PV is physically on this node); remove only with networked storage.
+      nodeSelector: { kubernetes.io/hostname: l40s }
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_DB,   value: "isaacui" }
+            - { name: POSTGRES_USER, value: "isaacui" }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: isaac-db-cred, key: POSTGRES_PASSWORD } }
+            # data one level below the mount so lost+found doesn't break initdb
+            - { name: PGDATA, value: "/var/lib/postgresql/data/pgdata" }
+          ports: [ { containerPort: 5432, name: pg } ]
+          resources:
+            requests: { cpu: "100m", memory: "256Mi" }
+            limits:   { cpu: "1",    memory: "1Gi" }
+          readinessProbe:
+            exec: { command: ["pg_isready", "-U", "isaacui", "-d", "isaacui"] }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec: { command: ["pg_isready", "-U", "isaacui", "-d", "isaacui"] }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        # storageClassName: leave unset to use the cluster default StorageClass.
+        # No default SC in the lab cluster? Install local-path-provisioner first:
+        #   kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.31/deploy/local-path-storage.yaml
+        #   kubectl patch storageclass local-path -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+        # storageClassName: local-path
+        resources: { requests: { storage: 10Gi } }

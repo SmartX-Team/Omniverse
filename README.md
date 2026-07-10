@@ -2,9 +2,10 @@
 
 As of **25/01/20**, the repository structure has undergone a **major restructuring**.  
 It now consists of two main folders at the root level:  
-- **`extensions/`**: Contains Omniverse Extensions  
-- **`backend/`**: Contains backend-related code or Docker configurations  
-- **`ros2/`**:Contains ROS2 packages for simulation control and data publishing within Isaac Sim.
+- **`Extension/`**: Contains Omniverse Extensions  
+- **`Backend/`**: Contains backend-related code or Docker configurations  
+- **`ROS2/`**: Contains ROS2 packages for simulation control and data publishing within Isaac Sim.  
+- **`isaac-saas/`**: Self-service platform for launching and managing Isaac Sim instances on Kubernetes (FastAPI web UI, GPU ban policy, DRA-based scheduling enforcement, deployment manifests, Isaac Sim container image).
 
 In addition, each of these folders includes a **`deprecated/`** subfolder, where older or no longer maintained items are placed. 
 
@@ -49,6 +50,9 @@ Below is an overview of the main folders in this repository:
 
 - **`ros2/`**
   Contains ROS2 packages for simulation control and data publishing within Isaac Sim. 
+
+- **`isaac-saas/`**  
+  Isaac Sim self-service platform: web UI (`ui/`), Kubernetes manifests and ops scripts (`deploy/`), Isaac Sim container image build (`isaac-sim-image/`), DRA examples (`examples/dra/`), and docs. See `isaac-saas/README.md`.
 
 
 - **`docs/`**  

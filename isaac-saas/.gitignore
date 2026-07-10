@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Paper / research material — never commit to this public repo
+*.docx
+research/
+runs/
+CLAUDE.md
+
+# Local env / secrets
+*.env
+!run.env.example
+!build.env
+*regcred*.yaml

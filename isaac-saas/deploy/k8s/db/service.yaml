@@ -1,0 +1,8 @@
+# In-cluster only (ClusterIP). The DB is never exposed outside the cluster.
+apiVersion: v1
+kind: Service
+metadata: { name: isaac-db, namespace: oos-sim, labels: { app: isaac-db } }
+spec:
+  clusterIP: None            # headless: stable DNS isaac-db.oos-sim.svc.cluster.local
+  selector: { app: isaac-db }
+  ports: [ { name: pg, port: 5432, targetPort: 5432, protocol: TCP } ]

@@ -1,0 +1,6 @@
+build.sh
+README.md
+Dockerfile
+.dockerignore
+**/__pycache__/
+*.pyc

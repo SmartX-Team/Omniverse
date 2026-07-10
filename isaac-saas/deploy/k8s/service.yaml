@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Service
+metadata: { name: isaac-ui, namespace: oos-sim, labels: { app: isaac-ui } }
+spec:
+  type: LoadBalancer          # MetalLB assigns an IP from the default pool
+  selector: { app: isaac-ui }
+  ports: [ { name: http, port: 80, targetPort: 8080, protocol: TCP } ]

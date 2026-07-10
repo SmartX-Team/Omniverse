@@ -1,0 +1,47 @@
+# L40S nvidia-smi 0·1 (GPU-812dce01 / GPU-e969de42) 밴 격리 테스트
+# API: resource.k8s.io/v1 (GA, exactly 블록). DeviceClass: gpu.nvidia.com
+# 적용: kubectl apply -f l40s-deny01.yaml
+# 주의: L40S 한가할 때만 (기존 device-plugin 인스턴스와 이중할당 방지)
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: l40s-deny01
+  namespace: oos-sim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+          allocationMode: ExactCount
+          count: 1
+          selectors:
+          - cel:
+              expression: >-
+                device.driver == "gpu.nvidia.com" &&
+                !(device.attributes["gpu.nvidia.com"].uuid in [
+                  "GPU-812dce01-64f6-45b3-6c78-b776397ea062",
+                  "GPU-e969de42-bd16-c405-9dd8-4b84bfe09bc3"
+                ])
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dra-probe
+  namespace: oos-sim
+spec:
+  restartPolicy: Never
+  nodeSelector: { kubernetes.io/hostname: l40s }
+  tolerations:
+  - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+  resourceClaims:
+  - name: gpu
+    resourceClaimTemplateName: l40s-deny01
+  containers:
+  - name: probe
+    image: nvidia/cuda:12.4.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=uuid,name --format=csv; sleep 600"]
+    resources:
+      claims:
+      - name: gpu

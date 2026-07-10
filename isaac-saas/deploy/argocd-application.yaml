@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: isaac-ui
+  namespace: argocd                 # the namespace where ArgoCD runs
+spec:
+  project: default
+  source:
+    # >>> EDIT THESE to point at your Git repo and the path holding k8s/ <<<
+    repoURL: https://github.com/SmartX-Team/Omniverse.git
+    targetRevision: main
+    path: isaac-saas/deploy/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: oos-sim
+  syncPolicy:
+    automated:
+      prune: true                   # prunes ONLY resources defined under ui/k8s
+      selfHeal: true                # reverts manual drift back to Git
+    syncOptions:
+      - CreateNamespace=true
+# Note: this Application tracks only the UI manifests in isaac-saas/deploy/k8s.
+# Isaac Sim instances created dynamically by the UI/CLI are NOT in this path,
+# so prune never touches them. Keep instance lifecycle out of this Application.
+# STATUS: aspirational — the live cluster is deployed manually via redeploy.sh;
+# no ArgoCD Application named isaac-ui exists yet.

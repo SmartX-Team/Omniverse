@@ -1,0 +1,45 @@
+# 바인딩 확인(역방향): 그 두 장만 허용 → probe는 반드시 그 둘 중 하나에만 떠야 함
+# 적용: kubectl apply -f l40s-only01.yaml
+apiVersion: resource.k8s.io/v1
+kind: ResourceClaimTemplate
+metadata:
+  name: l40s-only01
+  namespace: oos-sim
+spec:
+  spec:
+    devices:
+      requests:
+      - name: gpu
+        exactly:
+          deviceClassName: gpu.nvidia.com
+          allocationMode: ExactCount
+          count: 1
+          selectors:
+          - cel:
+              expression: >-
+                device.driver == "gpu.nvidia.com" &&
+                device.attributes["gpu.nvidia.com"].uuid in [
+                  "GPU-812dce01-64f6-45b3-6c78-b776397ea062",
+                  "GPU-e969de42-bd16-c405-9dd8-4b84bfe09bc3"
+                ]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dra-probe-bind
+  namespace: oos-sim
+spec:
+  restartPolicy: Never
+  nodeSelector: { kubernetes.io/hostname: l40s }
+  tolerations:
+  - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+  resourceClaims:
+  - name: gpu
+    resourceClaimTemplateName: l40s-only01
+  containers:
+  - name: probe
+    image: nvidia/cuda:12.4.1-base-ubuntu22.04
+    command: ["bash","-c","nvidia-smi --query-gpu=uuid --format=csv,noheader; sleep 300"]
+    resources:
+      claims:
+      - name: gpu

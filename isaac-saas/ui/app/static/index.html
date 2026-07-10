@@ -1,0 +1,115 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Isaac Sim &middot; instance control</title>
+<link rel="stylesheet" href="/style.css"></head><body>
+<header>
+ <div class="brand"><b>Isaac Sim</b> &middot; instance control</div>
+ <div class="meta"><span>nodes: __NODES__</span></div>
+ <div class="live" id="live" title="toggle auto-refresh"><span class="dot"></span><span id="liveTxt">live &middot; 10s</span></div>
+</header>
+<main>
+ <section class="gpubar" id="gpu"></section>
+ <div class="stats" id="stats"></div>
+ <div class="toolbar">
+   <button class="primary" onclick="openCreate()">+ New instance</button>
+   <button onclick="refresh()">&#x21bb; Refresh</button>
+   <button class="ghost" onclick="doPrune()" title="delete leftover Services with no Deployment">Prune orphans</button>
+   <button class="ghost" onclick="openBans()" title="ban nodes / GPU products / single GPUs by UUID">GPU bans</button>
+   <button class="ghost" onclick="openMetrics()" title="per-instance network usage \u00b7 charts + CSV/JSON export">Metrics</button>
+   <button class="ghost" onclick="openScenes()" title="which USD scene stressed which GPU model (DCGM joined)">Scenes</button>
+   <span class="grow"></span>
+   <span class="mono" id="updated" style="color:var(--mut);font-size:12px"></span>
+ </div>
+ <table>
+   <thead><tr><th>Instance</th><th>Status</th><th>Age</th><th>Node</th><th>GPU</th><th>Stream IP</th><th></th></tr></thead>
+   <tbody id="rows"><tr><td colspan="7" class="empty">loading&hellip;</td></tr></tbody>
+ </table>
+ <div class="foot">Connect: open the Isaac Sim WebRTC Streaming Client and enter the Stream IP (no port). Load takes ~1&ndash;2 min after Running.</div>
+
+ <section class="collect" id="collect">
+   <div class="collect-h">
+     <span class="ct">Metrics collection &middot; per-pod (Prometheus)</span>
+     <span class="collect-status mono" id="collectStatus"></span>
+   </div>
+   <div id="collectBody"><div class="empty">loading&hellip;</div></div>
+ </section>
+</main>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<aside class="drawer" id="drawer"><h2 id="dTitle"></h2><div class="body" id="dBody"></div></aside>
+
+<div class="modal" id="modal">
+ <div class="card">
+   <h3>New Isaac Sim instance</h3>
+   <label>Name</label>
+   <input id="mName" placeholder="e.g. alice" maxlength="30" autocomplete="off">
+   <div class="hint">a-z, 0-9, - &middot; gets its own LoadBalancer IP</div>
+   <label>Image</label>
+   <select id="mImage"><option value="">default (server-set)</option></select>
+   <div class="hint" id="mImageHint">loading registry catalog&hellip;</div>
+   <label>Owner (optional)</label>
+   <input id="mOwner" placeholder="e.g. inyong" maxlength="60" autocomplete="off">
+   <label>Description / purpose (optional)</label>
+   <textarea id="mDesc" placeholder="what is this instance for?" maxlength="300"></textarea>
+   <div class="actions">
+     <button class="ghost" onclick="closeCreate()">Cancel</button>
+     <button class="primary" id="mGo" onclick="submitCreate()">Create</button>
+   </div>
+ </div>
+</div>
+<div class="modal" id="banModal">
+ <div class="card wide">
+   <h3>GPU scheduling bans</h3>
+   <div class="banlist" id="banList"></div>
+   <div class="sect">Add ban</div>
+   <div class="banform">
+     <label>Kind</label>
+     <select id="bKind" onchange="banFormSync()">
+       <option value="node">node &mdash; whole node</option>
+       <option value="product">product &mdash; GPU family (A100, A10 &hellip;)</option>
+       <option value="gpu">gpu &mdash; single GPU by UUID</option>
+     </select>
+     <div id="bfNode"><label>Node</label><input id="bNode" placeholder="e.g. rm352-1" autocomplete="off"></div>
+     <div id="bfProduct"><label>Product</label><input id="bProduct" placeholder="e.g. A100" autocomplete="off"></div>
+     <div id="bfUuid"><label>GPU UUID</label><input id="bUuid" placeholder="GPU-xxxxxxxx&hellip; (nvidia-smi -L on the node)" autocomplete="off">
+       <label>Index (optional)</label><input id="bIndex" placeholder="e.g. 3" autocomplete="off"></div>
+     <label>Reason</label><input id="bReason" placeholder="why is this banned?" maxlength="120" autocomplete="off">
+     <div class="hint" id="bHint"></div>
+   </div>
+   <div class="actions">
+     <button class="ghost" onclick="closeBans()">Close</button>
+     <button class="primary" id="bGo" onclick="submitBan()">Add ban</button>
+   </div>
+ </div>
+</div>
+<div class="modal" id="metricsModal">
+ <div class="card wide">
+   <h3>Instance metrics &middot; network</h3>
+   <div class="mrange">
+     <span class="rlabel">window</span>
+     <button data-w="900" onclick="loadMetrics(900)">15m</button>
+     <button data-w="3600" class="on" onclick="loadMetrics(3600)">1h</button>
+     <button data-w="21600" onclick="loadMetrics(21600)">6h</button>
+     <button data-w="86400" onclick="loadMetrics(86400)">24h</button>
+     <span class="grow"></span>
+     <button class="ghost" onclick="exportMetrics('csv')" title="download time series as CSV">&#x2193; CSV</button>
+     <button class="ghost" onclick="exportMetrics('json')">&#x2193; JSON</button>
+   </div>
+   <div id="metricsBody"><div class="empty">loading&hellip;</div></div>
+   <div class="actions"><button class="ghost" onclick="closeMetrics()">Close</button></div>
+ </div>
+</div>
+<div class="modal" id="sceneModal">
+ <div class="card wide">
+   <h3>Scene load history &middot; GPU</h3>
+   <div class="sect">By scene &times; GPU model</div>
+   <div id="sceneAgg"><div class="empty">loading&hellip;</div></div>
+   <div class="sect">Recent sessions</div>
+   <div id="sceneSessions"></div>
+   <div class="actions"><button class="ghost" onclick="closeScenes()">Close</button></div>
+ </div>
+</div>
+<div id="toasts"></div>
+
+<script src="/app.js"></script>
+</body></html>
