@@ -18,7 +18,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"   # isaac-saas/deploy
 UI_DIR="$HERE/../ui"                     # isaac-saas/ui (Dockerfile + app/)
 cd "$HERE"
 
-TAG="${TAG:-0.16.0}"
+TAG="${TAG:-0.16.1}"
 NS="${NS:-oos-sim}"
 KEEP_SVC="${KEEP_SVC:-1}"
 HARBOR="${HARBOR:-10.38.38.210}"

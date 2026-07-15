@@ -89,9 +89,19 @@ textarea{resize:vertical;min-height:60px} .hint{font:11px var(--mono);color:var(
 .gc-p{font:11px var(--mono);color:var(--mut);margin:2px 0 9px}
 .nob{font:10px var(--mono);background:var(--waitbg);color:var(--wait);padding:1px 6px;border-radius:5px}
 .pips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
-.pip{width:15px;height:15px;border-radius:4px}
+.pip{width:15px;height:15px;border-radius:4px;position:relative}
 .pip.used{background:var(--accent)} .pip.free{background:transparent;border:1.5px solid #c3ccda}
 .pip.ext{background:#8b5cf6}   /* in use by non-UI workloads (other tenants) */
+.pip.mig::before{content:"";position:absolute;top:2.5px;right:2.5px;width:4px;height:4px;
+  border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.25)}  /* MIG-partitioned */
+.gc-mig{margin:2px 0 6px;font:11px var(--mono)}
+.gc-mig summary{cursor:pointer;color:var(--wait);list-style:none}
+.gc-mig summary::-webkit-details-marker{display:none}
+.gc-mig summary::before{content:"\25B8 ";color:var(--mut)}
+.gc-mig[open] summary::before{content:"\25BE "}
+.migp{color:var(--mut);padding:2px 0 2px 14px}
+.migp.u{color:var(--fg)}
+.migp .mgi{display:inline-block;min-width:64px;color:var(--wait)}
 .legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 2px 2px;
   font:11px var(--mono);color:var(--mut)}
 .legend>span{display:inline-flex;align-items:center;gap:5px}

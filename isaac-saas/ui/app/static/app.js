@@ -63,7 +63,8 @@ function renderGpu(g){
    +'<span><span class="pip ext"></span>other workloads</span>'
    +'<span><span class="pip ban"></span>banned</span>'
    +'<span><span class="pip denied"></span>product-denied</span>'
-   +'<span><span class="pip free"></span>free</span></div>';
+   +'<span><span class="pip free"></span>free</span>'
+   +'<span><span class="pip free mig"></span>MIG-partitioned (expand for slices)</span></div>';
  const cards=g.nodes.map(n=>{
    const gb=n.gpuBans||[];
    // under DRA every UUID ban is schedule-time enforced (CEL) -> always show all
@@ -72,16 +73,45 @@ function renderGpu(g){
    const banTip=g.banAsUsed?'banned \u00b7 counted as used'
      :(g.draEnabled?'banned \u00b7 DRA-enforced at schedule time':'UUID-banned GPU');
    const nden=n.deniedGpus||0;
-   // used splits into: this UI's instances (blue) vs other cluster workloads (purple)
-   const nui=Math.min(n.uiUsed||0,n.used), next=n.used-nui;
+   const dev=n.devices||[];
+   const stCls={ui:'used',ext:'ext',banned:(g.banAsUsed?'usedban':'ban'),denied:'denied',free:'free'};
+   const stTip={ui:'in use by an instance of this UI',
+     ext:'in use by another workload on the cluster (not this UI)',
+     banned:banTip,denied:'incompatible product \u00b7 excluded per-GPU by DRA CEL',free:'free'};
    let pips='';
-   for(let i=0;i<n.total;i++){
-     if(i<nui)pips+='<span class="pip used" title="in use by an instance of this UI"></span>';
-     else if(i<nui+next)pips+='<span class="pip ext" title="in use by another workload on the cluster (not this UI)"></span>';
-     else if(i<n.used+nban)pips+='<span class="pip '+banCls+'" title="'+banTip+'"></span>';
-     else if(i<n.used+nban+nden)pips+='<span class="pip denied" title="incompatible product \u00b7 excluded per-GPU by DRA CEL"></span>';
-     else pips+='<span class="pip free"></span>';
+   if(dev.length){
+     // DRA-exact: one pip per PHYSICAL GPU, colored by its state; MIG-sliced GPUs
+     // carry an inner dot and their partitions are listed in the detail below.
+     pips=dev.map(d=>{
+       const mig=d.mig&&d.mig.length;
+       const tip=esc((d.product||'GPU')+(mig?(' \u00b7 MIG '+d.mig.length+' partitions'):'')
+         +' \u00b7 '+(stTip[d.state]||d.state)+(d.uuid?(' \u00b7 '+d.uuid.slice(0,20)):''));
+       return '<span class="pip '+(stCls[d.state]||'free')+(mig?' mig':'')+'" title="'+tip+'"></span>';
+     }).join('');
+   }else{
+     // used splits into: this UI's instances (blue) vs other cluster workloads (purple)
+     const nui=Math.min(n.uiUsed||0,n.used), next=n.used-nui;
+     for(let i=0;i<n.total;i++){
+       if(i<nui)pips+='<span class="pip used" title="'+stTip.ui+'"></span>';
+       else if(i<nui+next)pips+='<span class="pip ext" title="'+stTip.ext+'"></span>';
+       else if(i<n.used+nban)pips+='<span class="pip '+banCls+'" title="'+banTip+'"></span>';
+       else if(i<n.used+nban+nden)pips+='<span class="pip denied" title="'+stTip.denied+'"></span>';
+       else pips+='<span class="pip free"></span>';
+     }
    }
+   // MIG breakdown: parent GPU stays a single pip, its slices shown as sub-elements
+   const migDevs=dev.filter(d=>d.mig&&d.mig.length);
+   const migHtml=migDevs.map(d=>{
+     const inUse=d.mig.filter(m=>m.used).length;
+     const rows=d.mig.map(m=>{
+       const lbl=m.name.indexOf(d.name+'-mig-')===0?m.name.slice((d.name+'-mig-').length):m.name;
+       return '<div class="migp'+(m.used?' u':'')+'">'
+         +'<span class="mgi">'+esc(lbl)+'</span> '+esc((m.uuid||'').slice(0,18))+'&hellip; '
+         +(m.used?('in use'+(m.owner==='ui'?' (this UI)':' (other)')):'free')+'</div>';
+     }).join('');
+     return '<details class="gc-mig"><summary>'+esc(d.product)+' \u00b7 MIG '+d.mig.length
+       +' partitions ('+inUse+' in use)</summary>'+rows+'</details>';
+   }).join('');
    const badge=n.nvenc?'':'<span class="nob" title="no hardware encoder">no NVENC</span>';
    const off=n.allowed?'':'<span class="nob" title="not in instance node set">off-target</span>';
    const ban=n.banned?'<span class="banb" title="'+esc((n.banReasons||[]).join('; '))+'">BANNED</span>':'';
@@ -97,7 +127,7 @@ function renderGpu(g){
      +'<div class="pips">'+pips+'</div>'
      +'<div class="gc-f">'+(g.usageKnown?(n.free+' free / '+n.total):(n.total+' total'))+'</div>'
      +(n.extUsed?'<div class="gc-ext">'+n.extUsed+' in use by other workloads</div>':'')
-     +uuids+'</div>';
+     +migHtml+uuids+'</div>';
  }).join('');
  el.innerHTML=head+'<div class="gcards">'+cards+'</div>'+legend;
 }

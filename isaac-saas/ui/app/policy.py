@@ -242,23 +242,33 @@ def product_denied(product):
     return any(d.upper() in pu for d in config.INSTANCE_DENY_PRODUCTS)
 
 
-def node_gpu_devices(k8s):
-    """{node: [(uuid, product), ...]} for every GPU the DRA driver advertises,
-    from ResourceSlices. One API call; {} on failure or when the SA lacks
-    resourceslices:list (fail-soft).
-    This is the per-GPU ground truth that node labels can't give on mixed nodes.
+def _mig_parent(name):
+    """Parent physical-GPU device name for a MIG partition, else None.
+    The NVIDIA DRA driver names MIG devices '<gpu>-mig-<profile>-<start>-<size>'
+    (e.g. 'gpu-1-mig-19-0-1' belongs to 'gpu-1')."""
+    return name.split("-mig-", 1)[0] if "-mig-" in (name or "") else None
 
-    Only slices published by the NVIDIA GPU driver (config.DRA_DRIVER) are read -
-    slices from other DRA drivers, or leftover hand-made test slices (examples/dra),
-    would otherwise inject phantom devices under a real node's name. The node is
-    taken from spec.nodeName when present (exact), falling back to the pool name
-    (== node name for the NVIDIA driver)."""
+
+def node_gpu_devices(k8s):
+    """{node: [gpu, ...]} - the PHYSICAL GPUs the NVIDIA DRA driver advertises,
+    from ResourceSlices. Each gpu is a dict:
+        {"name","uuid","product","mig": [ {"name","uuid","product"}, ... ]}
+    MIG partitions ('<gpu>-mig-...') are folded into their parent GPU's `mig`
+    list rather than counted as separate physical GPUs - so a MIG-sliced A100 is
+    still ONE GPU but its partitions stay visible as sub-devices. One API call;
+    {} on failure or missing resourceslices:list RBAC (fail-soft).
+
+    Only slices from the NVIDIA GPU driver (config.DRA_DRIVER) are read - slices
+    from other DRA drivers (e.g. compute-domain.nvidia.com) or leftover hand-made
+    test slices would otherwise inject phantom devices under a real node's name.
+    Node = spec.nodeName when present, else the pool name (== node for this driver)."""
     out = {}
     r = k8s.get(f"/apis/{config.DRA_API_VERSION}/resourceslices")
     if not k8s.ok(r):
         return {}
     # local import: instances.py owns the schema-tolerant attribute walkers
     from .instances import InstanceService
+    raw = {}   # node -> {"parents": {name: gpu}, "migs": [(parent_name, mig)]}
     for sli in k8s.items(r):
         spec = sli.get("spec", {}) or {}
         drv = spec.get("driver", "")
@@ -267,19 +277,37 @@ def node_gpu_devices(k8s):
         node = spec.get("nodeName") or (spec.get("pool", {}) or {}).get("name")
         if not node:
             continue
+        bucket = raw.setdefault(node, {"parents": {}, "migs": []})
         for d in spec.get("devices", []) or []:
-            out.setdefault(node, []).append(
-                (InstanceService._find_uuid(d) or "",
-                 InstanceService._find_product(d)))
+            name = d.get("name") or ""
+            gpu = {"name": name,
+                   "uuid": InstanceService._find_uuid(d) or "",
+                   "product": InstanceService._find_product(d),
+                   "mig": []}
+            parent = _mig_parent(name)
+            if parent:
+                bucket["migs"].append((parent, gpu))
+            else:
+                bucket["parents"][name] = gpu
+    for node, bucket in raw.items():
+        parents = bucket["parents"]
+        for parent_name, mig in bucket["migs"]:
+            p = parents.get(parent_name)
+            if p is None:   # pure-MIG mode: full GPU not separately advertised
+                p = {"name": parent_name, "uuid": "",
+                     "product": mig["product"], "mig": []}
+                parents[parent_name] = p
+            p["mig"].append(mig)
+        out[node] = list(parents.values())
     return out
 
 
 def node_unavailable_count(devices, banned_uuids):
-    """How many of a node's GPUs are unusable for NEW instances: the UNION of
-    UUID-banned and product-denied devices (a GPU that is both counts once)."""
+    """How many of a node's PHYSICAL GPUs are unusable for NEW instances: the UNION
+    of UUID-banned and product-denied GPUs (a GPU that is both counts once)."""
     n = 0
-    for uuid, product in devices:
-        if uuid in banned_uuids or product_denied(product):
+    for d in devices:
+        if d["uuid"] in banned_uuids or product_denied(d["product"]):
             n += 1
     return n
 
