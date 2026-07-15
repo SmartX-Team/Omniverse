@@ -69,10 +69,13 @@
        <option value="product">product &mdash; GPU family (A100, A10 &hellip;)</option>
        <option value="gpu">gpu &mdash; single GPU by UUID</option>
      </select>
-     <div id="bfNode"><label>Node</label><input id="bNode" placeholder="e.g. rm352-1" autocomplete="off"></div>
-     <div id="bfProduct"><label>Product</label><input id="bProduct" placeholder="e.g. A100" autocomplete="off"></div>
-     <div id="bfUuid"><label>GPU UUID</label><input id="bUuid" placeholder="GPU-xxxxxxxx&hellip; (nvidia-smi -L on the node)" autocomplete="off">
+     <div id="bfNode"><label>Node</label><input id="bNode" list="nodeList" placeholder="pick a node&hellip;" autocomplete="off" oninput="banFillPickers()"></div>
+     <div id="bfProduct"><label>Product</label><input id="bProduct" list="productList" placeholder="e.g. A100" autocomplete="off"></div>
+     <div id="bfUuid"><label>GPU UUID</label><input id="bUuid" list="uuidList" placeholder="pick a GPU (UUID &middot; product)&hellip;" autocomplete="off">
        <label>Index (optional)</label><input id="bIndex" placeholder="e.g. 3" autocomplete="off"></div>
+     <datalist id="nodeList"></datalist>
+     <datalist id="uuidList"></datalist>
+     <datalist id="productList"></datalist>
      <label>Reason</label><input id="bReason" placeholder="why is this banned?" maxlength="120" autocomplete="off">
      <div class="hint" id="bHint"></div>
    </div>

@@ -48,14 +48,19 @@ class GpuService:
         """GPUs allocated via DRA, per node, from ResourceClaims (driver=DRA_DRIVER).
         The NVIDIA driver reports the node in each allocation result's `pool`. DRA pods
         don't request nvidia.com/gpu, so device-plugin accounting can't see them.
-        Returns (used_map, ok); ok=False when the SA can't list resourceclaims."""
+        Returns (ours_map, other_map, ok): `ours` = claims created for this UI's
+        instances (our namespace + PREFIX name), `other` = every other DRA claim.
+        ok=False when the SA can't list resourceclaims."""
         if not config.DRA_ENABLED:
-            return {}, True
+            return {}, {}, True
         r = self.k.get(f"/apis/{config.DRA_API_VERSION}/resourceclaims")
         if not self.k.ok(r):
-            return {}, False
-        used = {}
+            return {}, {}, False
+        ours, other = {}, {}
         for c in self.k.items(r):
+            md = c.get("metadata", {}) or {}
+            mine = (md.get("namespace") == config.NAMESPACE
+                    and str(md.get("name", "")).startswith(config.PREFIX))
             alloc = (c.get("status", {}) or {}).get("allocation") or {}
             for d in (alloc.get("devices", {}) or {}).get("results", []) or []:
                 drv = d.get("driver", "")
@@ -63,16 +68,18 @@ class GpuService:
                     continue
                 node = d.get("pool")
                 if node:
-                    used[node] = used.get(node, 0) + 1
-        return used, True
+                    tgt = ours if mine else other
+                    tgt[node] = tgt.get(node, 0) + 1
+        return ours, other, True
 
     def overview(self):
         nodes = self.k.items(self.k.get("/api/v1/nodes"))
-        ext_used, ok = self._used_by_node()      # device-plugin pods = other tenants' workloads
-        dra_used, _ = self._dra_used_by_node()   # DRA-held GPUs (device-plugin can't see them)
-        used = dict(ext_used)
-        for nm, c in dra_used.items():
-            used[nm] = used.get(nm, 0) + c
+        pod_used, ok = self._used_by_node()      # device-plugin pods = other tenants' workloads
+        dra_ours, dra_other, _ = self._dra_used_by_node()  # DRA-held GPUs, split ours/other
+        used = dict(pod_used)
+        for m in (dra_ours, dra_other):
+            for nm, c in m.items():
+                used[nm] = used.get(nm, 0) + c
         bans, bans_ok = self.policy.list()
         banned_uuids = set(policy.banned_gpu_uuids(bans))
         # DRA per-GPU ground truth (uuid, product) per node - node labels lie on
@@ -83,15 +90,34 @@ class GpuService:
             nm = n["metadata"]["name"]
             alloc = n.get("status", {}).get("allocatable", {}) or {}
             cap = n.get("status", {}).get("capacity", {}) or {}
-            total = int(alloc.get("nvidia.com/gpu", cap.get("nvidia.com/gpu", 0)) or 0)
+            dp_total = int(alloc.get("nvidia.com/gpu", cap.get("nvidia.com/gpu", 0)) or 0)
+            devices = slices.get(nm)
+            # DRA ResourceSlices are the source of truth for how many GPUs exist;
+            # the device-plugin count is only a fallback (and 0 on DRA-only nodes).
+            total = len(devices) if devices else dp_total
             if total <= 0:
                 continue  # only nodes the cluster actually recognizes as GPU nodes
-            product = n["metadata"].get("labels", {}).get("nvidia.com/gpu.product", "GPU")
+            label_product = n["metadata"].get("labels", {}).get("nvidia.com/gpu.product", "GPU")
+            if devices:
+                # product string from per-GPU DRA attributes, NOT the node label
+                # (labels carry a single product and lie on mixed nodes)
+                prods = [p for _, p in devices if p]
+                uniq = list(dict.fromkeys(prods))
+                product = " + ".join(uniq) if uniq else label_product
+                nvenc = any(nvenc_capable(p) for p in prods) if prods \
+                    else nvenc_capable(label_product)
+            else:
+                product = label_product
+                nvenc = nvenc_capable(label_product)
             u = min(used.get(nm, 0), total) if ok else 0
-            ext_u = min(ext_used.get(nm, 0), total) if ok else 0
-            fl = policy.flags_for(nm, product, bans)
+            ui_u = min(dra_ours.get(nm, 0), u) if ok else 0
+            ext_u = u - ui_u                      # pods + other tenants' DRA claims
+            # UI product-bans (kind=product) stay label-matched: they are enforced
+            # through nodeAffinity (node granularity), unlike INSTANCE_DENY_PRODUCTS
+            # which is per-GPU via the claim CEL. Matching them against the joined
+            # per-device product string would over-ban mixed nodes.
+            fl = policy.flags_for(nm, label_product, bans)
             banned = fl["nodeBanned"] or fl["productBanned"]
-            devices = slices.get(nm)
             if devices:
                 # DRA-exact: bans are schedule-time enforced (CEL) regardless of the
                 # legacy 'applied' flag, so every ban reduces free. Product denies
@@ -108,9 +134,13 @@ class GpuService:
                 denied_gpus = 0
                 denied = policy.product_denied(product)   # permanent hardware exclusion
             free = max(total - u - ban_used - denied_gpus, 0)
-            out.append({"node": nm, "product": product, "nvenc": nvenc_capable(product),
+            out.append({"node": nm, "product": product, "nvenc": nvenc,
                         "total": total, "used": u, "free": free,
-                        "extUsed": ext_u,
+                        "uiUsed": ui_u, "extUsed": ext_u,
+                        "devices": [{"uuid": du, "product": dp,
+                                     "banned": du in banned_uuids,
+                                     "denied": policy.product_denied(dp)}
+                                    for du, dp in (devices or [])],
                         "allowed": nm in config.NODES,
                         "banned": banned, "banReasons": fl["banReasons"],
                         "gpuBans": fl["gpuBans"],

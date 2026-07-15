@@ -244,9 +244,15 @@ def product_denied(product):
 
 def node_gpu_devices(k8s):
     """{node: [(uuid, product), ...]} for every GPU the DRA driver advertises,
-    from ResourceSlices (pool name == node name for the NVIDIA driver). One API
-    call; {} on failure or when the SA lacks resourceslices:list (fail-soft).
-    This is the per-GPU ground truth that node labels can't give on mixed nodes."""
+    from ResourceSlices. One API call; {} on failure or when the SA lacks
+    resourceslices:list (fail-soft).
+    This is the per-GPU ground truth that node labels can't give on mixed nodes.
+
+    Only slices published by the NVIDIA GPU driver (config.DRA_DRIVER) are read -
+    slices from other DRA drivers, or leftover hand-made test slices (examples/dra),
+    would otherwise inject phantom devices under a real node's name. The node is
+    taken from spec.nodeName when present (exact), falling back to the pool name
+    (== node name for the NVIDIA driver)."""
     out = {}
     r = k8s.get(f"/apis/{config.DRA_API_VERSION}/resourceslices")
     if not k8s.ok(r):
@@ -255,7 +261,10 @@ def node_gpu_devices(k8s):
     from .instances import InstanceService
     for sli in k8s.items(r):
         spec = sli.get("spec", {}) or {}
-        node = (spec.get("pool", {}) or {}).get("name")
+        drv = spec.get("driver", "")
+        if drv and config.DRA_DRIVER not in drv:
+            continue    # not the NVIDIA GPU driver - ignore foreign/test slices
+        node = spec.get("nodeName") or (spec.get("pool", {}) or {}).get("name")
         if not node:
             continue
         for d in spec.get("devices", []) or []:

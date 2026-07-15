@@ -47,7 +47,9 @@ function renderCollect(d){
    +'</tbody></table><div class="chint">updated '+new Date(d.ts*1000).toLocaleTimeString()
    +' \u00b7 auto-refresh \u00b7 up=1 + samples&gt;0 + tx/rx \ud750\ub974\uba74 \uc815\uc0c1 \uc218\uc9d1</div>';
 }
+let _gpu=null;   // last /api/gpu payload (ban-modal pickers read node/UUID lists from it)
 function renderGpu(g){
+ _gpu=g;
  const el=$('#gpu'); if(!g||!g.nodes){el.innerHTML='';return;}
  if(!g.nodes.length){el.innerHTML='<div class="gpuhead"><span class="warn">'
    +'No GPUs recognized by the cluster \u2014 GPU Operator may be disabled on the other nodes.</span></div>';return;}
@@ -56,6 +58,12 @@ function renderGpu(g){
    +'<span class="ghl">You can launch <b>'+g.launchable+'</b> more instance'+(g.launchable===1?'':'s')+'</span>'
    +'<span class="gsub">cluster GPUs: '+t.free+' free / '+t.total+' total'
    +(g.usageKnown?'':' \u00b7 usage needs cluster pods:list RBAC')+'</span></div>';
+ const legend='<div class="legend">'
+   +'<span><span class="pip used"></span>this UI</span>'
+   +'<span><span class="pip ext"></span>other workloads</span>'
+   +'<span><span class="pip ban"></span>banned</span>'
+   +'<span><span class="pip denied"></span>product-denied</span>'
+   +'<span><span class="pip free"></span>free</span></div>';
  const cards=g.nodes.map(n=>{
    const gb=n.gpuBans||[];
    // under DRA every UUID ban is schedule-time enforced (CEL) -> always show all
@@ -64,9 +72,12 @@ function renderGpu(g){
    const banTip=g.banAsUsed?'banned \u00b7 counted as used'
      :(g.draEnabled?'banned \u00b7 DRA-enforced at schedule time':'UUID-banned GPU');
    const nden=n.deniedGpus||0;
+   // used splits into: this UI's instances (blue) vs other cluster workloads (purple)
+   const nui=Math.min(n.uiUsed||0,n.used), next=n.used-nui;
    let pips='';
    for(let i=0;i<n.total;i++){
-     if(i<n.used)pips+='<span class="pip used"></span>';
+     if(i<nui)pips+='<span class="pip used" title="in use by an instance of this UI"></span>';
+     else if(i<nui+next)pips+='<span class="pip ext" title="in use by another workload on the cluster (not this UI)"></span>';
      else if(i<n.used+nban)pips+='<span class="pip '+banCls+'" title="'+banTip+'"></span>';
      else if(i<n.used+nban+nden)pips+='<span class="pip denied" title="incompatible product \u00b7 excluded per-GPU by DRA CEL"></span>';
      else pips+='<span class="pip free"></span>';
@@ -88,7 +99,7 @@ function renderGpu(g){
      +(n.extUsed?'<div class="gc-ext">'+n.extUsed+' in use by other workloads</div>':'')
      +uuids+'</div>';
  }).join('');
- el.innerHTML=head+'<div class="gcards">'+cards+'</div>';
+ el.innerHTML=head+'<div class="gcards">'+cards+'</div>'+legend;
 }
 function render(items){
  const tot=items.length, run=items.filter(i=>i.phase==='Running'&&i.ready).length,
@@ -118,7 +129,25 @@ function render(items){
  }).join('');
 }
 const stat=(l,n,k)=>'<div class="stat '+k+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>';
-function copy(t){navigator.clipboard&&navigator.clipboard.writeText(t);toast('copied '+t,'ok');}
+function copy(t){
+ // navigator.clipboard exists only in secure contexts (https/localhost); this UI is
+ // served over plain http on the LAN, so fall back to a hidden textarea + execCommand.
+ const ok=()=>toast('copied '+t,'ok'), fail=()=>toast('copy failed — '+t,'err');
+ if(navigator.clipboard&&window.isSecureContext){
+  navigator.clipboard.writeText(t).then(ok,()=>{legacyCopy(t)?ok():fail();});return;
+ }
+ legacyCopy(t)?ok():fail();
+}
+function legacyCopy(t){
+ const ta=document.createElement('textarea');
+ ta.value=t;ta.setAttribute('readonly','');
+ ta.style.cssText='position:fixed;top:0;left:0;opacity:0';
+ document.body.appendChild(ta);ta.focus();ta.select();
+ let done=false;
+ try{done=document.execCommand('copy');}catch(e){}
+ document.body.removeChild(ta);
+ return done;
+}
 
 async function openDrawer(name){
  $('#scrim').classList.add('on');$('#drawer').classList.add('on');
@@ -169,8 +198,33 @@ function banFormSync(){
  $('#bfUuid').style.display=(k==='gpu')?'':'none';
  $('#bHint').textContent=k==='gpu'
    ?'With DRA (default): enforced at schedule time \u2014 the UUID goes into every new instance\u2019s ResourceClaim CEL deny-list. Without DRA it is display-only unless you exclude the UUID node-side and press \u201capplied\u201d.'
-   :k==='product'?'matches nvidia.com/gpu.product label, case-insensitive substring (A100 hits NVIDIA-A100-SXM4-80GB)'
+   :k==='product'?'case-insensitive substring, matched per GPU against the DRA productName attribute (A100 hits NVIDIA A100-PCIE-40GB); node labels are not used'
    :'node is removed from every new instance\u2019s nodeAffinity';
+ banFillPickers();
+}
+function banFillPickers(){
+ // datalists from the live DRA inventory (/api/gpu devices) - pick, don't type
+ if(!_gpu||!_gpu.nodes)return;
+ const nl=$('#nodeList'), ul=$('#uuidList'), pl=$('#productList');
+ if(nl)nl.innerHTML=_gpu.nodes.map(n=>'<option value="'+esc(n.node)+'">'
+   +esc(n.product)+'</option>').join('');
+ if(pl){
+  const ps={};
+  _gpu.nodes.forEach(n=>(n.devices||[]).forEach(d=>{if(d.product)ps[d.product]=1;}));
+  pl.innerHTML=Object.keys(ps).sort().map(p=>'<option value="'+esc(p)+'"></option>').join('');
+ }
+ if(ul){
+  const node=$('#bNode').value.trim();
+  const rows=[];
+  _gpu.nodes.forEach(n=>{
+    if(node&&n.node!==node)return;
+    (n.devices||[]).forEach(d=>{
+      rows.push('<option value="'+esc(d.uuid)+'">'+esc(d.product||'?')+' \u00b7 '+esc(n.node)
+        +(d.banned?' \u00b7 already banned':'')+(d.denied?' \u00b7 product-denied':'')+'</option>');
+    });
+  });
+  ul.innerHTML=rows.join('');
+ }
 }
 async function loadBans(){
  const d=await (await fetch('/api/bans',{cache:'no-store'})).json();

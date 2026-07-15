@@ -91,6 +91,13 @@ textarea{resize:vertical;min-height:60px} .hint{font:11px var(--mono);color:var(
 .pips{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px}
 .pip{width:15px;height:15px;border-radius:4px}
 .pip.used{background:var(--accent)} .pip.free{background:transparent;border:1.5px solid #c3ccda}
+.pip.ext{background:#8b5cf6}   /* in use by non-UI workloads (other tenants) */
+.legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:8px 2px 2px;
+  font:11px var(--mono);color:var(--mut)}
+.legend>span{display:inline-flex;align-items:center;gap:5px}
+.legend .pip{width:11px;height:11px;border-radius:3px;flex:none}
+.legend .pip.ban::after{font:700 8px/11px var(--mono)}
+.legend .pip.denied::after{font:700 8px/9px var(--mono)}
 .gc-f{font:12px var(--mono);color:var(--mut)}
 .foot{color:var(--mut);font-size:12px;margin-top:16px}
 
