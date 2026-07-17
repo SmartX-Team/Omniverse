@@ -58,6 +58,15 @@ STREAM_CMD = "/isaac-sim/isaac-sim.streaming.sh"
 PUBLIC_ADDR_FLAG = "--/app/livestream/publicEndpointAddress="
 EXT_SRC_DIR = os.environ.get("EXT_SRC_DIR", "/opt/oos_omniverse_extensions")  # NetAI extensions
 
+# --- startup OpenUSD stage (auto-open) ---
+# When set, a new instance opens this USD stage on launch: passed to the isaac-sim
+# container as STARTUP_USD_STAGE (+ optional STARTUP_CAMERA_PATH), which the 6.0+ image
+# entrypoint turns into a kit `--exec open_stage_with_camera.py <url>`. The Create modal
+# lets the user override per instance; these are the cluster-wide fallbacks (usually "").
+# Value is a Nucleus URL, e.g. omniverse://10.38.38.32/Projects/campus/scene.usd
+DEFAULT_STAGE = os.environ.get("DEFAULT_STAGE", "")
+DEFAULT_CAMERA = os.environ.get("DEFAULT_CAMERA", "")   # optional camera prim path
+
 # --- code-server (VSCode) sidecar, bundled with each instance ---
 # A code-server container ships in the instance pod, sharing WORKSPACE_DIR with the
 # Isaac Sim container so researchers can edit the instance's code/config in the browser.
@@ -147,3 +156,4 @@ ANN_DESC = ANN_PREFIX + "description"       # free-text purpose / implementation
 ANN_CREATEDB = ANN_PREFIX + "created-by"    # source of creation (ui / cli / manifest)
 ANN_TRACKING = ANN_PREFIX + "tracking"      # JSON blob, reserved for detailed tracking
 ANN_CODE_PW = ANN_PREFIX + "code-server-pw"  # per-instance code-server password (lab posture)
+ANN_STAGE = ANN_PREFIX + "startup-stage"    # USD stage auto-opened at launch (for Details)

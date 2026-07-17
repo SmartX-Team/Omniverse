@@ -47,6 +47,11 @@
    <label>Image</label>
    <select id="mImage"><option value="">default (server-set)</option></select>
    <div class="hint" id="mImageHint">loading registry catalog&hellip;</div>
+   <label>OpenUSD stage (optional)</label>
+   <input id="mStage" placeholder="omniverse://10.38.38.32/Projects/&hellip;/scene.usd" maxlength="400" autocomplete="off">
+   <div class="hint">auto-opens on launch &middot; Nucleus URL or on-disk .usd path &middot; needs the 6.0+ image</div>
+   <label>Camera prim (optional)</label>
+   <input id="mCamera" placeholder="/World/Cameras/Main" maxlength="200" autocomplete="off">
    <label>Owner (optional)</label>
    <input id="mOwner" placeholder="e.g. inyong" maxlength="60" autocomplete="off">
    <label>Description / purpose (optional)</label>

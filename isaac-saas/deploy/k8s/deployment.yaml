@@ -17,7 +17,7 @@ spec:
       containers:
         - name: ui
           # Bump the tag on every release; keep it in sync with build.sh output.
-          image: 10.38.38.210/dt-saas/isaac-ui:0.18.0
+          image: 10.38.38.210/dt-saas/isaac-ui:0.19.0
           imagePullPolicy: IfNotPresent
           env:
             - { name: NAMESPACE, value: "oos-sim" }

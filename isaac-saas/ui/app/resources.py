@@ -106,7 +106,8 @@ def resource_claim_template(name, banned_uuids=None, denied_products=None):
                         "selectors": [{"cel": {"expression": expr}}]}}]}}}}
 
 
-def deployment(name, ip=None, owner="", desc="", nodes=None, code_pw="", image=None):
+def deployment(name, ip=None, owner="", desc="", nodes=None, code_pw="", image=None,
+               stage=None, camera=None):
     """Build the Deployment spec for one Isaac Sim streaming instance.
 
     nodes:   hostnames eligible for this instance (ban policy already applied by the
@@ -115,15 +116,20 @@ def deployment(name, ip=None, owner="", desc="", nodes=None, code_pw="", image=N
              code-server container's PASSWORD env and recorded as an annotation so the
              UI can show it). Ignored when CODE_SERVER_ENABLED is off.
     image:   instance container image. Defaults to config.IMAGE. The caller (web
-             layer) MUST have validated it against the registry catalog already."""
+             layer) MUST have validated it against the registry catalog already.
+    stage:   USD stage URL to auto-open at launch (STARTUP_USD_STAGE). Falls back to
+             config.DEFAULT_STAGE. camera: optional camera prim path to activate."""
     app = config.PREFIX + name
     nodes = nodes or config.NODES
     image = image or config.IMAGE
+    # per-instance stage override, else the cluster-wide default; strip stray whitespace
+    stage = (stage or config.DEFAULT_STAGE or "").strip()
+    camera = (camera or config.DEFAULT_CAMERA or "").strip()
     args = [config.STREAM_CMD]
     if ip:
         args.append(config.PUBLIC_ADDR_FLAG + ip)
 
-    annotations = build_annotations(owner, desc, created_at=_now_iso())
+    annotations = build_annotations(owner, desc, created_at=_now_iso(), stage=stage)
 
     isaac = {
         "name": "isaac-sim", "image": image, "imagePullPolicy": "IfNotPresent",
@@ -140,6 +146,14 @@ def deployment(name, ip=None, owner="", desc="", nodes=None, code_pw="", image=N
             {"name": "NVIDIA_DRIVER_CAPABILITIES", "value": "all"}],
         "resources": {"limits": {"nvidia.com/gpu": 1}},
         "volumeMounts": [{"name": "dshm", "mountPath": "/dev/shm"}]}
+
+    # startup stage auto-open: the 6.0+ image entrypoint turns STARTUP_USD_STAGE into a
+    # kit `--exec open_stage_with_camera.py <url> [camera]`. Older images ignore the env,
+    # so injecting it only when a stage is set stays backward-compatible.
+    if stage:
+        isaac["env"].append({"name": "STARTUP_USD_STAGE", "value": stage})
+        if camera:
+            isaac["env"].append({"name": "STARTUP_CAMERA_PATH", "value": camera})
 
     # scene load history: the 6.0+ image's entrypoint starts a stage-event reporter
     # (--exec /opt/experiment/stage_report.py) when REPORT_URL is set. Older images

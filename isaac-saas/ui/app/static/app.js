@@ -270,10 +270,12 @@ async function openDrawer(name) {
     'created': d.created, 'age': d.age, 'owner': d.owner, 'created by': d.createdBy,
   }) + '</div>';
   if (d.description) html += '<div class="sect">Description</div><div style="font-size:13px;white-space:pre-wrap">' + esc(d.description) + '</div>';
-  html += '<div class="sect">Runtime</div><div class="kv">' + kv({
+  const rt = {
     'node': d.node, 'gpu': d.gpu, 'gpu UUID': d.gpuUUID || '-', 'image': d.image, 'pod': d.podName, 'pod IP': d.podIP,
     'stream IP': d.streamIP, 'advertised': d.advertised,
-  }) + '</div>';
+  };
+  if (d.stage) rt['startup stage'] = d.stage;
+  html += '<div class="sect">Runtime</div><div class="kv">' + kv(rt) + '</div>';
   if (d.ports && d.ports.length) html += '<div class="sect">Ports</div><div class="kv">'
     + d.ports.map(p => '<div class="k">' + esc(p.name) + '</div><div class="v">' + p.port + '/' + p.protocol + '</div>').join('') + '</div>';
   if (d.codeServerURL) {
@@ -487,10 +489,13 @@ async function submitCreate() {
   const name = $('#mName').val().trim();
   if (!name) { toast('enter a name', 'err'); return; }
   $('#mGo').prop('disabled', true);
-  const body = { name, owner: $('#mOwner').val().trim(), description: $('#mDesc').val().trim(), image: $('#mImage').val() };
+  const body = {
+    name, owner: $('#mOwner').val().trim(), description: $('#mDesc').val().trim(),
+    image: $('#mImage').val(), stage: $('#mStage').val().trim(), camera: $('#mCamera').val().trim()
+  };
   const r = await postJSON('/api/create', body);
   $('#mGo').prop('disabled', false);
-  if (r.ok) { toast(r.msg, 'ok'); $('#mName, #mOwner, #mDesc').val(''); closeCreate(); refresh(); }
+  if (r.ok) { toast(r.msg, 'ok'); $('#mName, #mOwner, #mDesc, #mStage, #mCamera').val(''); closeCreate(); refresh(); }
   else toast(r.msg || 'create failed', 'err');
 }
 async function doDelete(name) {

@@ -189,17 +189,24 @@ add_ext_folder "/isaac-sim/exts"
 for d in "${!ext_parent_dirs[@]}"; do add_ext_folder "$d"; done
 
 # --- 8. stage/camera exec 커맨드 ---
-EXEC_CMD=""
+# ARRAY, not a string: kit's `--exec "<script> <arg>"` value is ONE token that kit then
+# splits on spaces to build the script's argv. A plain string spliced in unquoted below
+# would word-split that quoted value apart (the script path and the stage URL become two
+# separate kit args), so the stage never opens. An array preserves each --exec value as a
+# single argument. (The single-token stage_report worked by luck under the old string.)
+EXEC_ARGS=()
 # scene 부하 이력: REPORT_URL(k8s UI가 주입) 있으면 stage 이벤트 리포터를 함께 실행
 if [ -n "${REPORT_URL:-}" ] && [ -f /opt/experiment/stage_report.py ]; then
-    EXEC_CMD+=" --exec /opt/experiment/stage_report.py"
+    EXEC_ARGS+=(--exec /opt/experiment/stage_report.py)
 fi
-if [ -n "${STARTUP_USD_STAGE}" ]; then
-    if [ -n "${STARTUP_CAMERA_PATH}" ]; then
-        EXEC_CMD+=" --exec \"${OPEN_STAGE_SCRIPT} ${STARTUP_USD_STAGE} ${STARTUP_CAMERA_PATH}\""
+# 시작 stage 자동 열기: k8s UI(또는 run.env)가 STARTUP_USD_STAGE 를 주입하면 그 USD 를 연다.
+if [ -n "${STARTUP_USD_STAGE:-}" ]; then
+    if [ -n "${STARTUP_CAMERA_PATH:-}" ]; then
+        EXEC_ARGS+=(--exec "${OPEN_STAGE_SCRIPT} ${STARTUP_USD_STAGE} ${STARTUP_CAMERA_PATH}")
     else
-        EXEC_CMD+=" --exec \"${OPEN_STAGE_SCRIPT} ${STARTUP_USD_STAGE}\""
+        EXEC_ARGS+=(--exec "${OPEN_STAGE_SCRIPT} ${STARTUP_USD_STAGE}")
     fi
+    echo "Startup stage: ${STARTUP_USD_STAGE}${STARTUP_CAMERA_PATH:+  (camera ${STARTUP_CAMERA_PATH})}"
 fi
 
 # --- 9. 실행 ---
@@ -213,20 +220,20 @@ if [ ${#ARGS[@]} -gt 0 ] && [[ "${ARGS[0]}" == */isaac-sim.streaming.sh ]] && [ 
 fi
 if [ "${START_GUI}" = "true" ]; then
     echo "Launching GUI: ${GUI_LAUNCHER}"
-    exec ${GUI_LAUNCHER} ${EXTRA_ARGS} ${EXEC_CMD} "${ARGS[@]}"
+    exec ${GUI_LAUNCHER} ${EXTRA_ARGS} "${EXEC_ARGS[@]}" "${ARGS[@]}"
 elif [ "${START_PYTHON}" = "true" ]; then
     echo "Launching Python: ${PYTHON_LAUNCHER}"
-    exec ${PYTHON_LAUNCHER} ${EXTRA_ARGS} ${EXEC_CMD} "${ARGS[@]}"
+    exec ${PYTHON_LAUNCHER} ${EXTRA_ARGS} "${EXEC_ARGS[@]}" "${ARGS[@]}"
 elif [ "${START_BASH}" = "true" ]; then
     echo "Starting bash session"
     exec /bin/bash
 elif [ "${START_WEBRTC}" = "true" ]; then
     echo "Launching headless + WebRTC: ${WEBRTC_LAUNCHER}"
-    exec ${WEBRTC_LAUNCHER} ${EXTRA_ARGS} ${EXEC_CMD}
+    exec ${WEBRTC_LAUNCHER} ${EXTRA_ARGS} "${EXEC_ARGS[@]}"
 elif [ ${#ARGS[@]} -eq 0 ]; then
     echo "Launching headless: ${HEADLESS_LAUNCHER}"
-    exec ${HEADLESS_LAUNCHER} ${EXTRA_ARGS} ${EXEC_CMD}
+    exec ${HEADLESS_LAUNCHER} ${EXTRA_ARGS} "${EXEC_ARGS[@]}"
 else
     echo "Executing custom command: ${ARGS[*]}"
-    exec "${ARGS[@]}" ${EXTRA_ARGS} ${EXEC_CMD}
+    exec "${ARGS[@]}" ${EXTRA_ARGS} "${EXEC_ARGS[@]}"
 fi

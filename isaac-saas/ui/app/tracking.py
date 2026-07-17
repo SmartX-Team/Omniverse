@@ -14,15 +14,19 @@ import json
 from . import config
 
 
-def build_annotations(owner="", desc="", created_at="", source="ui"):
+def build_annotations(owner="", desc="", created_at="", source="ui", stage=""):
     """Annotations to attach to a new Deployment for tracking."""
-    blob = {"createdBy": source, "owner": owner, "note": desc, "createdAt": created_at}
-    return {
+    blob = {"createdBy": source, "owner": owner, "note": desc, "createdAt": created_at,
+            "stage": stage}
+    ann = {
         config.ANN_OWNER: owner,
         config.ANN_DESC: desc,
         config.ANN_CREATEDB: source,
         config.ANN_TRACKING: json.dumps(blob, ensure_ascii=False),
     }
+    if stage:
+        ann[config.ANN_STAGE] = stage
+    return ann
 
 
 def read(meta):
@@ -36,5 +40,6 @@ def read(meta):
         "owner": ann.get(config.ANN_OWNER, ""),
         "description": ann.get(config.ANN_DESC, ""),
         "createdBy": ann.get(config.ANN_CREATEDB, ""),
+        "stage": ann.get(config.ANN_STAGE, "") or blob.get("stage", ""),
         "tracking": blob,
     }

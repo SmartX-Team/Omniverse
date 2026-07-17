@@ -95,6 +95,7 @@ class InstanceService:
             "age": resources.age(d["metadata"].get("creationTimestamp", "")),
             "owner": t["owner"], "description": t["description"],
             "createdBy": t["createdBy"], "tracking": t["tracking"],
+            "stage": t.get("stage", ""),
             "image": c.get("image", ""),
             "node": node or "-",
             "gpu": (lambda u_m: u_m[1] or self._gpu_by_node().get(node, "-"))(um),
@@ -230,7 +231,7 @@ class InstanceService:
                           "value": [config.STREAM_CMD, config.PUBLIC_ADDR_FLAG + r["ip"]]}]
                 self.k.patch(f"/apis/apps/v1/namespaces/{ns}/deployments/{config.PREFIX}{r['name']}", patch)
 
-    def create(self, name, owner="", desc="", image=None):
+    def create(self, name, owner="", desc="", image=None, stage=None, camera=None):
         ns = config.NAMESPACE
         name = _clean(name)[:30].strip("-")
         if not name:
@@ -273,7 +274,8 @@ class InstanceService:
             time.sleep(1)
         r = self.k.post(f"/apis/apps/v1/namespaces/{ns}/deployments",
                         resources.deployment(name, ip, owner, desc, nodes=sched_nodes,
-                                             code_pw=code_pw, image=image))
+                                             code_pw=code_pw, image=image,
+                                             stage=stage, camera=camera))
         if not self.k.ok(r):
             return False, f"deploy failed: {str(r.get('_msg', ''))[:200]}"
         extra = (f" (IP {ip})" if ip else " (IP pending)")

@@ -34,6 +34,8 @@ class CreateReq(BaseModel):
     owner: str = ""
     description: str = ""
     image: str = ""      # optional registry image; "" = server default (config.IMAGE)
+    stage: str = ""      # optional USD stage URL to auto-open; "" = config.DEFAULT_STAGE
+    camera: str = ""     # optional camera prim path to activate on that stage
 
 
 class NameReq(BaseModel):
@@ -181,7 +183,8 @@ def create_app(instances=None, gpus=None, policy_svc=None, metrics=None, registr
         ok, image = registry.validate(r.image)
         if not ok:
             return {"ok": False, "msg": image}
-        ok, msg = instances.create(r.name, r.owner, r.description, image=image)
+        ok, msg = instances.create(r.name, r.owner, r.description, image=image,
+                                   stage=r.stage, camera=r.camera)
         return {"ok": ok, "msg": msg}
 
     @app.post("/api/delete")
