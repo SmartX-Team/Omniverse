@@ -98,6 +98,7 @@ def create_app(instances=None, gpus=None, policy_svc=None, metrics=None, registr
         .replace("__NODES__", ",".join(config.NODES)).encode("utf-8")
     style = _load("style.css")
     script = _load("app.js")
+    jquery = _load("vendor/jquery.min.js")   # vendored (offline LAN, no CDN dependency)
 
     # ---- static ----
     @app.get("/", response_class=HTMLResponse)
@@ -115,6 +116,12 @@ def create_app(instances=None, gpus=None, policy_svc=None, metrics=None, registr
     def js():
         return Response(script, media_type="application/javascript; charset=utf-8",
                         headers={"Cache-Control": "no-store"})
+
+    @app.get("/vendor/jquery.min.js")
+    def jq():
+        # versioned library: safe to cache hard so the 88 KB loads once
+        return Response(jquery, media_type="application/javascript; charset=utf-8",
+                        headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
     @app.get("/healthz", response_class=PlainTextResponse)
     def healthz():

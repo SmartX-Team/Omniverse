@@ -13,4 +13,4 @@ Layers (each depends only on the ones above it):
 
 Run with:  python3 -m app
 """
-__version__ = "0.16.1"
+__version__ = "0.18.0"
