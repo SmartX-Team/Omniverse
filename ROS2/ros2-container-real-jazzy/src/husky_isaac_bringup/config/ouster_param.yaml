@@ -1,0 +1,26 @@
+ouster/os_driver:
+  ros__parameters:
+    # --- 필수 네트워크 설정 ---
+    sensor_hostname: "192.168.131.20"
+    udp_dest: "192.168.131.1"
+
+    # mtp_dest 제거 (2026-08): 멀티캐스트 전용 옵션 — 유니캐스트(udp_dest) 구성에서
+    # Jazzy용 드라이버가 멀티캐스트 경로를 타며 abort하는 원인이 됨.
+
+    # --- 포트 번호 고정 ---
+    # 0 대신 다른 프로그램이 사용하지 않을 만한 높은 포트 번호로 지정
+    lidar_port: 45001
+    imu_port: 45002
+
+    # --- 필수 프레임 설정 ---
+    sensor_frame: os_sensor
+    lidar_frame: os_lidar
+    imu_frame: os_imu
+    
+    # --- 데이터 타입 및 QoS ---
+    point_type: xyzir
+    use_system_default_qos: false
+
+    # 시각 동기 (2026-08): 센서 내부 클럭 기준 스탬프는 시스템 시각의 TF와
+    # 시간축이 어긋나 SLAM이 스캔을 드랍 — ROS 시각으로 스탬핑
+    timestamp_mode: TIME_FROM_ROS_TIME

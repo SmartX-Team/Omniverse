@@ -23,8 +23,8 @@
 ### 12.2.1 센서 목록(기체별)
 | 센서 종류 | 모델명/스펙 | 장착 위치 | 사진 | 메모 |
 |---|---|---|---|---|
-| LiDAR | Ouster OS1-32 | Husky A200 브라켓 위 | ![alt text](assets/12-netai-husky-environment/image.png) | IMU 내장됨 |
-| Depth Camera | Intel depth camera d435 | 일반적으로 정면 | ![alt text](assets/12-netai-husky-environment/image-1.png) |   |
+| LiDAR | Ouster OS1-32 | Husky A200 브라켓 위 | ![alt text](assets/12-netai-husky-environment/image-1.png) | IMU 내장됨 |
+| Depth Camera | Intel depth camera d435 | 일반적으로 정면 | ![alt text](assets/12-netai-husky-environment/image.png) |   |
 
 
 ### 12.2.2 센서별 주의사항

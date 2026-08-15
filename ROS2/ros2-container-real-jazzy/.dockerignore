@@ -1,0 +1,30 @@
+# Documentation
+README.md
+README.kr.md
+*.md
+
+# Git
+.git
+.gitignore
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Build artifacts (if any)
+build/
+install/
+log/

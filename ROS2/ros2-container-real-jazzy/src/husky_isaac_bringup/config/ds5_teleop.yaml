@@ -1,0 +1,38 @@
+# PS5 DualSense → Twist 텔레옵 (joy_linux 기반, 2026-08 확정)
+#
+# 이력: SDL 기반 joy 노드가 이 헤드리스 컨테이너에서 장치는 열리나
+#       이벤트가 흐르지 않는 문제 확인 → 커널 js 인터페이스를 직접 읽는
+#       joy_linux 로 전환 (Clearpath 자체 텔레옵도 동일 방식 사용).
+#
+# ⚠ js 인터페이스 축/버튼 인덱스 (SDL과 다름! DualSense/hid_playstation 기준):
+#     axes  : 0=LX 1=LY 2=L2 3=RX 4=RY 5=R2 6=D-pad X 7=D-pad Y
+#     button: 0=X 1=O 2=△ 3=□ 4=L1 5=R1 6=L2 7=R2 8=Create 9=Options ...
+#   첫 라이브 입력 확보 시 `ros2 topic echo /joy` 로 반드시 실측 검증할 것.
+
+joy_node:
+  ros__parameters:
+    dev: /dev/input/js0
+    deadzone: 0.05
+    autorepeat_rate: 20.0
+
+teleop_twist_joy_node:
+  ros__parameters:
+    axis_linear:
+      x: 1              # 왼스틱 상하
+    scale_linear:
+      x: 0.5
+    scale_linear_turbo:
+      x: 1.0
+    axis_angular:
+      yaw: 3            # 오른스틱 좌우 (js에선 L2가 axis2를 차지)
+    scale_angular:
+      yaw: 0.6
+    scale_angular_turbo:
+      yaw: 1.2
+    # Jazzy Clearpath: cmd_vel = TwistStamped
+    publish_stamped_twist: true
+    frame: base_link
+    # 데드맨: L1 누르는 동안만 주행 / 터보: L1+R1
+    enable_button: 4
+    enable_turbo_button: 5
+    require_enable_button: true

@@ -1,0 +1,5 @@
+# DualSense 본체 js 노드 고정 심볼릭 (호스트 설치용 — 선택사항이지만 권장)
+# 설치: sudo cp deploy/99-dualsense-js.rules /etc/udev/rules.d/ && sudo udevadm control --reload && sudo udevadm trigger
+# 효과: 재열거로 js 번호가 바뀌어도 /dev/input/dualsense 가 항상 본체를 가리킴
+#       (teleop_supervisor 가 이 심볼릭을 1순위로 사용)
+SUBSYSTEM=="input", KERNEL=="js[0-9]*", ATTRS{name}=="Wireless Controller", SYMLINK+="input/dualsense", MODE="0666"

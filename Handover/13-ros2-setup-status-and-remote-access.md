@@ -1,65 +1,59 @@
-# 13 - ROS2 세팅 현황 및 원격접속 방법
+# 13 - ROS2 세팅 현황 및 원격접속 방법 (2026-08-15 개정)
 
-- 작성자: 송인용  
-- 목적: 연구실 Husky A200 운용을 위해 구축된 **ROS2 Humble 기반 실행환경(도커 포함)**의 “현재 세팅 현황”과, 해당 환경에 접속하여 최소 점검을 수행하는 **원격접속 방법**을 정리한다.  
-- 범위: ROS2 업그레이드 관련 “현재 세팅 현황” 요약 + 접속 경로/판정/1차 확인 포인트  
-- 비고: 상세 설치/재구축 절차는 별도 문서로 분리(추후 작성)
+- 작성자: 송인용
+- 개정일: 2026-08-15 (초판 2026-01 → 전면 개정)
+- 목적: 연구실 Husky A200 운용을 위해 구축된 **ROS2 Jazzy 기반 실행환경(도커 포함)**의 "현재 세팅 현황"과, 해당 환경에 **원격접속 방법**을 정리한다.
+- 범위: Humble → Jazzy 마이그레이션 이후의 "현재 세팅 현황" 요약 + 새로운 머신 세팅가이드 + 트러블슈팅 이력
+- 실제 사용방법은 14번 문서부터 읽어볼것
 
 ---
 
 ## 13.1 ROS2 업그레이드 및 운영 구조 개요(현황 요약)
 
-### 13.1.1 왜 ROS2 별도 환경을 구축했는가
--   Isaac Sim 기반 시뮬레이션 연동을 위해 ROS2 Humble 이상 세팅이 필요했음
-- 따라서 기존에 인계받은 ROS1 머신은 그대로 납두고, 대신 새롭게 ROS2 머신을 세팅해 사용하고 있음
-- 기존에는 도커 컨테이너 파라미터 하나만 변경하면 가상/현실 로봇 모두 제어하도록 구현되었으나 마지막 업데이트 이후 일부 깨진 부분이 있어, 아래 참고하여 명령어 실행 필요
-
+### 작업 배경
+- 기존 세팅된 ROS2 환경은 Isaac Sim 4.5 연동을 전제로 한 ROS2 Humble 기반이었음
+- 이후 Isaac Sim 6.0 으로 전환하면서 4.5 시절 가상 로봇 연동 코드(IsaacSim-ros_workspaces, isaac_sim 모드)는 대대적으로 업데이트가 필요했음
+- 현재 배포된 컨테이너는 실제 현실 A200 운용에 집중한 이미지를 ROS2 Jazzy(Ubuntu 24.04 Noble) 로 마이그레이션한 버전임
+- Isaac Sim 6.0 대응 가상 로봇 연동은 추후 재작업 예정
 
 ---
 
-## 13.2 ROS2 세팅 현황(현재 기준으로 “무엇이 있는지”만)
+## 13.2 ROS2 세팅 현황
 
 ### 13.2.1 ROS2 배포판/실행 방식
-- ROS2 배포판: Humble
-- 실행 방식: Docker 기반
-- 호스트 OS/아키텍처: 우분투 22 이상
+- ROS2 배포판: **Jazzy Jalisco**
+- 실행 방식: Docker 기반 (베이스 이미지 `ros:jazzy-ros-base-noble`)
+- 호스트 OS/아키텍처: 우분투 22 이상 (컨테이너가 Noble 이므로 호스트 배포판 무관, 커널 5.15+ 권장 — DualSense hid_playstation 드라이버 때문)
 - 컨테이너 이름/이미지 이름: 하단의 도커 허브내 주소 및 명령어 참조
 
 ### 13.2.2 관련 레포/이미지 위치
 
-
-- **ROS2 폴더(메인 진입점)**  
-  - Repo: `SmartX-Team/Omniverse`  
-  - Path: `ROS2/`  
+- **ROS2 폴더(메인 진입점)**
+  - Repo: `SmartX-Team/Omniverse`
+  - Path: `ROS2/`
   - Link: https://github.com/SmartX-Team/Omniverse/tree/main/ROS2
 
-
 - 관련 코드 위치(Repo/폴더):
-  - `Omniverse/ROS2/ros2-container/`
-    - Universal UGV Control Container (Isaac Sim UGV 및 실제 ClearPath UGV를 동일 컨테이너로 운용)
-  - `Omniverse/ROS2/ros2-otf/`
-    - On-The-Fly(OTF) 데이터 스트리밍 파이프라인(실제 인프라 배포 코드는 별도 레포 참고)
+  - `Omniverse/ROS2/ros2-container-real/` *(신규 — 실물 전용, 이번 개정의 대상)*
+    - Jazzy 기반 실물 A200 운용 컨테이너 (베이스 + Ouster + RealSense + PS5 텔레옵 + SLAM/Nav2)
+  - `Omniverse/ROS2/ros2-container/` *(구버전 — Humble/Isaac 4.5 시절, 참고용으로만 유지)*
   - `Omniverse/Extension/[NetAI]GIST_Husky_IsaacSim_ROS/`
-    - Isaac Sim 4.5 Husky 로봇 시뮬레이션 Extension 코드
+    - Isaac Sim **4.5** Husky Extension 코드 — 6.0 에서는 동작하지 않음, 재작성 필요
 
 - Docker 이미지 Repo/Registry:
-  - 사전 빌드 이미지: `docker.io/ttyy441/ros2-container`
-  - 예시 태그 :
-    - `0.5.7` (v0.5.x 계열 예시)
-    - `0.5.0` (과거 예시)
+  - 사전 빌드 이미지: `docker.io/ttyy441/ros2-container-real` *(신규 레포)*
+  - 예시 태그:
+    - **`1.1-jazzy` (Current, 2026-08-15)**: Jazzy 전환 + 현실 로봇 대상 테스트 완료한 버전
+    - 구 이미지 `ttyy441/ros2-container:0.6.0` 해당 컨테이너는 가급적 사용하지 말 것 
 
-- 태그/버전 규칙(요약):
-  - v0.5.x (Current, August 2025): SLAM & Navigation Integration 등 큰 기능 확장
-  - v0.4.x (April 2025): 단일 파라미터로 Isaac Sim / Real Robot 모드 선택(isaac_sim / real_robot) 도입
-
-세부 내용은 각 Repo별 README.md 참고 
 
 ### 13.2.3 주의사항 및 제한 사항(중요)
-- 신규 머신을 ROS 용으로 추가 장착하는 것은 가능하나, **Husky 배터리 출력으로 구동할 장비는 mini-NUC 시리즈 또는 Jetson 급**을 권장
-  고성능 PC를 장착할 경우, **필요 전류(A) 및 소비전력(W)을 사전에 산정**한 뒤 장착하거나 **외부 전원 공급**을 사용
-- ROS2 컨테이너는 무선 컨트롤러 미연동되어 있음, 네트워크 기반 원격 조종만 추가되어 있음 필요시 누가 작업좀 해주셈요 (inyong)
-- ROS1 NUC 과 다르게 별도 설정 안하면 ROS2 머신은 전원이 들어온다고 당연히 자동부팅 안될 수 있으니 수동으로 NUC PC 전원 버튼도 누르는거 꼭 확인..
-- 현재 ouster Lidar 는 처음 인계받은 그대로 IP를 192.168.131.20 로 할당되어 있음 ; 따라서 Lidar 와 Nuc PC에 연결된 랜 포트에 192.168.131.x 를 할당해 줘야함
+- 신규 머신을 ROS 용으로 추가 장착하는 것은 가능하나, **Husky 배터리 출력으로 구동할 장비는 mini-NUC 시리즈 또는 Jetson 급**을 권장. 고성능 PC를 장착할 경우 **필요 전류(A) 및 소비전력(W)을 사전에 산정**한 뒤 장착하거나 **외부 전원 공급**을 사용
+
+- ROS2 머신은 전원이 들어온다고 자동부팅 안될 수 있으니 **NUC 전원 버튼 수동으로 누르는거 꼭 확인**. 단 컨테이너는 `--restart unless-stopped` 로 등록해두면 부팅 후 자동 기동됨 (13.4.3) ; 다만 현재는 직접 세팅해두지는 않음
+- Ouster LiDAR IP는 처음 납풉받은 그대로 **192.168.131.20**. NUC 이더넷 포트(현재 머신 기준 eno1)에 **192.168.131.1/24 고정 할당 필요** — DHCP 로 두면 안 됨! netplan 설정까지 해야 재부팅에도 유지됨 (13.6 트러블슈팅 #4 참고)
+- **cmd_vel 이 TwistStamped 로 바뀜 (Jazzy Clearpath)**: `ros2 topic pub` 으로 수동 주행 테스트할 때 Twist 로 쏘면 조용히 무시됨. 반드시 `geometry_msgs/msg/TwistStamped` 사용
+- ROS_DOMAIN_ID: 현재 robot.yaml 이 **domain 0** 으로 생성함. docker run 에 `-e ROS_DOMAIN_ID=20` 등을 줘도 **Clearpath setup.bash 가 0 으로 덮어쓰니** 헷갈리지 말 것 — env 를 아예 안 주고 0 으로 통일해 쓰는 중
 
 ---
 
@@ -67,98 +61,58 @@
 
 > DHCP 나 환경이 지남에 따라 원격 주소가 변경되어 있을 수 있으니, 새로 작업하는 사람이 한번쯤은 모니터 연결후 직접 할당받은 IP 사용 권장
 
-복원 가능성을 테스트하고자 새로운 NUC mini 머신에 26.01.24 기준 최신 도커 컨테이너인 0.6.0 태그를 사용하여 테스트하였음
-
+이번 개정 검증은 mini-nuc (NUC10i7FNH) + 신규 이미지 1.1-jazzy 기준으로 수행하였음 (2026-08-15)
 
 ### 13.3.1 접속 대상 주요 정보
-- NUC-ROS2 (ROS2 Humble Docker 실행 머신)
-  - 위치/보관: AI 대학원에 존재하는 mini-nuc 06 버전 사용
-  - 네트워크 연결: 무선
-  - IP/호스트명: 10.32.167.229 (테스트용 mini nuc이 DHCP 할당로 받은 IP 주소임)
-
-- Husky에 장착되어 있을때는 무선 조종 상황만을 가정함
-
-- SSH 사용 여부: 사용
-  - 예시: `ssh netai@10.32.167.229`
+- NUC-ROS2 (ROS2 Jazzy Docker 실행 머신)
+  - 위치/보관: AI 대학원 mini-nuc (NUC10i7FNH)
+  - 네트워크 연결: 무선 (wlp0s20f3) — **유선 포트(eno1)는 Ouster 전용으로 192.168.131.1 고정이므로 인터넷/SSH 용도로 사용 불가임**
 
 ---
 
 ## 13.4 접속후 ROS2 가동 확인
-
-### 13.4.1 주요 확인 절차 모음
-**사용할 머신에 시리얼 케이블 포함 모든 케이블 연결 후 SSH 로그인 성공(프롬프트 진입) 여부 확인** 
-
-아래는 새로운 머신을 세팅한다는 가정하에 절차를 작성해둠 기존에 설정해두거나 systemctl 로 간단하게 자동화 가능한 부분이 많음
-
-|상황 | 예시사진 | 비고 |
-|---|---|---|
-| mini-nuc에 물리적인 USB 케이블들 장착 예시| ![alt text](assets/13-ros2-setup-status-and-remote-access/image.png) | 사진상에서는 작업하느라 mini-nuc 을 외부 전원케이블과 연결했는데, mini-nuc 시리라면 기존에 Husky에 있는 전원 케이블 사용해도 무방  |
-| mini-nuc에 ssh 접속 | ![alt text](assets/13-ros2-setup-status-and-remote-access/image-3.png)  | docker 와 이더넷 ip 정보는 사전에 미리 설치 및 설정하에 설명 진행함 (해당 과정은 LLM 한테 문의하셈..) |
-|컨테이너내 랜카드에 ouster Lidar와 통신을 위한 ip 대역 할당되었나 확인 | ![alt text](assets/13-ros2-setup-status-and-remote-access/image-4.png) | |
-| 컨테이너 동작했을시  | ![alt text](assets/13-ros2-setup-status-and-remote-access/image-1.png) | 정상적인 실행이 되면, ROS1 머신 사용할때처럼 Huskt와 정상적으로 통신 시작 ; USB 케이블들 특히 시리얼 케이블의 경우 전원 키기전에 ROS2 용 머신에 연결되어 있어야함 |
-| ros2 상태 확인 | ![alt text](assets/13-ros2-setup-status-and-remote-access/image-2.png)  | 정상적으로 센서 데이터등 생성되나 확인 |
+해당 내용은 만약 현재 장착한 mini-nuc 대신 새로운 PC를 Husky UGV 제어용으로 세팅할때 필요한 내용임
+기존 머신으로 작업시에는 해당 절 안내하는 내용이 전부 세팅되어 있으니 14번 문서로 넘어가면됨
+### 13.4.1 사전 준비 (신규 머신 1회 설정)
 
 
-### 13.4.2 Docker/ROS2 기본 상태 확인(최소)
-아래는 “최소 실행” 템플릿이고 실제 사용중 필요한 명령어는 새로운 머신이나 작업된 상태에 따라 달라질 수 있음.
-
-**Docker 동작 확인**  
-아래 명령으로 실행 중인 컨테이너를 확인합니다.
- 
-  ```bash
-  docker ps
-  ```
-
-**컨테이너 이미지 준비**
-실제 허스키를 제어할 pc에다가 아래처럼 도커 컨테이너를 가여옵니다.
-  ```bash
-docker pull docker.io/ttyy441/ros2-container:0.6.0
-  ```
-
-**컨테이너 실행**
-real_robot 파라미터로 컨테이너를 실행시킨다
-컨테이너 내부에 ouster Lidar, Intel Depth camera 드라이버 로드까지 전부 자동화되어 있어 컨테이너가 실행되면 , 곧바로 로봇 제어가 가능해집니다.
-! ROS_DOMAIN_ID 는 처음 테스트 단계에서는 0 으로 두는거 추천 
-
-  ```bash
-  sudo docker run -it --rm \
-  --name ros-real \
-  --network host \
-  --ipc=host \
-  --privileged \
-  -e ROS_DOMAIN_ID=0 \
-  -e AUTO_LAUNCH=true \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-  --device=/dev:/dev \
-  docker.io/ttyy441/ros2-container:0.6.0 \
-  real_robot
-
-  #0.6.0 버전에서는 사용 불가능 아래 명령어로 대체
-  ```
-
-!! 0.6.0 기준 컨테이너에 slam 및 nav 기능들을 계속 추가하다보니 현재 real_robot 만으로는 ouster, Depth Camera 정상 인식이 안되는 상황으로 
-
-아래 명령어로 컨테이너 실행 권장 (ouster Lidar 까지 정상 실행, Depth Camera 제외)
-
-
+**(1) Ouster 용 이더넷 고정 IP (netplan)**
 ```bash
-sudo docker run -it --rm \
-  --name ros-real \
-  --network host \
-  --ipc=host \
-  --privileged \
-  -e ROS_DOMAIN_ID=0 \
-  -e AUTO_LAUNCH=false \
-  -e DISPLAY=$DISPLAY \
-  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-  --device=/dev:/dev \
-  docker.io/ttyy441/ros2-container:0.6.0 \
-  real_robot \
-  ros2 launch ouster_ros driver.launch.py \
-    params_file:=/root/app_ws/install/husky_isaac_bringup/share/husky_isaac_bringup/config/ouster_param.yaml \
-    viz:=false
- ```
+# /etc/netplan/50-cloud-init.yaml (또는 eno1 항목이 있는 파일) 의 eno1 부분을:
+#   eno1:
+#     dhcp4: false
+#     addresses: [192.168.131.1/24]
+sudo netplan apply
+sudo chmod 600 /etc/netplan/*.yaml   # 권한 경고 방지
+ip -br addr show eno1                # UP 192.168.131.1/24 확인 (센서 전원 켜진 상태)
+```
+※ nmcli 로만 바꾸면 netplan 이 원복시킴 — **반드시 netplan 파일 자체도 같이 수정**
+
+**(2) Ouster UDP 수신 버퍼 (패킷 드랍 방지)**
+```bash
+echo -e "net.core.rmem_max=26214400\nnet.core.rmem_default=26214400" | sudo tee /etc/sysctl.d/90-ouster.conf
+sudo sysctl --system
+```
 
 
--
+## 13.5 트러블슈팅 이력 (Humble→Jazzy 마이그레이션에서 잡은 것들)
+
+이번 개정 작업(2026-08-14~15)에서 실제로 밟은 지뢰들. **혼자 트러블슈팅하다가 한번씩 만날 수 있으니 아래 내용 AI한테 복붙해서 넣어서 알려달라고하셈 ㅇ**
+
+| # | 증상 | 원인 | 해결 (v1.1 반영 여부) |
+|---|---|---|---|
+| 1 | os_driver 가 몇 초 만에 exit -6 (abort), `Field 'WINDOW' not found` | ouster-ros ros2 브랜치 HEAD(SDK 0.16.x)가 FW 3.2 전용 필드를 접근 — 보유 센서는 OS1-32 **FW 2.5.3** | 드라이버를 **릴리스 태그 ros2-v0.13.2 로 핀** (반영됨). 센서 펌웨어를 3.x 로 올리면 최신 드라이버 사용 가능하나 미검증 |
+| 2 | 노드는 도는데 `ros2 topic list` 가 텅 빔 | docker run 의 ROS_DOMAIN_ID=20 을 **Clearpath setup.bash 가 0 으로 덮어씀** → CLI(20) 와 노드(0) 도메인 불일치 | env 를 주지 않고 0 으로 통일 (운영 방침) |
+| 3 | SDL 기반 joy 노드: 장치는 열리는데(`Opened joystick`) /joy 이벤트가 전혀 안 흐름 | 헤드리스 컨테이너에서 SDL 이벤트 루프 먹통 | **joy_linux(커널 js 직독) 로 전환** (반영됨) |
+| 4 | eno1 에 192.168.131.1 을 nmcli 로 줘도 재부팅/재연결 시 사라짐 | 이 프로필이 **netplan 생성물**이라 netplan 이 dhcp4:true 로 계속 원복 | **netplan 파일 자체 수정** (dhcp4:false + addresses) 후 `netplan apply` |
+| 5 | Nav2 controller: `No critics defined for FollowPath` | 노드를 네임스페이스(/a200_0000)로 띄우면 params yaml 키가 FQN 과 안 맞아 **통째로 무시**됨 | launch 에서 **RewrittenYaml(root_key=ns)** 적용 (반영됨) |
+| 6 | costmap: `frame "odom" does not exist` | Clearpath Jazzy 기본값 `enable_odom_tf: False` (자체 localization 전제) → odom→base_link TF 발행자 없음 | 이미지 빌드 시 control.yaml 을 **True 로 패치** (반영됨) |
+| 7 | slam_toolbox 가 살아있는데 scan 구독도 map 발행도 안 함 | **Jazzy 에서 lifecycle 노드로 전환됨** — configure/activate 없이는 UNCONFIGURED 로 잠듦 | launch 에 **재시도 루프 기반 lifecycle 활성화** 내장 (반영됨, 로그 마커 "slam_toolbox lifecycle up") |
+| 8 | /a200_0000/map 이 안 보임 (SLAM 은 정상) | slam_toolbox 가 map 토픽을 **절대경로 /map** 으로 발행해 네임스페이스 탈출 | launch 리매핑으로 /a200_0000/map 에 가둠 (반영됨) |
+| 9 | controller_manager Overrun WARN 폭주 | A200 의 pl2303 USB-시리얼이 느려 20 Hz 제어 루프가 밀림 | **정상 동작** (주행 가능). 거슬리면 제어 주기 하향 검토 — 미반영 |
+| 10 | 패드 재접속 후 /joy 침묵 (장치 노드는 존재) | 재열거로 js 노드가 새로 생기는데 joy 노드가 **죽은 옛 핸들**을 쥠. BT "반죽음"(연결 표시만 되고 입력 리포트 없음) 세션도 관측됨 | **teleop_supervisor**: 본체 js 노드를 /proc 에서 추적 + inode 변화 감지 시 joy_linux 자동 재기동 (반영됨). 반죽음 상태 자체는 패드 재접속(PS 버튼) 시 재열거되며 함께 복구됨. 상시 운용은 USB-C 직결이 가장 확실 |
+| 11 | RealSense 노드가 파라미터에서 죽거나 /camera/color/image 가 빈 토픽 | realsense-ros 4.5x 에서 `depth_module.profile` → `depth_module.depth_profile` 개명 + 토픽이 `/camera/realsense_camera/...` 아래로 발행되어 옛 리매핑 키가 미스매치 | 파라미터명/리매핑 FQN 교정 (**v1.1** 반영) |
+| 12 | Ouster: 붙었다가 죽음 / 스캔은 오는데 SLAM 이 드랍 | (a) `mtp_dest`(멀티캐스트 전용)가 유니캐스트 구성에 섞임 (b) 센서 내부 클럭 스탬프가 시스템 시각 TF 와 어긋남 | (a) mtp_dest 제거 (b) `timestamp_mode: TIME_FROM_ROS_TIME` (반영됨) |
+
+---
+
