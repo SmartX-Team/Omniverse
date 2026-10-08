@@ -1,0 +1,17 @@
+# 인스턴스 Pod(default SA)가 oos-sim/wander-config ConfigMap 을 읽을 수 있게 하는 최소 RBAC. 1회 적용.
+#   kubectl apply -f wander-config-rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: wander-config-reader, namespace: oos-sim }
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["wander-config"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: wander-config-reader, namespace: oos-sim }
+subjects:
+  - { kind: ServiceAccount, name: default, namespace: oos-sim }
+roleRef: { kind: Role, name: wander-config-reader, apiGroup: rbac.authorization.k8s.io }

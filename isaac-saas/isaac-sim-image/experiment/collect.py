@@ -37,15 +37,19 @@ def pods(ns, label):
     return out
 
 
-def meta_from_log(ns, pod, container="isaac-sim"):
-    log = sh(f"kubectl -n {ns} logs {pod} -c {container} --tail=5000")
-    lines = [l for l in log.splitlines() if "[wander]" in l and " META {" in l]
-    if not lines:
-        return None
-    try:
-        return json.loads(lines[-1].split("META ", 1)[1])
-    except Exception:
-        return None
+def meta_from_log(ns, pod, container="isaac-sim", run_id=None):
+    """마지막 META(또는 run_id 일치하는 META). v6 에이전트는 run 마다 META 를 남기므로 run_id 로 고른다."""
+    log = sh(f"kubectl -n {ns} logs {pod} -c {container} --tail=20000")
+    metas = []
+    for l in log.splitlines():
+        if "[wander]" in l and " META {" in l:
+            try:
+                metas.append(json.loads(l.split("META ", 1)[1]))
+            except Exception:
+                pass
+    if run_id:
+        metas = [m for m in metas if m.get("run_id") == run_id]
+    return metas[-1] if metas else None
 
 
 # ------------------------------------------------------------------ prometheus
@@ -78,6 +82,21 @@ class Prom:
         r = self.instant(q, at)
         return float(r[0]["value"][1]) if r else float("nan")
 
+    def node_label(self, node_name):
+        """k8s nodeName -> node-exporter `node` 라벨값 (정확 일치 → 접두 일치 → 원값)."""
+        if not hasattr(self, "_nodes"):
+            try:
+                self._nodes = json.loads(urllib.request.urlopen(
+                    f"{self.base}/api/v1/label/node/values", timeout=30).read().decode())["data"]
+            except Exception:
+                self._nodes = []
+        if node_name in self._nodes:
+            return node_name
+        for v in self._nodes:
+            if v.startswith(node_name) or node_name.startswith(v):
+                return v
+        return node_name
+
     def label(self, q, at, name):
         r = self.instant(q, at)
         return r[0]["metric"].get(name, "") if r else ""
@@ -109,7 +128,8 @@ def window_row(prom, sess, win_i, ws, we):
     r["tcp_retrans"] = prom.scalar(f'sum(increase(node_netstat_Tcp_RetransSegs{{app="{app}"}}[{WIN}s]))', we)
     # --- node CPU (monitoring-ns node-exporter, node label = k8s nodeName) ---
     if sess.get("node"):
-        q = f'100*(1-avg(rate(node_cpu_seconds_total{{mode="idle",node="{sess["node"]}"}}[2m])))'
+        nl = prom.node_label(sess["node"])
+        q = f'100*(1-avg(rate(node_cpu_seconds_total{{mode="idle",node="{nl}"}}[2m])))'
         m, sd, mx, _ = stats(prom.series_values(q, ws, we, 60))
         r["node_cpu_mean"], r["node_cpu_max"] = m, mx
     # --- GPU (DCGM, UUID label) ---
@@ -173,7 +193,10 @@ def main():
     ap.add_argument("--start", type=int, help="META 없을 때 수동 START epoch")
     ap.add_argument("--instances", help="쉼표 구분 인스턴스명 필터 (기본: 라벨 전부)")
     ap.add_argument("--uuid", action="append", default=[], help="META 없을 때 GPU UUID 지정: --uuid scripttest=GPU-xxxx (반복 가능)")
+    ap.add_argument("--run-id", help="v6 에이전트 run_id (해당 run 의 META 만 사용, 출력은 out/<run_id>/)")
     a = ap.parse_args()
+    if a.run_id:
+        a.out = os.path.join(a.out, a.run_id)
     os.makedirs(a.out, exist_ok=True)
     prom = Prom(a.prom)
     uuid_map = dict(x.split("=", 1) for x in a.uuid)
@@ -184,10 +207,11 @@ def main():
     for p in pods(a.ns, a.label):
         if a.instances and p["instance"] not in a.instances.split(","):
             continue
-        m = meta_from_log(a.ns, p["pod"])
+        m = meta_from_log(a.ns, p["pod"], run_id=a.run_id)
         if m:
             p.update({"uuid": m.get("uuid", ""), "start": m["start"], "end": m["end"],
-                      "complete": m.get("complete"), "windows": m.get("windows") or []})
+                      "complete": m.get("complete"), "windows": m.get("windows") or [],
+                      "cond": m.get("cond", {})})
         elif a.start:
             s = a.start + WARMUP
             p.update({"uuid": uuid_map.get(p["instance"], ""), "start": a.start, "end": a.start + WARMUP + WIN * NWIN, "complete": None,
@@ -224,9 +248,11 @@ def main():
     with open(f"{a.out}/meta_{tag}.json", "w", encoding="utf-8") as f:
         json.dump(sessions, f, ensure_ascii=False, indent=1)
     with open(f"{a.out}/README_{tag}.md", "w", encoding="utf-8") as f:
-        f.write(f"# E4 동시 {a.n}세션 — 취합 {datetime.datetime.now(KST):%Y-%m-%d %H:%M} KST\n\n")
+        f.write(f"# E4 동시 {a.n}세션{' · ' + a.run_id if a.run_id else ''} — 취합 {datetime.datetime.now(KST):%Y-%m-%d %H:%M} KST\n\n")
         f.write(f"- Prometheus: {a.prom}\n- 창: warmup {WARMUP}s 제외, {WIN}s x {NWIN}\n")
-        f.write(f"- 세션: " + ", ".join(f"{s['instance']}({s['node']})" for s in sessions) + "\n\n")
+        f.write(f"- 세션: " + ", ".join(f"{s['instance']}({s['node']})" for s in sessions) + "\n")
+        conds = {json.dumps(s.get("cond", {}), sort_keys=True) for s in sessions}
+        f.write(f"- 조건(META cond, {'동일' if len(conds) == 1 else '세션별 상이!'}): " + " | ".join(sorted(conds)) + "\n\n")
         f.write("| sessions | model | n_inst | n_win | Tx (Mbps) | GPU util (%) | NVENC (%) | VRAM max (GiB) | node CPU (%) | drops | errors | retrans |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n")
         for r in summ:
             f.write(f"| {r['sessions']} | {r['model']} | {r['n_instances']} | {r['n_windows']} | {r['tx_mbps']} | {r['gpu_util']} | {r['nvenc']} | {r['vram_max_gib']} | {r['node_cpu']} | {r['drops']:.0f} | {r['errors']:.0f} | {r['tcp_retrans']:.0f} |\n")
